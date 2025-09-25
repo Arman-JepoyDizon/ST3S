@@ -21,9 +21,9 @@ router.get('/dashboard', adminController.getDashboard);
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);
-router.get('/products/add', adminController.getAddProductPage); 
-router.post('/products/add', adminController.postAddProduct); 
-
+router.get('/products/add', adminController.getAddProductPage);
+router.post('/products/add', adminController.postAddProduct);
+router.post('/products/delete/:id', adminController.deleteProduct); // This route is now active
 
 
 module.exports = router;
