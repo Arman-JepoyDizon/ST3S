@@ -1,0 +1,5 @@
+# Server Port
+PORT= 6000
+
+# MongoDB 
+MONGO_URI="mongodb+srv://ST3S-WARP-2025:WiRJamAl@miras.b7cs5no.mongodb.net/ST3S?retryWrites=true&w=majority&appName=Miras"
