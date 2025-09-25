@@ -1,7 +1,15 @@
-<%- include('../partials/header') %>
+<%- include('../partials/adminHeader') %>
 
-<h1>Admin Dashboard</h1>
-<p class="lead">Welcome, Admin!</p>
+<%- include('../partials/adminNavbar') %>
 
+<div class="d-flex">
+    <%- include('../partials/adminSidebar') %>
 
-<%- include('../partials/footer') %>
+    <main class="flex-grow-1 p-4">
+        <h1>Admin Dashboard</h1>
+        <p class="lead">Welcome, Admin!</p>
+        <hr>
+        </main>
+</div>
+
+<%- include('../partials/adminFooter') %>
