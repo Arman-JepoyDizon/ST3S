@@ -4,7 +4,6 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 
-// --- Middleware for Admin Role Check ---
 const isAdmin = (req, res, next) => {
     if (req.session.user && req.session.user.role === 'Admin') {
         return next();
@@ -14,7 +13,7 @@ const isAdmin = (req, res, next) => {
 
 router.use(isAdmin);
 
-// --- Admin Routes ---
+
 
 // Admin Dashboard Route
 router.get('/dashboard', adminController.getDashboard);
@@ -23,7 +22,9 @@ router.get('/dashboard', adminController.getDashboard);
 router.get('/products', adminController.getProducts);
 router.get('/products/add', adminController.getAddProductPage);
 router.post('/products/add', adminController.postAddProduct);
-router.post('/products/delete/:id', adminController.deleteProduct); // This route is now active
+router.get('/products/edit/:id', adminController.getEditProductPage); 
+router.post('/products/update/:id', adminController.postUpdateProduct); 
+router.post('/products/delete/:id', adminController.deleteProduct);
 
 
 module.exports = router;
