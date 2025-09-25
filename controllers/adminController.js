@@ -10,10 +10,7 @@ const getDashboard = (req, res) => {
 
 const getProducts = async (req, res) => {
     try {
-        // Fetch all products from the database, sorting by the newest ones first
         const products = await Product.find({}).sort({ createdAt: 'desc' });
-        
-        // Render the product page and pass the list of products to it
         res.render('admin/products', {
             user: req.session.user,
             products: products 
@@ -24,7 +21,42 @@ const getProducts = async (req, res) => {
     }
 };
 
+
+const getAddProductPage = (req, res) => {
+    res.render('admin/addProduct', {
+        user: req.session.user
+    });
+};
+
+
+const postAddProduct = async (req, res) => {
+    try {
+        // Destructure the data from the form body
+        const { name, description, price, category, imageUrl } = req.body;
+        
+        // Create a new product instance
+        const newProduct = new Product({
+            name,
+            description,
+            price,
+            category,
+            imageUrl
+        });
+
+        // Save the new product to the database
+        await newProduct.save();
+
+        // Redirect back to the main products page
+        res.redirect('/admin/products');
+    } catch (error) {
+        console.error('Error adding product:', error);
+        res.status(500).send('Server error while adding product.');
+    }
+};
+
 module.exports = {
     getDashboard,
-    getProducts
+    getProducts,
+    getAddProductPage,
+    postAddProduct
 };

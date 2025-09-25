@@ -16,11 +16,14 @@ router.use(isAdmin);
 
 // --- Admin Routes ---
 
-
+// Admin Dashboard Route
 router.get('/dashboard', adminController.getDashboard);
 
+// Product Management Routes
+router.get('/products', adminController.getProducts);
+router.get('/products/add', adminController.getAddProductPage); 
+router.post('/products/add', adminController.postAddProduct); 
 
-router.get('/products', adminController.getProducts); 
 
 
 module.exports = router;
