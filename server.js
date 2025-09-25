@@ -2,12 +2,9 @@
 require('dotenv').config();
 
 // dpndcs
-const express = 'express';
+const express = require('express');
 const mongoose = require('mongoose');
 
-//ROUTES ETO
-const adminRoutes = require('./routes/adminRoutes');
-const frontlineRoutes = require('./routes/frontlineRoutes');
 
 // Initialization
 const app = express();
@@ -21,10 +18,7 @@ app.use(express.static('public'));
 // VIEW EJS
 app.set('view engine', 'ejs');
 
-//Use Routes
-app.use('/admin', adminRoutes);
-app.use('/', frontlineRoutes);
-
+//ROUTES
 
 // MONGO
 mongoose.connect(process.env.MONGO_URI)
