@@ -1,16 +1,27 @@
+// File: routes/frontlineRoutes.js
+
 const express = require('express');
 const router = express.Router();
+const frontlineController = require('../controllers/frontlineController');
 
-// Frontline Controller Dto Soon
-// const frontlineController = require('../controllers/frontlineController');
+// --- meddleware ---
 
-// Main Order Screen Route
-router.get('/', /* frontlineController.getOrderScreen */);
+const isAuthenticated = (req, res, next) => {
+    if (req.session.user) {
+        return next();
+    }
+    res.redirect('/login');
+};
+
+// --- Public Routes  ETO---
+router.get('/login', frontlineController.getLoginPage);
+router.post('/login', frontlineController.postLogin);
+router.get('/logout', frontlineController.logoutUser);
+
+// --- Protected Front Liner Routes ---
+
+router.get('/', isAuthenticated, frontlineController.getOrderScreen);
 
 
-router.post('/order/place', /* frontlineController.placeOrder */);
-
-// View Today's Sales Route
-router.get('/sales/today', /* frontlineController.getTodaysSales */);
 
 module.exports = router;
