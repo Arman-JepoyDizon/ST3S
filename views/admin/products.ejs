@@ -7,7 +7,7 @@
     <main class="flex-grow-1 p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1>Product Management</h1>
-            <button class="btn btn-primary">Add New Product</button>
+            <a href="/admin/products/add" class="btn btn-primary">Add New Product</a>
         </div>
         <hr>
 
@@ -29,9 +29,11 @@
                                     <td><%= product.name %></td>
                                     <td><%= product.category %></td>
                                     <td>₱<%= product.price.toFixed(2) %></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-warning">Edit</button>
-                                        <button class="btn btn-sm btn-danger">Delete</button>
+                                    <td class="d-flex gap-2">
+                                        <a href="#" class="btn btn-sm btn-warning">Edit</a>
+                                        <form action="/admin/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');">
+                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                        </form>
                                     </td>
                                 </tr>
                             <% }) %>
