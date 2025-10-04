@@ -2,7 +2,8 @@
 
 const Product = require('../models/product');
 const Price = require('../models/price');
-const User = require('../models/user')
+const User = require('../models/user');
+const { resolveInclude } = require('ejs');
 // @desc    Show the admin dashboard page
 // @route   GET /admin/dashboard
 // @access  Private (Admin Only)
@@ -104,7 +105,7 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-const getAddUserPage = async (req, res) => {
+const getUserPage = async (req, res) => {
     try{
         const users = await User.find({}).sort({createdAt: 'desc'})
         res.render('./admin/users',{user: req.session.user, users: users})
@@ -114,6 +115,74 @@ const getAddUserPage = async (req, res) => {
     }
 }
 
+const getAddUserPage = async (req, res) => {
+    try{
+        res.render('addUser',{user:req.session.user})
+    }catch(error){
+        console.error(error)
+        res.status(500).json({message: "Error Getting Add User Page", type: "error"})
+    }
+}
+
+const postAddUser = async (req, res) => {
+    try{
+        const {username, password, passwordRepeat, role} = req.body
+        if(password != passwordRepeat){
+            return res.status(400).json({message: "Passwords do not match", type: "error"})
+        }
+        const newUser = await User.create({username: username, role: role, password: password})
+        if(!newUser){
+            return res.status(500).json({message: "Error Creating User", type: "error"})
+        }
+        return res.status(200).json({message: "User Created Successfully", type: "success"})
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error Creating User", type: "error"})
+    }
+}
+
+const getUserEditPage = async (req, res) => {
+    try{
+        const id = req.params.id
+        const user = await User.findById(id)
+        if(!user){
+            return res.status(400).json({message: "User not found", type: "error"})
+        }
+        return res.render('editUser', {user: req.session.user, user_details: user})
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error getting edit user page", type:"error"})
+    }
+}
+
+const postUserEdit = async (req, res)=>{
+    try{
+        const id = req.params.id
+        const {username, role} = req.body
+        const updatedUser = await User.findOneAndUpdate(id, {username:username, role:role})
+        if(!updatedUser){
+            return res.status(400).json({message:"Error Updating user: User Not Found", type: "error"})
+        }
+        return res.status(200).json({message: 'User Updated Successfully', type: 'success'})
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error Updating User", type: "error"})
+    }
+}
+
+const postUserDelete = (req, res) => {
+    try{
+        const id = req.params.id
+        const deletedUser = User.findByIdAndDelete(id)
+        if(!deletedUser){
+            return res.status(400).json({message: "Error deleting user: User not found", type: "error"})
+        }
+        return res.status(200).json({message: "User Deleted Successfully", type: "success"})
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error delting user", type: "error"})
+    }
+}
 module.exports = {
     getDashboard,
     getProducts,
@@ -122,5 +191,10 @@ module.exports = {
     getEditProductPage,
     postUpdateProduct,
     deleteProduct,
+    getUserPage,
     getAddUserPage,
+    postAddUser,
+    getUserEditPage,
+    postUserEdit,
+    postUserDelete
 };

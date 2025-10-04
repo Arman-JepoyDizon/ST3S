@@ -25,6 +25,12 @@ router.post('/products/add', adminController.postAddProduct);
 router.get('/products/edit/:id', adminController.getEditProductPage); 
 router.post('/products/update/:id', adminController.postUpdateProduct); 
 router.post('/products/delete/:id', adminController.deleteProduct);
-router.get('/users', adminController.getAddUserPage)
+//User Management Routes
+router.get('/users', adminController.getUserPage);
+router.get('/users/add', adminController.getAddUserPage);
+router.post('/users/add', adminController.getAddUserPage);
+router.get('/users/edit/:id', adminController.getAddUserPage);
+router.post('/users/edit/:id', adminController.getAddUserPage);
+router.post('/users/delete', adminController.getAddUserPage);
 
 module.exports = router;
