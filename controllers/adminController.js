@@ -1,7 +1,8 @@
 // File: controllers/adminController.js
 
 const Product = require('../models/product');
-
+const Price = require('../models/price');
+const User = require('../models/user')
 // @desc    Show the admin dashboard page
 // @route   GET /admin/dashboard
 // @access  Private (Admin Only)
@@ -40,9 +41,15 @@ const getAddProductPage = (req, res) => {
 const postAddProduct = async (req, res) => {
     try {
         const { name, description, price, category, imageUrl } = req.body;
-        const newProduct = new Product({ name, description, price, category, imageUrl });
-        await newProduct.save();
-        res.redirect('/admin/products');
+        const newProduct = await Product.create({ name, description, price, category, imageUrl });
+        const newProductPrice = await Price.create({productId: newProduct._id, price: price})
+        if(!newProductPrice){
+            return res.status(500).json({message: "Error Creating Price", type: "error"})
+        }
+        if(!newProduct){
+            return res.status(500).json({message: "Error Creating Product", type: "error"})
+        }
+        return res.redirect('/admin/products');
     } catch (error) {
         console.error('Error adding product:', error);
         res.status(500).send('Server error while adding product.');
@@ -68,14 +75,18 @@ const getEditProductPage = async (req, res) => {
 
 const postUpdateProduct = async (req, res) => {
     try {
+        const productId = req.params.id
         const { name, description, price, category, imageUrl } = req.body;
-        await Product.findByIdAndUpdate(req.params.id, {
-            name,
-            description,
-            price,
-            category,
-            imageUrl
-        });
+        const product = await Product.findById(productId);
+        if(!product){
+            return res.status(400).json({message: "Product Not Found", type: "error"})
+        }
+
+        if (product.price != price){
+            await Price.create({productId: productId, price: price})
+        }
+        await Product.findByIdAndUpdate( productId, {name, description, price, category, imageUrl})
+
         res.redirect('/admin/products');
     } catch (error) {
         console.error('Error updating product:', error);
@@ -93,6 +104,16 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+const getAddUserPage = async (req, res) => {
+    try{
+        const users = await User.find({}).sort({createdAt: 'desc'})
+        res.render('./admin/users',{user: req.session.user, users: users})
+    }catch(error){
+        console.error(error)
+        res.status(500).json({message: "Error fetching Users Page", type: "error"})
+    }
+}
+
 module.exports = {
     getDashboard,
     getProducts,
@@ -100,5 +121,6 @@ module.exports = {
     postAddProduct,
     getEditProductPage,
     postUpdateProduct,
-    deleteProduct
+    deleteProduct,
+    getAddUserPage,
 };

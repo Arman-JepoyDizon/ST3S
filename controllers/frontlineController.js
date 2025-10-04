@@ -14,13 +14,13 @@ const postLogin = async (req, res) => {
         const user = await User.findOne({ username });
         if (!user) {
             //default message to might change later
-            return res.status(401).send('Invalid username or password.');
+            return res.status(401).json({message: "User not found", type: "error"});
         }
 
         // 2. comparer nang passwords
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).send('Invalid username or password.');
+            return res.status(401).json({message: "Incorrect Password", type: "error"});
         }
 
         // 3. generate session

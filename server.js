@@ -12,6 +12,7 @@ const path = require('path');
 // Route imports
 const adminRoutes = require('./routes/adminRoutes');
 const frontlineRoutes = require('./routes/frontlineRoutes');
+const bcrypt = require('bcryptjs/dist/bcrypt');
 
 // App Initialization
 const app = express();
@@ -40,7 +41,7 @@ app.use('/', frontlineRoutes); // Mount frontline routes at the root
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
+    .then(async () => {
         console.log('✅ Successfully connected to MongoDB.');
         
         // Start the server only after the DB connection is successful
