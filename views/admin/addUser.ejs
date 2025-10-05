@@ -1,0 +1,57 @@
+<%- include('../partials/adminHeader') %>
+
+<div class="admin-container">
+    <%- include('../partials/adminSidebar', { activePage: 'users' }) %>
+
+    <div class="admin-content">
+        <%- include('../partials/adminNavbar') %>
+
+        <main class="p-3">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3">Add New User</h2>
+                <a href="/admin/users" class="btn btn-outline-secondary">
+                    Back to Users
+                </a>
+            </div>
+
+            <div class="card form-card">
+                <div class="card-body">
+                    <form action="/admin/users/add" method="POST">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                            <label for="username">Username</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="role" name="role" aria-label="User Role">
+                                <option value="Front Line" selected>Frontliner</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                            <label for="role">Role</label>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                                    <label for="password">Password</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="password" class="form-control" id="passwordRepeat" name="passwordRepeat" placeholder="Confirm Password" required>
+                                    <label for="passwordRepeat">Confirm Password</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">Create User</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
+<%- include('../partials/adminFooter') %>

@@ -1,1 +1,292 @@
-/*Global eto na CSS*/
+/* Global CSS Variables */
+:root {
+    --primary-color: #F875AA;
+    --secondary-color: #FFD1E3;
+    --background-color: #FFF5E4;
+    --text-color: #333;
+    --light-gray: #f8f9fa;
+    --white: #ffffff;
+    --border-radius: 12px;
+    --success-color: #198754;
+}
+
+body {
+    font-family: 'Poppins', sans-serif; /* A modern, friendly font. Add Google Font link if needed. */
+}
+
+/* Login Page Styles */
+.login-container {
+    min-height: 100vh;
+    background-color: var(--background-color);
+    padding: 1rem;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 400px;
+    padding: 2.5rem;
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.login-form h1 {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.login-form .form-control,
+.form-card .form-control,
+.form-card .form-select {
+    border-radius: var(--border-radius);
+    border: 1px solid #ddd;
+}
+
+.login-form .form-control:focus,
+.form-card .form-control:focus,
+.form-card .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(248, 117, 170, 0.25);
+}
+
+.login-form .btn-primary,
+.form-card .btn-primary {
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.login-form .btn-primary:hover,
+.form-card .btn-primary:hover {
+    background-color: #e76aa0; /* A slightly darker pink for hover */
+}
+
+/* Admin Layout Styles */
+.admin-container {
+    display: flex;
+    background-color: var(--secondary-color);
+    min-height: 100vh;
+}
+
+.admin-content {
+    flex-grow: 1;
+    padding-bottom: 80px; /* Space for the bottom nav on mobile */
+}
+
+.admin-navbar h1 {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+/* Sidebar (Desktop) */
+.sidebar {
+    width: 280px;
+    background-color: #343a40; /* Dark background */
+    color: var(--white);
+}
+
+.sidebar .nav-link {
+    color: var(--white);
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.sidebar .nav-link:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+    opacity: 1;
+    background-color: var(--primary-color);
+}
+
+/* Bottom Navigation (Mobile) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background-color: var(--white);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+
+.bottom-nav .nav-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d; /* Muted gray */
+    font-size: 0.75rem;
+}
+
+.bottom-nav .nav-link i {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.bottom-nav .nav-link.active {
+    color: var(--primary-color);
+}
+
+/* Dashboard & General Cards */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+}
+
+.main-chart-card {
+    background-color: var(--white);
+}
+
+.main-chart-card img {
+    border-radius: var(--border-radius);
+}
+
+.stat-card-link {
+    text-decoration: none;
+}
+
+.stat-card {
+    background-color: var(--white);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .card-body {
+    z-index: 2;
+}
+
+.stat-card .card-title {
+    font-weight: 700;
+    font-size: 1.75rem;
+}
+
+.stat-card .card-text {
+    color: #6c757d;
+}
+
+.stat-card .stat-icon {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 2.5rem;
+    color: var(--secondary-color);
+    z-index: 1;
+}
+
+/* Recent Orders */
+.recent-orders h2 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.recent-order-card {
+    background-color: var(--white);
+}
+
+.order-status {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.order-status.completed {
+    background-color: #d1e7dd;
+    color: var(--success-color);
+}
+
+/* Page Header */
+.page-header h2 {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.page-header .btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 600;
+    border-radius: var(--border-radius);
+}
+
+/* Product Card */
+.product-card {
+    background-color: var(--white);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.product-card-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.product-card .card-title {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.product-card .card-body {
+    padding: 1rem;
+}
+
+.product-card-actions .btn {
+    font-weight: 600;
+}
+
+/* User Card */
+.user-card {
+    background-color: var(--white);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.user-avatar {
+    font-size: 2.5rem;
+    color: var(--secondary-color);
+}
+
+.user-card .card-title {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* Form Card */
+.form-card {
+    background-color: var(--white);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.form-card .card-body {
+    padding: 2rem;
+}
+
+/* Responsive Adjustments */
+@media (min-width: 768px) {
+    .product-card-img {
+        height: 100%;
+        max-height: 140px;
+    }
+}
+
+@media (min-width: 992px) { /* lg breakpoint */
+    .admin-content {
+        padding-bottom: 0; /* Remove padding for bottom nav */
+    }
+}

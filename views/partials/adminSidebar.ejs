@@ -1,19 +1,27 @@
-<div class="d-flex flex-column flex-shrink-0 p-3 bg-light border-end" style="width: 280px; min-height: calc(100vh - 56px);">
+<div class="sidebar d-none d-lg-flex flex-column flex-shrink-0 p-3">
+    <a href="/admin/dashboard" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+        <span class="fs-4">Mira's ST3S</span>
+    </a>
+    <hr>
     <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item">
-            <a href="/admin/dashboard" class="nav-link active" aria-current="page">
+            <a href="/admin/dashboard" class="nav-link <%= activePage === 'dashboard' ? 'active' : 'text-white' %>">
+                <i class="bi bi-house-door me-2"></i>
                 Dashboard
             </a>
         </li>
         <li>
-            <a href="/admin/products" class="nav-link link-dark">
-                Product Management
+            <a href="/admin/products" class="nav-link <%= activePage === 'products' ? 'active' : 'text-white' %>">
+                <i class="bi bi-box-seam me-2"></i>
+                Products
             </a>
         </li>
         <li>
-            <a href="#" class="nav-link link-dark disabled">
-                User Management
+            <a href="/admin/users" class="nav-link <%= activePage === 'users' ? 'active' : 'text-white' %>">
+                <i class="bi bi-people me-2"></i>
+                Users
             </a>
         </li>
     </ul>
+    <hr>
 </div>

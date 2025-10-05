@@ -1,5 +1,3 @@
-// File: routes/adminRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
@@ -13,8 +11,6 @@ const isAdmin = (req, res, next) => {
 
 router.use(isAdmin);
 
-
-
 // Admin Dashboard Route
 router.get('/dashboard', adminController.getDashboard);
 
@@ -26,5 +22,12 @@ router.get('/products/edit/:id', adminController.getEditProductPage);
 router.post('/products/update/:id', adminController.postUpdateProduct); 
 router.post('/products/delete/:id', adminController.deleteProduct);
 
+// User Management Routes
+router.get('/users', adminController.getUserPage);
+router.get('/users/add', adminController.getAddUserPage);
+router.post('/users/add', adminController.postAddUser);
+router.get('/users/edit/:id', adminController.getUserEditPage); 
+router.post('/users/edit/:id', adminController.postUserEdit);
+router.post('/users/delete/:id', adminController.postUserDelete);
 
 module.exports = router;

@@ -1,6 +1,9 @@
 // File: controllers/adminController.js
 
 const Product = require('../models/product');
+const Price = require('../models/price');
+const User = require('../models/user');
+const { resolveInclude } = require('ejs');
 
 // @desc    Show the admin dashboard page
 // @route   GET /admin/dashboard
@@ -40,9 +43,15 @@ const getAddProductPage = (req, res) => {
 const postAddProduct = async (req, res) => {
     try {
         const { name, description, price, category, imageUrl } = req.body;
-        const newProduct = new Product({ name, description, price, category, imageUrl });
-        await newProduct.save();
-        res.redirect('/admin/products');
+        const newProduct = await Product.create({ name, description, price, category, imageUrl });
+        const newProductPrice = await Price.create({productId: newProduct._id, price: price})
+        if(!newProductPrice){
+            return res.status(500).json({message: "Error Creating Price", type: "error"})
+        }
+        if(!newProduct){
+            return res.status(500).json({message: "Error Creating Product", type: "error"})
+        }
+        return res.redirect('/admin/products');
     } catch (error) {
         console.error('Error adding product:', error);
         res.status(500).send('Server error while adding product.');
@@ -68,14 +77,18 @@ const getEditProductPage = async (req, res) => {
 
 const postUpdateProduct = async (req, res) => {
     try {
+        const productId = req.params.id
         const { name, description, price, category, imageUrl } = req.body;
-        await Product.findByIdAndUpdate(req.params.id, {
-            name,
-            description,
-            price,
-            category,
-            imageUrl
-        });
+        const product = await Product.findById(productId);
+        if(!product){
+            return res.status(400).json({message: "Product Not Found", type: "error"})
+        }
+
+        if (product.price != price){
+            await Price.create({productId: productId, price: price})
+        }
+        await Product.findByIdAndUpdate( productId, {name, description, price, category, imageUrl})
+
         res.redirect('/admin/products');
     } catch (error) {
         console.error('Error updating product:', error);
@@ -93,6 +106,87 @@ const deleteProduct = async (req, res) => {
     }
 };
 
+const getUserPage = async (req, res) => {
+    try{
+        const users = await User.find({}).sort({createdAt: 'desc'})
+        res.render('admin/users',{user: req.session.user, users: users})
+    }catch(error){
+        console.error(error)
+        res.status(500).json({message: "Error fetching Users Page", type: "error"})
+    }
+}
+
+const getAddUserPage = async (req, res) => {
+    try{
+        // FIXED: The path now correctly points to the 'addUser' view in the 'admin' folder
+        res.render('admin/addUser',{user:req.session.user})
+    }catch(error){
+        console.error(error)
+        res.status(500).json({message: "Error Getting Add User Page", type: "error"})
+    }
+}
+
+const postAddUser = async (req, res) => {
+    try{
+        const {username, password, passwordRepeat, role} = req.body
+        if(password != passwordRepeat){
+            return res.status(400).json({message: "Passwords do not match", type: "error"})
+        }
+        const newUser = await User.create({username: username, role: role, password: password})
+        if(!newUser){
+            return res.status(500).json({message: "Error Creating User", type: "error"})
+        }
+        // For now, let's redirect on success for a better user experience with standard forms
+        res.redirect('/admin/users');
+    }catch(error){
+        console.error(error)
+        // A simple error page/message might be better for the user
+        return res.status(500).send("Error creating user. The username might already exist.")
+    }
+}
+
+const getUserEditPage = async (req, res) => {
+    try{
+        const id = req.params.id
+        const user = await User.findById(id)
+        if(!user){
+            return res.status(400).json({message: "User not found", type: "error"})
+        }
+        res.render('admin/editUser', {user: req.session.user, user_details: user})
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error getting edit user page", type:"error"})
+    }
+}
+
+const postUserEdit = async (req, res)=>{
+    try{
+        const id = req.params.id
+        const {username, role} = req.body
+        const updatedUser = await User.findOneAndUpdate({ _id: id }, {username:username, role:role})
+        if(!updatedUser){
+            return res.status(400).json({message:"Error Updating user: User Not Found", type: "error"})
+        }
+        res.redirect('/admin/users');
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error Updating User", type: "error"})
+    }
+}
+
+const postUserDelete = async (req, res) => {
+    try{
+        const id = req.params.id
+        const deletedUser = await User.findByIdAndDelete(id)
+        if(!deletedUser){
+            return res.status(400).json({message: "Error deleting user: User not found", type: "error"})
+        }
+        res.redirect('/admin/users');
+    }catch(error){
+        console.error(error)
+        return res.status(500).json({message: "Error deleting user", type: "error"})
+    }
+}
 module.exports = {
     getDashboard,
     getProducts,
@@ -100,5 +194,11 @@ module.exports = {
     postAddProduct,
     getEditProductPage,
     postUpdateProduct,
-    deleteProduct
+    deleteProduct,
+    getUserPage,
+    getAddUserPage,
+    postAddUser,
+    getUserEditPage,
+    postUserEdit,
+    postUserDelete
 };

@@ -1,15 +1,114 @@
 <%- include('../partials/adminHeader') %>
 
-<%- include('../partials/adminNavbar') %>
+<div class="admin-container">
+    <%- include('../partials/adminSidebar', { activePage: 'dashboard' }) %>
 
-<div class="d-flex">
-    <%- include('../partials/adminSidebar') %>
+    <div class="admin-content">
+        <%- include('../partials/adminNavbar') %>
 
-    <main class="flex-grow-1 p-4">
-        <h1>Admin Dashboard</h1>
-        <p class="lead">Welcome, Admin!</p>
-        <hr>
+        <main class="p-3">
+            <div class="card main-chart-card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Last 7 Days Sales</h5>
+                    <img src="https://via.placeholder.com/800x300.png/FFD1E3/F875AA?text=Sales+Chart+Placeholder" class="img-fluid" alt="Sales chart placeholder">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <a href="#" class="stat-card-link">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <h3 class="card-title">₱0.00</h3>
+                                <p class="card-text">Today's Revenue</p>
+                                <i class="bi bi-cash-coin stat-icon"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6 mb-3">
+                    <a href="#" class="stat-card-link">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <h3 class="card-title">0</h3>
+                                <p class="card-text">Today's Orders</p>
+                                <i class="bi bi-receipt stat-icon"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6 mb-3">
+                    <a href="/admin/products" class="stat-card-link">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <h3 class="card-title">12</h3>
+                                <p class="card-text">Total Products</p>
+                                <i class="bi bi-box-seam stat-icon"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6 mb-3">
+                    <a href="/admin/users" class="stat-card-link">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <h3 class="card-title">0</h3>
+                                <p class="card-text">Total Users</p>
+                                <i class="bi bi-people stat-icon"></i>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="recent-orders mt-4">
+                <h2 class="h4">Recent Orders</h2>
+                <div class="card recent-order-card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Order #12345</h6>
+                                <small class="text-muted">3 items • 10:32 AM</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₱450.00</span>
+                                <div class="order-status completed">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card recent-order-card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Order #12344</h6>
+                                <small class="text-muted">1 item • 10:25 AM</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₱120.00</span>
+                                <div class="order-status completed">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="card recent-order-card mb-2">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Order #12343</h6>
+                                <small class="text-muted">5 items • 10:19 AM</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold">₱800.00</span>
+                                <div class="order-status completed">Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
 </div>
 
+<%- include('../partials/adminBottomNav', { activePage: 'dashboard' }) %>
 <%- include('../partials/adminFooter') %>

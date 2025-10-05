@@ -1,24 +1,5 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/admin/dashboard">Mira's ST3S - Admin Panel</a>
-        
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbarContent" aria-controls="adminNavbarContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="adminNavbarContent">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <% if (typeof user !== 'undefined' && user) { %>
-                    <li class="nav-item">
-                        <span class="navbar-text me-3">
-                            Welcome, <%= user.username %>
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-primary" href="/logout">Logout</a>
-                    </li>
-                <% } %>
-            </ul>
+<nav class="admin-navbar">
+    <div class="container-fluid p-3">
+        <h1 class="h2">Hello Admin</h1>
         </div>
-    </div>
 </nav>
