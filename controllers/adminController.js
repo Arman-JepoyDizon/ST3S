@@ -74,7 +74,6 @@ const getEditProductPage = async (req, res) => {
     }
 };
 
-
 const postUpdateProduct = async (req, res) => {
     try {
         const productId = req.params.id
@@ -163,10 +162,14 @@ const postUserEdit = async (req, res)=>{
     try{
         const id = req.params.id
         const {username, role} = req.body
+        if(!username || !role){
+            res.return(400).json({message: "Missing Field, please enter required Fields", type: "error"})
+        }
         const updatedUser = await User.findOneAndUpdate({ _id: id }, {username:username, role:role})
         if(!updatedUser){
             return res.status(400).json({message:"Error Updating user: User Not Found", type: "error"})
         }
+        console.log("User Updated")
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
@@ -181,6 +184,7 @@ const postUserDelete = async (req, res) => {
         if(!deletedUser){
             return res.status(400).json({message: "Error deleting user: User not found", type: "error"})
         }
+        console.log("User Deleted Successfully")
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
