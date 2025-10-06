@@ -3,11 +3,8 @@
 const Product = require('../models/product');
 const Price = require('../models/price');
 const User = require('../models/user');
-const Transaction = require('../models/transaction'); // Added Transaction model
+const Transaction = require('../models/transaction'); 
 
-// @desc    Show the admin dashboard (now the product list)
-// @route   GET /admin/dashboard
-// @access  Private (Admin Only)
 const getDashboard = async (req, res) => {
     try {
         const products = await Product.find({}).sort({ createdAt: 'desc' });
@@ -22,9 +19,7 @@ const getDashboard = async (req, res) => {
     }
 };
 
-// @desc    Show the sales analytics page
-// @route   GET /admin/analytics
-// @access  Private (Admin Only)
+
 const getAnalyticsPage = async (req, res) => {
     try {
         // --- Calculate Stats ---
@@ -54,13 +49,13 @@ const getAnalyticsPage = async (req, res) => {
             // Look up product details (like name)
             {
                 $lookup: {
-                    from: 'products', // The name of the products collection
+                    from: 'products',
                     localField: '_id',
                     foreignField: '_id',
                     as: 'productDetails'
                 }
             },
-            // Deconstruct the productDetails array
+         
             { $unwind: '$productDetails' }
         ]);
 
@@ -77,11 +72,11 @@ const getAnalyticsPage = async (req, res) => {
         res.render('admin/dashboard', { 
             user: req.session.user,
             activePage: 'analytics',
-            // Pass calculated data to the view
+        
             totalSales,
             totalOrders,
             bestSellers,
-            // Pass chart data to the view
+    
             salesTrendData,
             topProductsData
         });
@@ -92,9 +87,6 @@ const getAnalyticsPage = async (req, res) => {
     }
 };
 
-// @desc    Show product management page with all products
-// @route   GET /admin/products
-// @access  Private (Admin Only)
 const getProducts = async (req, res) => {
     try {
         const products = await Product.find({}).sort({ createdAt: 'desc' });
@@ -109,9 +101,7 @@ const getProducts = async (req, res) => {
     }
 };
 
-// @desc    Show the page for adding a new product
-// @route   GET /admin/products/add
-// @access  Private (Admin Only)
+
 const getAddProductPage = (req, res) => {
     res.render('admin/addProduct', {
         user: req.session.user,
@@ -119,9 +109,7 @@ const getAddProductPage = (req, res) => {
     });
 };
 
-// @desc    Process the form submission for a new product
-// @route   POST /admin/products/add
-// @access  Private (Admin Only)
+
 const postAddProduct = async (req, res) => {
     try {
         const { name, description, price, category, imageUrl } = req.body;
@@ -221,7 +209,7 @@ const postAddUser = async (req, res) => {
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
-        return res.status(500).send("Error creating user. The username might already exist.")
+        return res.status(500).send("Error creating user.")
     }
 }
 

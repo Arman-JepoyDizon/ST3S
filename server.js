@@ -4,7 +4,7 @@
 require('dotenv').config();
 
 // Dependencies
-const express = require('express'); // <-- FIX IS HERE
+const express = require('express'); 
 const mongoose = require('mongoose');
 const session = require('express-session');
 const path = require('path');

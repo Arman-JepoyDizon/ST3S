@@ -21,7 +21,7 @@ router.get('/logout', frontlineController.logoutUser);
 router.get('/', isAuthenticated, frontlineController.getOrderScreen);
 router.get('/product/:id', isAuthenticated, frontlineController.getProductDetailPage);
 router.get('/cart', isAuthenticated, frontlineController.getCartPage);
-router.get('/sales', isAuthenticated, frontlineController.getSalesPage); // This line was missing
+router.get('/sales', isAuthenticated, frontlineController.getSalesPage); 
 
 // API route for creating an order
 router.post('/orders', isAuthenticated, frontlineController.createOrder);
