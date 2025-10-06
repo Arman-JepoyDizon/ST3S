@@ -3,6 +3,8 @@
 const Product = require('../models/product');
 const Price = require('../models/price');
 const User = require('../models/user');
+const Category = require('../models/category');
+
 const { resolveInclude } = require('ejs');
 
 // @desc    Show the admin dashboard page
@@ -31,9 +33,10 @@ const getProducts = async (req, res) => {
 // @desc    Show the page for adding a new product
 // @route   GET /admin/products/add
 // @access  Private (Admin Only)
-const getAddProductPage = (req, res) => {
+const getAddProductPage = async (req, res) => {
+    const categories = await Category.find()
     res.render('admin/addProduct', {
-        user: req.session.user
+        user: req.session.user, categories: categories
     });
 };
 
@@ -191,6 +194,81 @@ const postUserDelete = async (req, res) => {
         return res.status(500).json({message: "Error deleting user", type: "error"})
     }
 }
+
+const getCategories = async (req, res) => {
+    try{
+        const categories = await Category.find()
+        res.render('./admin/categories',{user: req.session.user, categories: categories})
+    }catch(error){
+        console.log("Error getting categories page: ",error)
+        res.status(500).json({message: "Error Getting Categories", type: "error"})
+    }
+}
+
+const getAddCategoryPage = async (req, res) => {
+    try{
+        res.render('./admin/addCategory',{user: req.session.user})
+    }catch(error){
+        console.log("Error getting add category page: ",error)
+        res.status(500).json({message: "Error Getting Add Category Page", type: "error"})
+    }
+}
+
+const getEditCategoryPage = async (req, res) => {
+    try{
+        const id = req.params.id
+        const category_details = await Category.findById(id)
+        res.render('./admin/editCategory',{user: req.session.user, category_details: category_details})
+    }catch(error){
+        console.log("Error getting edit category page: ",error)
+        res.status(500).json({message: "Error Getting Edit Category Page", type: "error"})
+    }
+}
+
+const postAddCategory = async (req, res) => {
+    try{
+        const {name} = req.body
+        const newCategory = await Category.create({name})
+        if(!newCategory){
+            res.status(500).json({message: "Error Creating Category"})
+        }
+        console.log("Added Category")
+        res.status(2000).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Creating Category",error)
+        res.status(500).json({message: "Error Adding Category", type: "error"})
+    }
+}
+
+const postEditCategory = async (req, res) => {
+    try{
+        const id = req.params.id
+        const {name} = req.body
+        const updatedCategory = await Category.findByIdAndUpdate(id, {name})
+        if(!updatedCategory){
+            res.status(500).json({message: "Error Updating Category"})
+        }
+        res.status(200).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Editing Category: ",error)
+        res.status(500).json({message: "Error Editing Category", type: "error"})
+    }
+}
+
+const postDeletedCategory = async (req, res) => {
+    try{
+        const id = req.params.id
+        const deletedCategory = await Category.findByIdAndDelete(id)
+        if(!deletedCategory){
+            res.status(500).json({message: "Error Deleting Category"})
+        }
+        res.status(200).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Deleting Category: ",error)
+        res.status(500).json({message: "Error Deleting Category", type: "error"})
+    }
+}
+
 module.exports = {
     getDashboard,
     getProducts,
@@ -204,5 +282,11 @@ module.exports = {
     postAddUser,
     getUserEditPage,
     postUserEdit,
-    postUserDelete
+    postUserDelete,
+    getCategories,
+    getAddCategoryPage,
+    getEditCategoryPage,
+    postAddCategory,
+    postEditCategory,
+    postDeletedCategory,
 };

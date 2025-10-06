@@ -30,4 +30,11 @@ router.get('/users/edit/:id', adminController.getUserEditPage);
 router.post('/users/edit/:id', adminController.postUserEdit);
 router.post('/users/delete/:id', adminController.postUserDelete);
 
+//Category Management Routes
+router.get('/categories', adminController.getCategories)
+router.get('/categories/add', adminController.getAddCategoryPage)
+router.get('/categories/edit/:id', adminController.getEditCategoryPage)
+router.post('/categories/edit/:id', adminController.postEditCategory)
+router.post('/categories/add', adminController.postAddCategory)
+router.post('/categories/delete/:id', adminController.postDeletedCategory)
 module.exports = router;
