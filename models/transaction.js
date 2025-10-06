@@ -27,6 +27,11 @@ const transactionSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['Pending', 'Completed', 'Cancelled'],
+        default: 'Pending'
     }
 }, { timestamps: true });
 

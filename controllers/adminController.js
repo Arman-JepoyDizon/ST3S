@@ -3,13 +3,93 @@
 const Product = require('../models/product');
 const Price = require('../models/price');
 const User = require('../models/user');
-const { resolveInclude } = require('ejs');
+const Transaction = require('../models/transaction'); // Added Transaction model
 
-// @desc    Show the admin dashboard page
+// @desc    Show the admin dashboard (now the product list)
 // @route   GET /admin/dashboard
 // @access  Private (Admin Only)
-const getDashboard = (req, res) => {
-    res.render('admin/dashboard', { user: req.session.user });
+const getDashboard = async (req, res) => {
+    try {
+        const products = await Product.find({}).sort({ createdAt: 'desc' });
+        res.render('admin/products', {
+            user: req.session.user,
+            products: products,
+            activePage: 'dashboard' 
+        });
+    } catch (error) {
+        console.error('Error fetching products for dashboard:', error);
+        res.status(500).send('Server error while fetching products.');
+    }
+};
+
+// @desc    Show the sales analytics page
+// @route   GET /admin/analytics
+// @access  Private (Admin Only)
+const getAnalyticsPage = async (req, res) => {
+    try {
+        // --- Calculate Stats ---
+        const totalOrders = await Transaction.countDocuments();
+        
+        const salesData = await Transaction.aggregate([
+            { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
+        ]);
+        const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
+
+        // --- Calculate Best Sellers ---
+        const bestSellers = await Transaction.aggregate([
+            // Deconstruct the items array
+            { $unwind: '$items' },
+            // Group by product, summing quantity and revenue
+            { 
+                $group: { 
+                    _id: '$items.productId',
+                    totalQuantity: { $sum: '$items.quantity' },
+                    totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+                } 
+            },
+            // Sort by quantity sold
+            { $sort: { totalQuantity: -1 } },
+            // Limit to top 5
+            { $limit: 5 },
+            // Look up product details (like name)
+            {
+                $lookup: {
+                    from: 'products', // The name of the products collection
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productDetails'
+                }
+            },
+            // Deconstruct the productDetails array
+            { $unwind: '$productDetails' }
+        ]);
+
+        // --- Placeholder Chart Data (for now) ---
+        const salesTrendData = {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            data: [120, 190, 300, 500, 200, 350, 400]
+        };
+        const topProductsData = {
+            labels: bestSellers.map(p => p.productDetails.name),
+            data: bestSellers.map(p => p.totalQuantity)
+        };
+
+        res.render('admin/dashboard', { 
+            user: req.session.user,
+            activePage: 'analytics',
+            // Pass calculated data to the view
+            totalSales,
+            totalOrders,
+            bestSellers,
+            // Pass chart data to the view
+            salesTrendData,
+            topProductsData
+        });
+
+    } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        res.status(500).send('Server error');
+    }
 };
 
 // @desc    Show product management page with all products
@@ -20,7 +100,8 @@ const getProducts = async (req, res) => {
         const products = await Product.find({}).sort({ createdAt: 'desc' });
         res.render('admin/products', {
             user: req.session.user,
-            products: products 
+            products: products,
+            activePage: 'products'
         });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -33,7 +114,8 @@ const getProducts = async (req, res) => {
 // @access  Private (Admin Only)
 const getAddProductPage = (req, res) => {
     res.render('admin/addProduct', {
-        user: req.session.user
+        user: req.session.user,
+        activePage: 'products'
     });
 };
 
@@ -66,7 +148,8 @@ const getEditProductPage = async (req, res) => {
         }
         res.render('admin/editProduct', {
             user: req.session.user,
-            product: product
+            product: product,
+            activePage: 'products'
         });
     } catch (error) {
         console.error('Error fetching product for edit:', error);
@@ -109,7 +192,7 @@ const deleteProduct = async (req, res) => {
 const getUserPage = async (req, res) => {
     try{
         const users = await User.find({}).sort({createdAt: 'desc'})
-        res.render('admin/users',{user: req.session.user, users: users})
+        res.render('admin/users',{user: req.session.user, users: users, activePage: 'users'})
     }catch(error){
         console.error(error)
         res.status(500).json({message: "Error fetching Users Page", type: "error"})
@@ -118,8 +201,7 @@ const getUserPage = async (req, res) => {
 
 const getAddUserPage = async (req, res) => {
     try{
-        // FIXED: The path now correctly points to the 'addUser' view in the 'admin' folder
-        res.render('admin/addUser',{user:req.session.user})
+        res.render('admin/addUser',{user:req.session.user, activePage: 'users'})
     }catch(error){
         console.error(error)
         res.status(500).json({message: "Error Getting Add User Page", type: "error"})
@@ -136,11 +218,9 @@ const postAddUser = async (req, res) => {
         if(!newUser){
             return res.status(500).json({message: "Error Creating User", type: "error"})
         }
-        // For now, let's redirect on success for a better user experience with standard forms
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
-        // A simple error page/message might be better for the user
         return res.status(500).send("Error creating user. The username might already exist.")
     }
 }
@@ -152,7 +232,7 @@ const getUserEditPage = async (req, res) => {
         if(!user){
             return res.status(400).json({message: "User not found", type: "error"})
         }
-        res.render('admin/editUser', {user: req.session.user, user_details: user})
+        res.render('admin/editUser', {user: req.session.user, user_details: user, activePage: 'users'})
     }catch(error){
         console.error(error)
         return res.status(500).json({message: "Error getting edit user page", type:"error"})
@@ -189,6 +269,7 @@ const postUserDelete = async (req, res) => {
 }
 module.exports = {
     getDashboard,
+    getAnalyticsPage,
     getProducts,
     getAddProductPage,
     postAddProduct,

@@ -1,114 +1,164 @@
 <%- include('../partials/adminHeader') %>
 
 <div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'dashboard' }) %>
+    <%- include('../partials/adminSidebar', { activePage: 'analytics' }) %>
 
     <div class="admin-content">
         <%- include('../partials/adminNavbar') %>
 
         <main class="p-3">
-            <div class="card main-chart-card mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Last 7 Days Sales</h5>
-                    <img src="https://via.placeholder.com/800x300.png/FFD1E3/F875AA?text=Sales+Chart+Placeholder" class="img-fluid" alt="Sales chart placeholder">
-                </div>
+            <div class="page-header mb-3">
+                <h2 class="h3 mb-0">Sales Analytics</h2>
+                <p class="text-muted">Track your business performance</p>
+            </div>
+
+            <div class="d-flex mb-4">
+                <button class="btn btn-primary fw-bold me-2">Week</button>
+                <button class="btn btn-outline-secondary fw-bold me-2">Month</button>
+                <button class="btn btn-outline-secondary fw-bold">Year</button>
             </div>
 
             <div class="row">
-                <div class="col-6 mb-3">
-                    <a href="#" class="stat-card-link">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <h3 class="card-title">₱0.00</h3>
-                                <p class="card-text">Today's Revenue</p>
-                                <i class="bi bi-cash-coin stat-icon"></i>
+                <div class="col-12 mb-3">
+                    <div class="card stat-card-revamp">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon-wrapper bg-success-light">
+                                    <i class="bi bi-currency-dollar text-success-dark"></i>
+                                </div>
+                                <div class="ms-3">
+                                    <p class="card-text text-muted mb-0">Total Sales</p>
+                                    <h3 class="card-title mb-0">₱<%= totalSales.toFixed(2) %></h3>
+                                </div>
                             </div>
                         </div>
-                    </a>
+                    </div>
                 </div>
-                <div class="col-6 mb-3">
-                    <a href="#" class="stat-card-link">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <h3 class="card-title">0</h3>
-                                <p class="card-text">Today's Orders</p>
-                                <i class="bi bi-receipt stat-icon"></i>
+                <div class="col-12 mb-3">
+                    <div class="card stat-card-revamp">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="stat-icon-wrapper bg-primary-light">
+                                    <i class="bi bi-receipt text-primary"></i>
+                                </div>
+                                <div class="ms-3">
+                                    <p class="card-text text-muted mb-0">Total Orders</p>
+                                    <h3 class="card-title mb-0"><%= totalOrders %></h3>
+                                </div>
                             </div>
                         </div>
-                    </a>
+                    </div>
                 </div>
-                <div class="col-6 mb-3">
-                    <a href="/admin/products" class="stat-card-link">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <h3 class="card-title">12</h3>
-                                <p class="card-text">Total Products</p>
-                                <i class="bi bi-box-seam stat-icon"></i>
-                            </div>
-                        </div>
-                    </a>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Sales Trend</h5>
+                    <canvas id="salesTrendChart"></canvas>
                 </div>
-                <div class="col-6 mb-3">
-                    <a href="/admin/users" class="stat-card-link">
-                        <div class="card stat-card">
-                            <div class="card-body">
-                                <h3 class="card-title">0</h3>
-                                <p class="card-text">Total Users</p>
-                                <i class="bi bi-people stat-icon"></i>
-                            </div>
-                        </div>
-                    </a>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Top Products</h5>
+                    <canvas id="topProductsChart" style="max-height: 250px;"></canvas>
                 </div>
             </div>
             
-            <div class="recent-orders mt-4">
-                <h2 class="h4">Recent Orders</h2>
-                <div class="card recent-order-card mb-2">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">Order #12345</h6>
-                                <small class="text-muted">3 items • 10:32 AM</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="fw-bold">₱450.00</span>
-                                <div class="order-status completed">Completed</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <div class="card recent-order-card mb-2">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">Order #12344</h6>
-                                <small class="text-muted">1 item • 10:25 AM</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="fw-bold">₱120.00</span>
-                                <div class="order-status completed">Completed</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                 <div class="card recent-order-card mb-2">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">Order #12343</h6>
-                                <small class="text-muted">5 items • 10:19 AM</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="fw-bold">₱800.00</span>
-                                <div class="order-status completed">Completed</div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Best Sellers</h5>
+                    <% if (bestSellers && bestSellers.length > 0) { %>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span class="fw-bold text-muted small">PRODUCT</span>
+                                <span class="fw-bold text-muted small">REVENUE</span>
+                            </li>
+                            <% bestSellers.forEach(item => { %>
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <div>
+                                        <p class="mb-0 fw-bold"><%= item.productDetails.name %></p>
+                                        <small class="text-muted"><%= item.totalQuantity %> sold</small>
+                                    </div>
+                                    <span class="fw-bold">₱<%= item.totalRevenue.toFixed(2) %></span>
+                                </li>
+                            <% }) %>
+                        </ul>
+                    <% } else { %>
+                        <p class="text-muted">No sales data available yet.</p>
+                    <% } %>
                 </div>
             </div>
+
         </main>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'dashboard' }) %>
+<%- include('../partials/adminBottomNav', { activePage: 'analytics' }) %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Get data from EJS ---
+        const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
+        const topProductsData = <%- JSON.stringify(topProductsData) %>;
+
+        // --- 1. Sales Trend Bar Chart ---
+        const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+        new Chart(salesTrendCtx, {
+            type: 'bar',
+            data: {
+                labels: salesTrendData.labels,
+                datasets: [{
+                    label: 'Sales',
+                    data: salesTrendData.data,
+                    backgroundColor: '#FF0066',
+                    borderColor: '#FF0066',
+                    borderWidth: 1,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // --- 2. Top Products Pie Chart ---
+        const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+        new Chart(topProductsCtx, {
+            type: 'pie',
+            data: {
+                labels: topProductsData.labels,
+                datasets: [{
+                    label: 'Quantity Sold',
+                    data: topProductsData.data,
+                    backgroundColor: [
+                        '#FF0066',
+                        '#FFD1E3',
+                        '#F875AA',
+                        '#343a40',
+                        '#6c757d'
+                    ],
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                 plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    });
+</script>
+
 <%- include('../partials/adminFooter') %>
