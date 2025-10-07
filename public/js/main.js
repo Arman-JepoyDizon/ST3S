@@ -170,31 +170,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // --- PLACE ORDER LOGIC ---
-        const placeOrderBtn = document.querySelector('.place-order-footer button');
+         const placeOrderBtn = document.querySelector('.place-order-footer button');
         placeOrderBtn.addEventListener('click', () => {
             if (cart.length === 0) {
                 alert('Your cart is empty.');
                 return;
             }
 
+            const customerName = document.getElementById('customer-name-input').value;
+
             fetch('/orders', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ cart: cart }),
+                // Send both the cart and the customer name
+                body: JSON.stringify({ 
+                    cart: cart,
+                    customerName: customerName 
+                }),
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Clear the cart
                     cart = [];
                     saveCart();
-                    // Show success message and redirect
                     alert(`Order placed successfully! Your Order ID is: ${data.orderId}`);
                     window.location.href = '/';
                 } else {
-                    // Show error message
                     alert(`Error placing order: ${data.message}`);
                 }
             })

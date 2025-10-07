@@ -11,6 +11,8 @@
     --success-color: #198754;
     --success-light: #E0F8F0;
     --success-dark: #008A5E;
+    --danger-bg: #FEECEB;
+    --danger-text: #D92D20;
     --admin-bg: #EBEBFF;
     --admin-text: #5856D6;
     --frontliner-bg: #DFF2FF;
@@ -19,6 +21,8 @@
     --cook-text: #FF9500;
     --pending-bg: #FFF9E5;
     --pending-text: #FFB800;
+    --ready-bg: #DFF2FF;
+    --ready-text: #007AFF;
 }
 
 body {
@@ -516,6 +520,9 @@ body {
 .transaction-card {
     background-color: var(--white);
 }
+.customer-name-display {
+    font-size: 0.95rem;
+}
 .badge-status-pending {
     background-color: var(--pending-bg);
     color: var(--pending-text);
@@ -523,6 +530,116 @@ body {
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
+}
+.badge-status-ready {
+    background-color: var(--ready-bg);
+    color: var(--ready-text);
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-status-completed {
+    background-color: var(--success-light);
+    color: var(--success-dark);
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-status-cancelled {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.btn-transaction-action {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 50px;
+}
+
+/* Cook Interface */
+
+.cook-main-content {
+    padding: 0 1rem 1rem 1rem;
+}
+.cook-summary-card {
+    border-left: 5px solid var(--primary-color);
+}
+.summary-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+.order-card-cook {
+    background-color: var(--white);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-top: 5px solid #eee;
+    transition: border-color 0.3s ease;
+}
+.order-card-cook.is-urgent {
+    border-top-color: var(--danger-text);
+}
+.order-card-cook .card-header {
+    background-color: var(--white);
+    border-bottom: 1px solid #eee;
+    padding: 1rem 1.25rem;
+}
+.badge-urgent {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.order-card-cook .card-body {
+    padding: 1.25rem;
+    background-color: var(--light-gray);
+}
+.order-item-card-cook {
+    background-color: var(--white);
+    border: 1px solid #eee;
+    box-shadow: none;
+}
+.order-item-card-cook .card-body {
+    padding: 0.75rem 1rem;
+    background-color: var(--white);
+}
+.item-quantity {
+    font-weight: 700;
+    margin-right: 1rem;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+.item-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.order-card-cook .card-footer {
+    background-color: var(--white);
+    border-top: 1px solid #eee;
+    padding: 1.25rem;
+}
+.btn-ready {
+    font-weight: 600;
+    background-color: var(--success-dark);
+    border-color: var(--success-dark);
+}
+.btn-ready:hover {
+    background-color: #007a4e;
+    border-color: #007a4e;
 }
 
 /* Responsive Adjustments */

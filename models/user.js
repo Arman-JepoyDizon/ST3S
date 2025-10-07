@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Admin', 'Front Liner', 'cook'],
+        enum: ['Admin', 'Front Liner', 'Cook'],
         default: 'Front Liner'
     }
 }, { timestamps: true });

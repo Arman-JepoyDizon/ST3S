@@ -3,38 +3,23 @@
 const Product = require('../models/product');
 const Price = require('../models/price');
 const User = require('../models/user');
+const Category = require('../models/category');
 const Transaction = require('../models/transaction'); 
-
-const getDashboard = async (req, res) => {
-    try {
-        const products = await Product.find({}).sort({ createdAt: 'desc' });
-        res.render('admin/products', {
-            user: req.session.user,
-            products: products,
-            activePage: 'dashboard' 
-        });
-    } catch (error) {
-        console.error('Error fetching products for dashboard:', error);
-        res.status(500).send('Server error while fetching products.');
-    }
-};
-
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        // --- Calculate Stats ---
+        // --- Calculate Stats (remains the same) ---
         const totalOrders = await Transaction.countDocuments();
-        
         const salesData = await Transaction.aggregate([
+            { $match: { status: 'Completed' } },
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
-        // --- Calculate Best Sellers ---
+        // --- Calculate Best Sellers (remains the same) ---
         const bestSellers = await Transaction.aggregate([
-            // Deconstruct the items array
+            { $match: { status: 'Completed' } },
             { $unwind: '$items' },
-            // Group by product, summing quantity and revenue
             { 
                 $group: { 
                     _id: '$items.productId',
@@ -42,11 +27,8 @@ const getAnalyticsPage = async (req, res) => {
                     totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 } 
             },
-            // Sort by quantity sold
             { $sort: { totalQuantity: -1 } },
-            // Limit to top 5
             { $limit: 5 },
-            // Look up product details (like name)
             {
                 $lookup: {
                     from: 'products',
@@ -55,15 +37,45 @@ const getAnalyticsPage = async (req, res) => {
                     as: 'productDetails'
                 }
             },
-         
             { $unwind: '$productDetails' }
         ]);
+        
+        // --- Calculate Sales Trend Data (remains the same) ---
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // --- Placeholder Chart Data (for now) ---
-        const salesTrendData = {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            data: [120, 190, 300, 500, 200, 350, 400]
-        };
+        const dailySales = await Transaction.aggregate([
+            { $match: { status: 'Completed', createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    dailyTotal: { $sum: "$totalAmount" }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+        const labels = [];
+        const data = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateString = date.toISOString().split('T')[0];
+            
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            data.push(salesMap.get(dateString) || 0);
+        }
+
+        // --- Fetch Recent Transactions (Limit changed to 3) ---
+        const recentTransactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .limit(3) // Limit changed from 5 to 3
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name');
+
+        const salesTrendData = { labels, data };
         const topProductsData = {
             labels: bestSellers.map(p => p.productDetails.name),
             data: bestSellers.map(p => p.totalQuantity)
@@ -72,13 +84,12 @@ const getAnalyticsPage = async (req, res) => {
         res.render('admin/dashboard', { 
             user: req.session.user,
             activePage: 'analytics',
-        
             totalSales,
             totalOrders,
             bestSellers,
-    
             salesTrendData,
-            topProductsData
+            topProductsData,
+            recentTransactions
         });
 
     } catch (error) {
@@ -87,9 +98,28 @@ const getAnalyticsPage = async (req, res) => {
     }
 };
 
+const getOrdersPage = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name'); // Added populate for item names
+
+        res.render('admin/orders', {
+            user: req.session.user,
+            transactions: transactions,
+            activePage: 'orders'
+        });
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({}).sort({ createdAt: 'desc' });
+        const products = await Product.find({}).populate('category', 'name')
         res.render('admin/products', {
             user: req.session.user,
             products: products,
@@ -101,11 +131,10 @@ const getProducts = async (req, res) => {
     }
 };
 
-
-const getAddProductPage = (req, res) => {
+const getAddProductPage = async (req, res) => {
+    const categories = await Category.find()
     res.render('admin/addProduct', {
-        user: req.session.user,
-        activePage: 'products'
+        user: req.session.user, categories: categories
     });
 };
 
@@ -130,6 +159,7 @@ const postAddProduct = async (req, res) => {
 
 const getEditProductPage = async (req, res) => {
     try {
+        const categories = await Category.find()
         const product = await Product.findById(req.params.id);
         if (!product) {
             return res.status(404).send('Product not found.');
@@ -137,6 +167,7 @@ const getEditProductPage = async (req, res) => {
         res.render('admin/editProduct', {
             user: req.session.user,
             product: product,
+            categories: categories,
             activePage: 'products'
         });
     } catch (error) {
@@ -144,7 +175,6 @@ const getEditProductPage = async (req, res) => {
         res.status(500).send('Server error.');
     }
 };
-
 
 const postUpdateProduct = async (req, res) => {
     try {
@@ -199,6 +229,15 @@ const getAddUserPage = async (req, res) => {
 const postAddUser = async (req, res) => {
     try{
         const {username, password, passwordRepeat, role} = req.body
+        const existingUser = await User.findOne({username: username})
+        if(!username || !password || !passwordRepeat || !role){
+            return res.status(400).json({message: "Missing Field, please enter required Fields", type: "error"})
+        }
+
+        if(existingUser){
+            return res.status(400).json({message: "Username already exists", type: "error"})
+        }
+
         if(password != passwordRepeat){
             return res.status(400).json({message: "Passwords do not match", type: "error"})
         }
@@ -231,10 +270,14 @@ const postUserEdit = async (req, res)=>{
     try{
         const id = req.params.id
         const {username, role} = req.body
+        if(!username || !role){
+            res.return(400).json({message: "Missing Field, please enter required Fields", type: "error"})
+        }
         const updatedUser = await User.findOneAndUpdate({ _id: id }, {username:username, role:role})
         if(!updatedUser){
             return res.status(400).json({message:"Error Updating user: User Not Found", type: "error"})
         }
+        console.log("User Updated")
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
@@ -249,14 +292,89 @@ const postUserDelete = async (req, res) => {
         if(!deletedUser){
             return res.status(400).json({message: "Error deleting user: User not found", type: "error"})
         }
+        console.log("User Deleted Successfully")
         res.redirect('/admin/users');
     }catch(error){
         console.error(error)
         return res.status(500).json({message: "Error deleting user", type: "error"})
     }
 }
+
+const getCategories = async (req, res) => {
+    try{
+        const categories = await Category.find()
+        res.render('./admin/categories',{user: req.session.user, categories: categories})
+    }catch(error){
+        console.log("Error getting categories page: ",error)
+        res.status(500).json({message: "Error Getting Categories", type: "error"})
+    }
+}
+
+const getAddCategoryPage = async (req, res) => {
+    try{
+        res.render('./admin/addCategory',{user: req.session.user})
+    }catch(error){
+        console.log("Error getting add category page: ",error)
+        res.status(500).json({message: "Error Getting Add Category Page", type: "error"})
+    }
+}
+
+const getEditCategoryPage = async (req, res) => {
+    try{
+        const id = req.params.id
+        const category_details = await Category.findById(id)
+        res.render('./admin/editCategory',{user: req.session.user, category_details: category_details})
+    }catch(error){
+        console.log("Error getting edit category page: ",error)
+        res.status(500).json({message: "Error Getting Edit Category Page", type: "error"})
+    }
+}
+
+const postAddCategory = async (req, res) => {
+    try{
+        const {name} = req.body
+        const newCategory = await Category.create({name})
+        if(!newCategory){
+            res.status(500).json({message: "Error Creating Category"})
+        }
+        console.log("Added Category")
+        res.status(2000).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Creating Category",error)
+        res.status(500).json({message: "Error Adding Category", type: "error"})
+    }
+}
+
+const postEditCategory = async (req, res) => {
+    try{
+        const id = req.params.id
+        const {name} = req.body
+        const updatedCategory = await Category.findByIdAndUpdate(id, {name})
+        if(!updatedCategory){
+            res.status(500).json({message: "Error Updating Category"})
+        }
+        res.status(200).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Editing Category: ",error)
+        res.status(500).json({message: "Error Editing Category", type: "error"})
+    }
+}
+
+const postDeletedCategory = async (req, res) => {
+    try{
+        const id = req.params.id
+        const deletedCategory = await Category.findByIdAndDelete(id)
+        if(!deletedCategory){
+            res.status(500).json({message: "Error Deleting Category"})
+        }
+        res.status(200).redirect('/admin/categories')
+    }catch(error){
+        console.log("Error Deleting Category: ",error)
+        res.status(500).json({message: "Error Deleting Category", type: "error"})
+    }
+}
+
 module.exports = {
-    getDashboard,
     getAnalyticsPage,
     getProducts,
     getAddProductPage,
@@ -269,5 +387,12 @@ module.exports = {
     postAddUser,
     getUserEditPage,
     postUserEdit,
-    postUserDelete
+    postUserDelete,
+    getCategories,
+    getAddCategoryPage,
+    getEditCategoryPage,
+    postAddCategory,
+    postEditCategory,
+    postDeletedCategory,
+    getOrdersPage
 };

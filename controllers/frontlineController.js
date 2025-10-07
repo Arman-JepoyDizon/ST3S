@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const Product = require('../models/product');
 const Transaction = require('../models/transaction');
+const Category = require('../models/category');
 
 const getLoginPage = (req, res) => {
     res.render('login', { user: req.session.user });
@@ -51,10 +52,23 @@ const logoutUser = (req, res) => {
 
 const getOrderScreen = async (req, res) => {
     try {
-        const products = await Product.find({}).sort({ category: 1, name: 1 });
+        const categoryFilter = req.query.category;
+        let products = [];
+        if(categoryFilter){
+            const category = await Category.findOne({name: categoryFilter});
+            if(!category){
+                return res.status(400).send('Invalid category filter');
+            }
+            products = await Product.find({category: category._id}).sort({category: 1, name: 1})
+        }else{
+            products = await Product.find({}).sort({ category: 1, name: 1 });
+        }
+        const categories = await Category.find({}).sort({ name: 1 });
         res.render('frontline/index', { 
             user: req.session.user,
             products: products,
+            categories: categories,
+            categoryFilter: categoryFilter,
             activePage: 'products'
         });
     } catch (error) {
@@ -97,17 +111,23 @@ const getSalesPage = async (req, res) => {
 
         const todaysTransactions = await Transaction.find({
             createdAt: { $gte: startOfDay, $lte: endOfDay }
-        }).sort({ createdAt: -1 });
+        })
+        .sort({ createdAt: -1 })
+        .populate('createdBy', 'username')
+        .populate('items.productId', 'name'); // Added populate for item names
 
-        const totalSales = todaysTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
+        const completedTransactions = todaysTransactions.filter(t => t.status === 'Completed');
+        const totalSales = completedTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
         const totalOrders = todaysTransactions.length;
+        const totalCompletedOrders = completedTransactions.length;
 
         res.render('frontline/sales', {
             user: req.session.user,
             activePage: 'sales',
             transactions: todaysTransactions,
             totalSales: totalSales,
-            totalOrders: totalOrders
+            totalOrders: totalOrders,
+            totalCompletedOrders: totalCompletedOrders
         });
     } catch (error) {
         console.error('Error fetching today\'s sales:', error);
@@ -117,7 +137,7 @@ const getSalesPage = async (req, res) => {
 
 const createOrder = async (req, res) => {
     try {
-        const { cart } = req.body;
+        const { cart, customerName } = req.body; // Receive customerName
 
         if (!cart || cart.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
@@ -141,6 +161,7 @@ const createOrder = async (req, res) => {
         });
 
         const newTransaction = new Transaction({
+            customerName: customerName, // Save the customerName
             items: orderItems,
             totalAmount: serverTotalAmount,
             createdBy: req.session.user.id
@@ -160,6 +181,29 @@ const createOrder = async (req, res) => {
     }
 };
 
+const completeOrder = async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+        await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
+        res.redirect('/sales');
+    } catch (error) {
+        console.error('Error completing order:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+const cancelOrder = async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+        await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
+        res.redirect('/sales');
+    } catch (error) {
+        console.error('Error cancelling order:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+
 module.exports = {
     getLoginPage,
     postLogin,
@@ -168,5 +212,7 @@ module.exports = {
     getProductDetailPage,
     getCartPage,
     getSalesPage,
-    createOrder
+    createOrder,
+    completeOrder,
+    cancelOrder
 };

@@ -1,0 +1,34 @@
+<%- include('../partials/adminHeader') %>
+
+<div class="admin-container">
+    <%- include('../partials/adminSidebar', { activePage: 'categories' }) %>
+
+    <div class="admin-content">
+        <%- include('../partials/adminNavbar') %>
+
+        <main class="p-3">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3">Add New Category</h2>
+                <a href="/admin/categories" class="btn btn-outline-secondary">
+                    Back to Categories
+                </a>
+            </div>
+
+            <div class="card form-card">
+                <div class="card-body">
+                    <form action="/admin/categories/add" method="POST">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Category Name" required>
+                            <label for="name">Category Name</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">Add Category</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<%- include('../partials/adminBottomNav', { activePage: 'categories' }) %>
+<%- include('../partials/adminFooter') %>

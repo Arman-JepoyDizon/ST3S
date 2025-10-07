@@ -25,6 +25,11 @@
     </header>
 
     <main class="container-fluid cart-main-content">
+        <div class="form-floating mb-4">
+            <input type="text" class="form-control" id="customer-name-input" placeholder="Customer Name (Optional)">
+            <label for="customer-name-input">Customer Name (Optional)</label>
+        </div>
+
         <div id="empty-cart-view" style="display: none; text-align: center; padding-top: 5rem;">
             <div class="empty-cart-icon mb-3">
                 <i class="bi bi-box-seam"></i>
@@ -62,6 +67,7 @@
             </button>
         </div>
     </div>
+    
     <%- include('../partials/frontlineBottomNav') %>
     <%- include('../partials/frontlineFooter') %>
 </body>

@@ -3,6 +3,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const transactionSchema = new Schema({
+    customerName: {
+        type: String,
+        trim: true
+    },
     items: [{
         productId: {
             type: Schema.Types.ObjectId,
@@ -30,7 +34,7 @@ const transactionSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Completed', 'Cancelled'],
+        enum: ['Pending', 'Ready', 'Completed', 'Cancelled'],
         default: 'Pending'
     }
 }, { timestamps: true });

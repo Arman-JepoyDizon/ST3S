@@ -25,7 +25,12 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
-                                    <input type="text" class="form-control" id="category" name="category" placeholder="Category" required>
+                                    <select name="category" id="category" class = "form-select" required>
+                                        <option value="" hidden selected>-- Select Category --</option>
+                                        <%categories.forEach(cat=>{%>
+                                            <option value="<%=cat._id%>" class="form-"><%=cat.name%></option>
+                                        <%})%>
+                                    </select>
                                     <label for="category">Category</label>
                                 </div>
                             </div>

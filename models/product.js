@@ -19,9 +19,9 @@ const productSchema = new mongoose.Schema({
         min: [0, 'Price cannot be negative.']
     },
     category: {
-        type: String,
-        required: [true, 'Product category is required.'],
-        trim: true
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: "Category",
+        required: true,
     },
     imageUrl: {
         type: String,

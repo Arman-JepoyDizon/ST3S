@@ -1,0 +1,69 @@
+<%- include('../partials/cookHeader') %>
+
+<main class="container-fluid cook-main-content">
+
+    <div class="card cook-summary-card mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="summary-icon-wrapper me-3">
+                    <i class="bi bi-fire"></i>
+                </div>
+                <div>
+                    <p class="text-muted mb-0">Active Orders</p>
+                    <h3 class="fw-bold mb-0"><%= orders.length %></h3>
+                </div>
+            </div>
+            <a href="/cook/dashboard" class="btn btn-light btn-circle"><i class="bi bi-arrow-clockwise"></i></a>
+        </div>
+    </div>
+
+
+    <% if (orders && orders.length > 0) { %>
+        <% orders.forEach(order => { %>
+            <% const timeDiffMinutes = (new Date() - new Date(order.createdAt)) / 60000; %>
+            <div class="card order-card-cook mb-4 <%= timeDiffMinutes > 3 ? 'is-urgent' : '' %>">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold mb-0">#<%= order._id.toString().slice(-4).toUpperCase() %></h4>
+                        <% if (timeDiffMinutes > 3) { %>
+                            <span class="badge badge-urgent"><i class="bi bi-exclamation-triangle-fill me-1"></i> URGENT</span>
+                        <% } %>
+                    </div>
+                    <p class="text-muted mb-0"><%= order.customerName || 'Walk-in Customer' %></p>
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i> 
+                        about <%= Math.round(timeDiffMinutes) %> minutes ago
+                    </small>
+                </div>
+                <div class="card-body">
+                    <% order.items.forEach(item => { %>
+                        <div class="card order-item-card-cook mb-2">
+                            <div class="card-body">
+                                <span class="item-quantity"><%= item.quantity %>x</span>
+                                <span class="item-name"><%= item.productId.name %></span>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+                <div class="card-footer">
+                    <form action="/cook/orders/<%= order._id %>/ready" method="POST" class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg btn-ready">
+                            <i class="bi bi-check-circle-fill me-2"></i>Order Ready
+                        </button>
+                    </form>
+                </div>
+            </div>
+        <% }) %>
+    <% } else { %>
+        <div class="text-center text-muted mt-5 pt-5">
+            <div class="empty-cart-icon mb-3">
+                <i class="bi bi-check2-circle"></i>
+            </div>
+            <h3>All caught up!</h3>
+            <p>New orders will appear here.</p>
+        </div>
+    <% } %>
+</main>
+
+<%- include('../partials/cookFooter') %>
+//test

@@ -12,6 +12,7 @@ const path = require('path');
 // Route imports
 const adminRoutes = require('./routes/adminRoutes');
 const frontlineRoutes = require('./routes/frontlineRoutes');
+const cookRoutes = require('./routes/cookRoutes');
 const bcrypt = require('bcryptjs/dist/bcrypt');
 
 // App Initialization
@@ -37,8 +38,8 @@ app.set('views', path.join(__dirname, 'views'));
 
 // --- App Routes ---
 app.use('/admin', adminRoutes);
-app.use('/', frontlineRoutes); // Mount frontline routes at the root
-
+app.use('/', frontlineRoutes); 
+app.use('/cook', cookRoutes); 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(async () => {
