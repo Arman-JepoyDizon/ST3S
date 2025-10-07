@@ -2,17 +2,13 @@
 
 const Transaction = require('../models/transaction');
 
-/**
- * @desc    Get the cook's dashboard with all pending orders
- * @route   GET /cook/dashboard
- * @access  Private (Cook Only)
- */
+
 const getDashboard = async (req, res) => {
     try {
         // Find all transactions that are still pending
         const pendingOrders = await Transaction.find({ status: 'Pending' })
             .sort({ createdAt: 1 }) // Show the oldest orders first (First-In, First-Out)
-            .populate('items.productId', 'name'); // Get the name of each product in the order
+            .populate('items.productId', 'name'); 
 
         res.render('cook/dashboard', {
             user: req.session.user,
@@ -24,22 +20,28 @@ const getDashboard = async (req, res) => {
     }
 };
 
-/**
- * @desc    Update an order's status to 'Ready'
- * @route   POST /cook/orders/:id/ready
- * @access  Private (Cook Only)
- */
+
 const markAsReady = async (req, res) => {
     try {
         const transactionId = req.params.id;
+        const transaction = await Transaction.findById(transactionId);
+        const oldStatus = transaction.status;
+
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Ready' });
-        // Redirect back to the cook's dashboard to refresh the list
+
+        req.io.emit('orderStatusUpdated', { 
+            orderId: transactionId, 
+            oldStatus: oldStatus,
+            newStatus: 'Ready' 
+        });
+
         res.redirect('/cook/dashboard');
     } catch (error) {
         console.error('Error marking order as ready:', error);
         res.status(500).send('Server Error');
     }
 };
+
 
 module.exports = {
     getDashboard,

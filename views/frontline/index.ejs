@@ -2,14 +2,15 @@
 
 <main class="container-fluid frontline-main-content">
     <div class="category-filters mb-4">
-        <a class="btn btn-category <%= categoryFilter ? '' : 'active' %>" href="/">All</a>
-        <% categories.forEach(category => { %>
-            <a class="btn btn-category <%= categoryFilter === category.name ? 'active' : '' %>" href="?category=<%= encodeURIComponent(category.name) %>">
-                <%= category.name %>
-            </a>
-        <% }) %>
+        <a class="btn btn-category <%= !categoryFilter ? 'active' : '' %>" href="/">All</a>
+        <% if (categories && categories.length > 0) { %>
+            <% categories.forEach(category => { %>
+                <a class="btn btn-category <%= categoryFilter === encodeURIComponent(category.name) ? 'active' : '' %>" href="?category=<%= encodeURIComponent(category.name) %>">
+                    <%= category.name %>
+                </a>
+            <% }) %>
+        <% } %>
     </div>
-
 
     <div class="row g-3">
         <% if (products && products.length > 0) { %>
@@ -26,31 +27,35 @@
                                     <%= product.name %>
                                 </a>
                             </h5>
-                            <p class="card-text text-muted small"><%= product.category %></p>
+                            <p class="card-text text-muted small"><%= product.category.name %></p>
                             <p class="card-text fw-bold">₱<%= product.price.toFixed(2) %></p>
                         </div>
                     </div>
                 </div>
             <% }) %>
         <% } else { %>
-            <div class="col-12">
-                <p class="text-center text-muted">No products are available at the moment.</p>
+            <div class="col-12 text-center mt-5">
+                <p class="text-muted">No products found for this category.</p>
             </div>
         <% } %>
     </div>
 </main>
 
-<div class="current-order-bar" id="current-order-bar" style="display: none;">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <p class="mb-0 fw-bold" id="order-bar-items">0 items</p>
-        </div>
-        <div class="d-flex align-items-center">
-            <p class="mb-0 fw-bold me-3" id="order-bar-total">₱0.00</p>
-            <a href="/cart" class="btn btn-light btn-sm">View Cart <i class="bi bi-arrow-right"></i></a>
+<a href="/cart" class="current-order-bar card" id="current-order-bar">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <p class="mb-0 fw-bold">Current Order</p>
+                <small class="text-muted" id="order-bar-items">0 items</small>
+            </div>
+            <div class="text-end">
+                <small class="text-muted">Total</small>
+                <p class="mb-0 fw-bold text-primary fs-5" id="order-bar-total">₱0.00</p>
+            </div>
         </div>
     </div>
-</div>
+</a>
+
 
 <%- include('../partials/frontlineBottomNav') %>
 <%- include('../partials/frontlineFooter') %>

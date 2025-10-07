@@ -10,5 +10,8 @@
     <a href="/sales" class="nav-link <%= (activePage === 'sales') ? 'active' : '' %>">
         <i class="bi bi-cash-coin"></i>
         <span>Sales</span>
+        <% if (locals.readyOrdersCount && readyOrdersCount > 0) { %>
+            <span class="badge rounded-pill bg-danger nav-badge"><%= readyOrdersCount %></span>
+        <% } %>
     </a>
 </nav>
