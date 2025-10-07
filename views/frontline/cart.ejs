@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - Mira's ST3S</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="frontline-body" style="padding-top: 0;">
+
+    <header class="cart-header">
+        <a href="/" class="back-button"><i class="bi bi-arrow-left"></i></a>
+        <div>
+            <h1 class="h4 mb-0 fw-bold">Your Cart</h1>
+            <p class="text-white-50 mb-0" id="cart-header-count">0 items</p>
+        </div>
+    </header>
+
+    <main class="container-fluid cart-main-content">
+        <div id="empty-cart-view" style="display: none; text-align: center; padding-top: 5rem;">
+            <div class="empty-cart-icon mb-3">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <h3>Your cart is empty</h3>
+            <p class="text-muted">Add some delicious items from our menu!</p>
+            <a href="/" class="btn btn-primary mt-3">Back to Menu</a>
+        </div>
+
+        <div id="cart-items-container"></div>
+    </main>
+
+    <div id="cart-summary-wrapper" style="display: none;">
+        <div class="order-summary-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <p class="text-muted">Subtotal</p>
+                    <p class="fw-bold" id="summary-subtotal">₱0.00</p>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <p class="text-muted">Tax & Fees</p>
+                    <p class="fw-bold" id="summary-tax">₱0.00</p>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold">Total</h5>
+                    <h5 class="fw-bold text-primary" id="summary-total">₱0.00</h5>
+                </div>
+            </div>
+        </div>
+
+        <div class="place-order-footer">
+            <button class="btn btn-primary btn-lg w-100 fw-bold">
+                <i class="bi bi-check-circle-fill me-2"></i>Place Order
+            </button>
+        </div>
+    </div>
+    <%- include('../partials/frontlineBottomNav') %>
+    <%- include('../partials/frontlineFooter') %>
+</body>
+</html>

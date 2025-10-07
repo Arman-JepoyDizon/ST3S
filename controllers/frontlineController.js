@@ -1,8 +1,8 @@
-
 const User = require('../models/user');
+const Product = require('../models/product');
+const Transaction = require('../models/transaction');
 
 const getLoginPage = (req, res) => {
-    // We pass the user session to the view for the dynamic navbar
     res.render('login', { user: req.session.user });
 };
 
@@ -10,38 +10,34 @@ const postLogin = async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        // 1. this helps find the user via username
         const user = await User.findOne({ username });
         if (!user) {
-            //default message to might change later
-            return res.status(401).json({message: "User not found", type: "error"});
+            return res.status(401).send("User not found");
         }
 
-        // 2. comparer nang passwords
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).json({message: "Incorrect Password", type: "error"});
+            return res.status(401).send("Incorrect Password");
         }
 
-        // 3. generate session
         req.session.user = {
             id: user._id,
             username: user.username,
             role: user.role
         };
 
-        // 4. redirect sa role based
         if (user.role === 'Admin') {
             res.redirect('/admin/dashboard');
+        } else if (user.role === 'Front Liner') {
+            res.redirect('/');
         } else {
-            res.redirect('/'); // Redirect Front Liner to the main order screen
+            res.redirect('/cook/dashboard');
         }
     } catch (error) {
         console.error(error);
         res.status(500).send('Server error during the login process.');
     }
 };
-
 
 const logoutUser = (req, res) => {
     req.session.destroy(err => {
@@ -53,18 +49,124 @@ const logoutUser = (req, res) => {
     });
 };
 
-const getOrderScreen = (req, res) => {
-    
-    if (!req.session.user || req.session.user.role !== 'Front Liner') {
-        return res.redirect('/login');
+const getOrderScreen = async (req, res) => {
+    try {
+        const products = await Product.find({}).sort({ category: 1, name: 1 });
+        res.render('frontline/index', { 
+            user: req.session.user,
+            products: products,
+            activePage: 'products'
+        });
+    } catch (error) {
+        console.error('Error fetching products for order screen:', error);
+        res.status(500).send('Server Error');
     }
-    res.render('frontline/index', { user: req.session.user });
 };
 
+const getProductDetailPage = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+        res.render('frontline/productDetail', {
+            product: product,
+            user: req.session.user,
+            activePage: 'products'
+        });
+    } catch (error) {
+        console.error('Error fetching product detail:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+const getCartPage = (req, res) => {
+    res.render('frontline/cart', {
+        user: req.session.user,
+        activePage: 'cart'
+    });
+};
+
+const getSalesPage = async (req, res) => {
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const todaysTransactions = await Transaction.find({
+            createdAt: { $gte: startOfDay, $lte: endOfDay }
+        }).sort({ createdAt: -1 });
+
+        const totalSales = todaysTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
+        const totalOrders = todaysTransactions.length;
+
+        res.render('frontline/sales', {
+            user: req.session.user,
+            activePage: 'sales',
+            transactions: todaysTransactions,
+            totalSales: totalSales,
+            totalOrders: totalOrders
+        });
+    } catch (error) {
+        console.error('Error fetching today\'s sales:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+const createOrder = async (req, res) => {
+    try {
+        const { cart } = req.body;
+
+        if (!cart || cart.length === 0) {
+            return res.status(400).json({ success: false, message: 'Cart is empty.' });
+        }
+
+        const productIds = cart.map(item => item.id);
+        const productsFromDB = await Product.find({ '_id': { $in: productIds } });
+
+        let serverTotalAmount = 0;
+        const orderItems = cart.map(cartItem => {
+            const product = productsFromDB.find(p => p._id.toString() === cartItem.id);
+            if (!product) {
+                throw new Error(`Product with ID ${cartItem.id} not found.`);
+            }
+            serverTotalAmount += product.price * cartItem.quantity;
+            return {
+                productId: product._id,
+                quantity: cartItem.quantity,
+                price: product.price
+            };
+        });
+
+        const newTransaction = new Transaction({
+            items: orderItems,
+            totalAmount: serverTotalAmount,
+            createdBy: req.session.user.id
+        });
+
+        await newTransaction.save();
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Order created successfully!',
+            orderId: newTransaction._id 
+        });
+
+    } catch (error) {
+        console.error('Error creating order:', error);
+        res.status(500).json({ success: false, message: 'Server error while creating order.' });
+    }
+};
 
 module.exports = {
     getLoginPage,
     postLogin,
     logoutUser,
-    getOrderScreen
+    getOrderScreen,
+    getProductDetailPage,
+    getCartPage,
+    getSalesPage,
+    createOrder
 };
