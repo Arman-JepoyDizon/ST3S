@@ -25,7 +25,11 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
-                                    <input type="text" class="form-control" id="category" name="category" placeholder="Category" value="<%= product.category %>" required>
+                                    <select name="category" id="category" class = "form-select" required>
+                                        <%categories.forEach(cat=>{%>
+                                            <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
+                                        <%})%>
+                                    </select>
                                     <label for="category">Category</label>
                                 </div>
                             </div>

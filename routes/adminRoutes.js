@@ -12,8 +12,7 @@ const isAdmin = (req, res, next) => {
 router.use(isAdmin);
 
 // Admin Dashboard & Analytics Routes
-router.get('/dashboard', adminController.getDashboard);
-router.get('/analytics', adminController.getAnalyticsPage);
+router.get('/dashboard', adminController.getAnalyticsPage);
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);

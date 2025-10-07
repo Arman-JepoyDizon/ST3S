@@ -6,21 +6,6 @@ const User = require('../models/user');
 const Category = require('../models/category');
 const Transaction = require('../models/transaction'); 
 
-const getDashboard = async (req, res) => {
-    try {
-        const products = await Product.find({}).sort({ createdAt: 'desc' });
-        res.render('admin/products', {
-            user: req.session.user,
-            products: products,
-            activePage: 'dashboard' 
-        });
-    } catch (error) {
-        console.error('Error fetching products for dashboard:', error);
-        res.status(500).send('Server error while fetching products.');
-    }
-};
-
-
 const getAnalyticsPage = async (req, res) => {
     try {
         // --- Calculate Stats ---
@@ -90,7 +75,7 @@ const getAnalyticsPage = async (req, res) => {
 
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({}).sort({ createdAt: 'desc' });
+        const products = await Product.find({}).populate('category', 'name')
         res.render('admin/products', {
             user: req.session.user,
             products: products,
@@ -133,6 +118,7 @@ const postAddProduct = async (req, res) => {
 
 const getEditProductPage = async (req, res) => {
     try {
+        const categories = await Category.find()
         const product = await Product.findById(req.params.id);
         if (!product) {
             return res.status(404).send('Product not found.');
@@ -140,6 +126,7 @@ const getEditProductPage = async (req, res) => {
         res.render('admin/editProduct', {
             user: req.session.user,
             product: product,
+            categories: categories,
             activePage: 'products'
         });
     } catch (error) {
@@ -201,6 +188,15 @@ const getAddUserPage = async (req, res) => {
 const postAddUser = async (req, res) => {
     try{
         const {username, password, passwordRepeat, role} = req.body
+        const existingUser = await User.findOne({username: username})
+        if(!username || !password || !passwordRepeat || !role){
+            return res.status(400).json({message: "Missing Field, please enter required Fields", type: "error"})
+        }
+
+        if(existingUser){
+            return res.status(400).json({message: "Username already exists", type: "error"})
+        }
+
         if(password != passwordRepeat){
             return res.status(400).json({message: "Passwords do not match", type: "error"})
         }
@@ -338,7 +334,6 @@ const postDeletedCategory = async (req, res) => {
 }
 
 module.exports = {
-    getDashboard,
     getAnalyticsPage,
     getProducts,
     getAddProductPage,

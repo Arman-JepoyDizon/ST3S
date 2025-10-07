@@ -2,11 +2,14 @@
 
 <main class="container-fluid frontline-main-content">
     <div class="category-filters mb-4">
-        <button class="btn btn-category active">All</button>
-        <button class="btn btn-category">Main Course</button>
-        <button class="btn btn-category">Desserts</button>
-        <button class="btn btn-category">Beverages</button>
+        <a class="btn btn-category <%= categoryFilter ? '' : 'active' %>" href="/">All</a>
+        <% categories.forEach(category => { %>
+            <a class="btn btn-category <%= categoryFilter === category.name ? 'active' : '' %>" href="?category=<%= encodeURIComponent(category.name) %>">
+                <%= category.name %>
+            </a>
+        <% }) %>
     </div>
+
 
     <div class="row g-3">
         <% if (products && products.length > 0) { %>

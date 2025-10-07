@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const Product = require('../models/product');
 const Transaction = require('../models/transaction');
+const Category = require('../models/category');
 
 const getLoginPage = (req, res) => {
     res.render('login', { user: req.session.user });
@@ -51,10 +52,23 @@ const logoutUser = (req, res) => {
 
 const getOrderScreen = async (req, res) => {
     try {
-        const products = await Product.find({}).sort({ category: 1, name: 1 });
+        const categoryFilter = req.query.category;
+        let products = [];
+        if(categoryFilter){
+            const category = await Category.findOne({name: categoryFilter});
+            if(!category){
+                return res.status(400).send('Invalid category filter');
+            }
+            products = await Product.find({category: category._id}).sort({category: 1, name: 1})
+        }else{
+            products = await Product.find({}).sort({ category: 1, name: 1 });
+        }
+        const categories = await Category.find({}).sort({ name: 1 });
         res.render('frontline/index', { 
             user: req.session.user,
             products: products,
+            categories: categories,
+            categoryFilter: categoryFilter,
             activePage: 'products'
         });
     } catch (error) {
