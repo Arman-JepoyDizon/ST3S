@@ -671,6 +671,7 @@ body {
 .btn-ready:hover {
     background-color: #007a4e;
     border-color: #007a4e;
+    
 }
 
 /* Responsive Adjustments */
@@ -679,3 +680,4 @@ body {
         padding-bottom: 0;
     }
 }
+
