@@ -2,9 +2,14 @@
 
 <div class="login-container d-flex align-items-center justify-content-center">
     <div class="login-form text-center">
-        <h1 class="mb-4">Sign In</h1>
+        <img src="/icons/favicon.png" alt="Mira's ST3S Logo" style="height: 60px; width: 60px;" class="mb-3">
+        <h1 class="mb-1 h3">Welcome Back!</h1>
+        <p class="text-muted mb-4">Sign in to continue to Mira's ST3S</p>
         
-        <form action="/login" method="POST">
+        <div id="login-alert" class="alert alert-danger" role="alert" style="display: none;">
+            </div>
+
+        <form id="login-form">
             <div class="form-floating mb-3">
                 <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
                 <label for="username">Username</label>
@@ -13,9 +18,50 @@
                 <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
                 <label for="password">Password</label>
             </div>
-            <button type="submit" class="btn btn-primary w-100 btn-lg">Sign In</button>
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                Sign In
+            </button>
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('login-form');
+        const alertDiv = document.getElementById('login-alert');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Stop the default form submission
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // If login is successful, redirect to the given URL
+                    window.location.href = data.redirectUrl;
+                } else {
+                    // If there's an error, show the alert message
+                    alertDiv.innerText = data.message;
+                    alertDiv.style.display = 'block';
+                }
+            } catch (error) {
+                // For network errors etc.
+                alertDiv.innerText = 'Could not connect to the server. Please check your connection.';
+                alertDiv.style.display = 'block';
+            }
+        });
+    });
+</script>
 
 <%- include('./partials/footer') %>

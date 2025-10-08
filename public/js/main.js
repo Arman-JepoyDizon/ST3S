@@ -1,5 +1,58 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- REAL-TIME UPDATES ---
+    const socket = io();
+
+    socket.on('newOrder', (newOrder) => {
+        // If the user is on the Cook's dashboard, reload the page to show the new order.
+        if (document.querySelector('.cook-main-content')) {
+            location.reload();
+        }
+    });
+
+    socket.on('orderStatusUpdated', (data) => {
+        // --- Live Badge Update Logic ---
+        const salesNavLink = document.querySelector('.bottom-nav-frontline a[href="/sales"]');
+        if (salesNavLink) {
+            let badge = salesNavLink.querySelector('.nav-badge');
+            let currentCount = badge ? parseInt(badge.innerText) || 0 : 0;
+
+            if (data.oldStatus !== 'Ready' && data.newStatus === 'Ready') {
+                currentCount++;
+            } else if (data.oldStatus === 'Ready' && data.newStatus !== 'Ready') {
+                currentCount--;
+            }
+
+            // Now, create, update, or remove the badge based on the new count
+            if (currentCount > 0) {
+                if (!badge) {
+                    // If the badge doesn't exist, create it
+                    badge = document.createElement('span');
+                    badge.classList.add('badge', 'rounded-pill', 'bg-danger', 'nav-badge');
+                    salesNavLink.appendChild(badge);
+                }
+                badge.innerText = currentCount;
+            } else {
+                // If the count is 0 and the badge exists, remove it
+                if (badge) {
+                    badge.remove();
+                }
+            }
+        }
+
+        // --- Page Reload Logic ---
+        if (
+            document.querySelector('.cook-main-content') || 
+            document.querySelector('.sales-main-content') ||
+            document.querySelector('.admin-content')
+        ) {
+            setTimeout(() => {
+                location.reload();
+            }, 250);
+        }
+    });
+
+
     // --- STATE & CORE FUNCTIONS ---
     let cart = JSON.parse(localStorage.getItem('miraCart')) || [];
 
@@ -7,24 +60,28 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('miraCart', JSON.stringify(cart));
     };
 
-    const updateCartUI = () => {
+     const updateCartUI = () => {
         const cartCountBadge = document.querySelector('.cart-count');
-        if (!cartCountBadge) return;
-
-        let totalItems = 0;
-        cart.forEach(item => { totalItems += item.quantity; });
-        cartCountBadge.innerText = cart.length;
+        if (cartCountBadge) {
+            let totalItems = 0;
+            cart.forEach(item => { totalItems += item.quantity; });
+            cartCountBadge.innerText = cart.length;
+        }
 
         const currentOrderBar = document.getElementById('current-order-bar');
         if (currentOrderBar) {
             if (cart.length > 0) {
+                let totalItems = 0;
                 let totalPrice = 0;
-                cart.forEach(item => { totalPrice += item.price * item.quantity; });
+                cart.forEach(item => {
+                    totalItems += item.quantity;
+                    totalPrice += item.price * item.quantity;
+                });
                 document.getElementById('order-bar-items').innerText = `${totalItems} ${totalItems > 1 ? 'items' : 'item'}`;
                 document.getElementById('order-bar-total').innerText = `₱${totalPrice.toFixed(2)}`;
-                currentOrderBar.style.display = 'block';
+                currentOrderBar.classList.add('show'); // Use .show class for animation
             } else {
-                currentOrderBar.style.display = 'none';
+                currentOrderBar.classList.remove('show'); // Use .show class for animation
             }
         }
     };
@@ -42,6 +99,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- PAGE-SPECIFIC LOGIC ---
+    const menuPage = document.querySelector('.frontline-main-content');
+    if (menuPage) {
+        let lastScrollTop = 0;
+        const currentOrderBar = document.getElementById('current-order-bar');
+
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > lastScrollTop) {
+                // Scrolling Down
+                currentOrderBar.classList.add('is-hidden-on-scroll');
+            } else {
+                // Scrolling Up
+                currentOrderBar.classList.remove('is-hidden-on-scroll');
+            }
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; // For Mobile or negative scrolling
+        }, false);
+    }
+
 
     // Logic for the PRODUCT DETAIL PAGE
     const detailPage = document.querySelector('.product-detail-page');
@@ -171,30 +246,32 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // --- PLACE ORDER LOGIC ---
         const placeOrderBtn = document.querySelector('.place-order-footer button');
+        const successModalEl = document.getElementById('orderSuccessModal');
+        const successModal = new bootstrap.Modal(successModalEl);
         placeOrderBtn.addEventListener('click', () => {
             if (cart.length === 0) {
                 alert('Your cart is empty.');
                 return;
             }
 
+            const customerName = document.getElementById('customer-name-input').value;
+
             fetch('/orders', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ cart: cart }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart: cart, customerName: customerName }),
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Clear the cart
                     cart = [];
                     saveCart();
-                    // Show success message and redirect
-                    alert(`Order placed successfully! Your Order ID is: ${data.orderId}`);
-                    window.location.href = '/';
+                    
+                    // Populate and show the success modal
+                    document.getElementById('success-order-id').innerText = data.orderId.toString().slice(-6).toUpperCase();
+                    successModal.show();
+
                 } else {
-                    // Show error message
                     alert(`Error placing order: ${data.message}`);
                 }
             })
@@ -203,9 +280,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('An error occurred while placing the order. Please try again.');
             });
         });
+
+        // Add listener to redirect after the success modal is hidden
+        successModalEl.addEventListener('hidden.bs.modal', () => {
+            window.location.href = '/';
+        });
         
         renderCartPage();
     }
+
 
     // --- INITIALIZATION ---
     updateCartUI();

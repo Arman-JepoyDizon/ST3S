@@ -8,19 +8,18 @@ const Transaction = require('../models/transaction');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        // --- Calculate Stats ---
+        // --- Calculate Stats (remains the same) ---
         const totalOrders = await Transaction.countDocuments();
-        
         const salesData = await Transaction.aggregate([
+            { $match: { status: 'Completed' } },
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
-        // --- Calculate Best Sellers ---
+        // --- Calculate Best Sellers (remains the same) ---
         const bestSellers = await Transaction.aggregate([
-            // Deconstruct the items array
+            { $match: { status: 'Completed' } },
             { $unwind: '$items' },
-            // Group by product, summing quantity and revenue
             { 
                 $group: { 
                     _id: '$items.productId',
@@ -28,11 +27,8 @@ const getAnalyticsPage = async (req, res) => {
                     totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 } 
             },
-            // Sort by quantity sold
             { $sort: { totalQuantity: -1 } },
-            // Limit to top 5
             { $limit: 5 },
-            // Look up product details (like name)
             {
                 $lookup: {
                     from: 'products',
@@ -41,15 +37,45 @@ const getAnalyticsPage = async (req, res) => {
                     as: 'productDetails'
                 }
             },
-         
             { $unwind: '$productDetails' }
         ]);
+        
+        // --- Calculate Sales Trend Data (remains the same) ---
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // --- Placeholder Chart Data (for now) ---
-        const salesTrendData = {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            data: [120, 190, 300, 500, 200, 350, 400]
-        };
+        const dailySales = await Transaction.aggregate([
+            { $match: { status: 'Completed', createdAt: { $gte: sevenDaysAgo } } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    dailyTotal: { $sum: "$totalAmount" }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+        const labels = [];
+        const data = [];
+
+        for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateString = date.toISOString().split('T')[0];
+            
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            data.push(salesMap.get(dateString) || 0);
+        }
+
+        // --- Fetch Recent Transactions (Limit changed to 3) ---
+        const recentTransactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .limit(3) // Limit changed from 5 to 3
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name');
+
+        const salesTrendData = { labels, data };
         const topProductsData = {
             labels: bestSellers.map(p => p.productDetails.name),
             data: bestSellers.map(p => p.totalQuantity)
@@ -58,13 +84,12 @@ const getAnalyticsPage = async (req, res) => {
         res.render('admin/dashboard', { 
             user: req.session.user,
             activePage: 'analytics',
-        
             totalSales,
             totalOrders,
             bestSellers,
-    
             salesTrendData,
-            topProductsData
+            topProductsData,
+            recentTransactions
         });
 
     } catch (error) {
@@ -72,6 +97,25 @@ const getAnalyticsPage = async (req, res) => {
         res.status(500).send('Server error');
     }
 };
+
+const getOrdersPage = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name'); // Added populate for item names
+
+        res.render('admin/orders', {
+            user: req.session.user,
+            transactions: transactions,
+            activePage: 'orders'
+        });
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
 
 const getProducts = async (req, res) => {
     try {
@@ -87,9 +131,6 @@ const getProducts = async (req, res) => {
     }
 };
 
-// @desc    Show the page for adding a new product
-// @route   GET /admin/products/add
-// @access  Private (Admin Only)
 const getAddProductPage = async (req, res) => {
     const categories = await Category.find()
     res.render('admin/addProduct', {
@@ -353,4 +394,5 @@ module.exports = {
     postAddCategory,
     postEditCategory,
     postDeletedCategory,
+    getOrdersPage
 };

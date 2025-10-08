@@ -13,12 +13,12 @@ const postLogin = async (req, res) => {
 
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(401).send("User not found");
+            return res.status(401).json({ message: "Invalid username or password." });
         }
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).send("Incorrect Password");
+            return res.status(401).json({ message: "Invalid username or password." });
         }
 
         req.session.user = {
@@ -27,16 +27,20 @@ const postLogin = async (req, res) => {
             role: user.role
         };
 
+        
+        let redirectUrl = '/';
         if (user.role === 'Admin') {
-            res.redirect('/admin/dashboard');
-        } else if (user.role === 'Front Liner') {
-            res.redirect('/');
-        } else {
-            res.redirect('/cook/dashboard');
+            redirectUrl = '/admin/dashboard';
+        } else if (user.role === 'Cook') {
+            redirectUrl = '/cook/dashboard';
         }
+
+      
+        return res.status(200).json({ success: true, redirectUrl: redirectUrl });
+
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error during the login process.');
+        console.error('Login Error:', error);
+        return res.status(500).json({ message: 'An internal server error occurred. Please try again later.' });
     }
 };
 
@@ -53,23 +57,27 @@ const logoutUser = (req, res) => {
 const getOrderScreen = async (req, res) => {
     try {
         const categoryFilter = req.query.category;
-        let products = [];
-        if(categoryFilter){
-            const category = await Category.findOne({name: categoryFilter});
-            if(!category){
-                return res.status(400).send('Invalid category filter');
+        const allCategories = await Category.find({});
+        let productQuery = {};
+
+        if (categoryFilter) {
+            const decodedCategoryName = decodeURIComponent(categoryFilter);
+            const category = await Category.findOne({ name: decodedCategoryName });
+            if (category) {
+                productQuery.category = category._id;
             }
-            products = await Product.find({category: category._id}).sort({category: 1, name: 1})
-        }else{
-            products = await Product.find({}).sort({ category: 1, name: 1 });
         }
-        const categories = await Category.find({}).sort({ name: 1 });
+
+        const products = await Product.find(productQuery).sort({ name: 1 }).populate('category', 'name');
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+        
         res.render('frontline/index', { 
             user: req.session.user,
             products: products,
-            categories: categories,
-            categoryFilter: categoryFilter,
-            activePage: 'products'
+            categories: allCategories,
+            categoryFilter: categoryFilter || null,
+            activePage: 'products',
+            readyOrdersCount: readyOrdersCount
         });
     } catch (error) {
         console.error('Error fetching products for order screen:', error);
@@ -77,16 +85,19 @@ const getOrderScreen = async (req, res) => {
     }
 };
 
+
 const getProductDetailPage = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findById(req.params.id).populate('category', 'name');
         if (!product) {
             return res.status(404).send('Product not found');
         }
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
         res.render('frontline/productDetail', {
             product: product,
             user: req.session.user,
-            activePage: 'products'
+            activePage: 'products',
+            readyOrdersCount: readyOrdersCount
         });
     } catch (error) {
         console.error('Error fetching product detail:', error);
@@ -94,10 +105,13 @@ const getProductDetailPage = async (req, res) => {
     }
 };
 
-const getCartPage = (req, res) => {
+
+const getCartPage = async (req, res) => {
+    const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
     res.render('frontline/cart', {
         user: req.session.user,
-        activePage: 'cart'
+        activePage: 'cart',
+        readyOrdersCount: readyOrdersCount
     });
 };
 
@@ -111,17 +125,25 @@ const getSalesPage = async (req, res) => {
 
         const todaysTransactions = await Transaction.find({
             createdAt: { $gte: startOfDay, $lte: endOfDay }
-        }).sort({ createdAt: -1 });
+        })
+        .sort({ createdAt: -1 })
+        .populate('createdBy', 'username')
+        .populate('items.productId', 'name'); 
 
-        const totalSales = todaysTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
+        const completedTransactions = todaysTransactions.filter(t => t.status === 'Completed');
+        const totalSales = completedTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
         const totalOrders = todaysTransactions.length;
+        const totalCompletedOrders = completedTransactions.length;
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
 
         res.render('frontline/sales', {
             user: req.session.user,
             activePage: 'sales',
             transactions: todaysTransactions,
             totalSales: totalSales,
-            totalOrders: totalOrders
+            totalOrders: totalOrders,
+            totalCompletedOrders: totalCompletedOrders,
+            readyOrdersCount: readyOrdersCount
         });
     } catch (error) {
         console.error('Error fetching today\'s sales:', error);
@@ -131,7 +153,7 @@ const getSalesPage = async (req, res) => {
 
 const createOrder = async (req, res) => {
     try {
-        const { cart } = req.body;
+        const { cart, customerName } = req.body;
 
         if (!cart || cart.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
@@ -155,12 +177,20 @@ const createOrder = async (req, res) => {
         });
 
         const newTransaction = new Transaction({
+            customerName: customerName,
             items: orderItems,
             totalAmount: serverTotalAmount,
             createdBy: req.session.user.id
         });
 
         await newTransaction.save();
+
+        
+        const populatedTransaction = await Transaction.findById(newTransaction._id)
+            .populate('items.productId', 'name');
+
+        
+        req.io.emit('newOrder', populatedTransaction);
 
         res.status(201).json({ 
             success: true, 
@@ -174,6 +204,51 @@ const createOrder = async (req, res) => {
     }
 };
 
+const completeOrder = async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+        const transaction = await Transaction.findById(transactionId);
+        const oldStatus = transaction.status;
+
+        await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
+        
+        req.io.emit('orderStatusUpdated', { 
+            orderId: transactionId, 
+            oldStatus: oldStatus,
+            newStatus: 'Completed' 
+        });
+
+        res.redirect('/sales');
+    } catch (error) {
+        console.error('Error completing order:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+const cancelOrder = async (req, res) => {
+    try {
+        const transactionId = req.params.id;
+        const transaction = await Transaction.findById(transactionId);
+        const oldStatus = transaction.status;
+
+        await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
+
+        req.io.emit('orderStatusUpdated', { 
+            orderId: transactionId,
+            oldStatus: oldStatus,
+            newStatus: 'Cancelled' 
+        });
+
+        res.redirect('/sales');
+    } catch (error) {
+        console.error('Error cancelling order:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+
+
+
 module.exports = {
     getLoginPage,
     postLogin,
@@ -182,5 +257,7 @@ module.exports = {
     getProductDetailPage,
     getCartPage,
     getSalesPage,
-    createOrder
+    createOrder,
+    completeOrder,
+    cancelOrder
 };

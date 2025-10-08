@@ -1,10 +1,10 @@
 <nav class="bottom-nav d-lg-none">
-    <a href="/admin/dashboard" class="nav-link <%= (activePage === 'products' || activePage === 'dashboard') ? 'active' : '' %>">
+    <a href="/admin/products" class="nav-link <%= (activePage === 'products' || activePage === 'dashboard') ? 'active' : '' %>">
         <i class="bi bi-box-seam"></i>
         <span>Products</span>
     </a>
     
-    <a href="/admin/analytics" class="nav-link <%= activePage === 'analytics' ? 'active' : '' %>">
+    <a href="/admin/dashboard" class="nav-link <%= activePage === 'analytics' ? 'active' : '' %>">
         <i class="bi bi-bar-chart-line"></i>
         <span>Analytics</span>
     </a>
@@ -12,6 +12,11 @@
     <a href="/admin/orders" class="nav-link <%= activePage === 'orders' ? 'active' : '' %>">
         <i class="bi bi-receipt"></i>
         <span>Orders</span>
+    </a>
+
+     <a href="/admin/categories" class="nav-link <%= activePage === 'categories' ? 'active' : '' %>">
+        <i class="bi bi-cup-straw"></i>
+        <span>Categories</span>
     </a>
 
     <a href="/admin/users" class="nav-link <%= activePage === 'users' ? 'active' : '' %>">

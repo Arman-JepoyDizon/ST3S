@@ -11,6 +11,9 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <meta name="theme-color" content="#FF0066">
     
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -25,6 +28,11 @@
     </header>
 
     <main class="container-fluid cart-main-content">
+        <div class="form-floating mb-4">
+            <input type="text" class="form-control" id="customer-name-input" placeholder="Customer Name (Optional)">
+            <label for="customer-name-input">Customer Name (Optional)</label>
+        </div>
+
         <div id="empty-cart-view" style="display: none; text-align: center; padding-top: 5rem;">
             <div class="empty-cart-icon mb-3">
                 <i class="bi bi-box-seam"></i>
@@ -62,6 +70,24 @@
             </button>
         </div>
     </div>
+
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center">
+                <div class="modal-body p-4">
+                    <div class="success-icon mb-3">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <h5 class="modal-title mb-2" id="orderSuccessModalLabel">Order Placed!</h5>
+                    <p class="text-muted">Your order has been sent to the kitchen.</p>
+                    <p class="fw-bold">Order ID: <span id="success-order-id"></span></p>
+                    <button type="button" class="btn btn-primary w-100 mt-3" data-bs-dismiss="modal">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
     <%- include('../partials/frontlineBottomNav') %>
     <%- include('../partials/frontlineFooter') %>
 </body>

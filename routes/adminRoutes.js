@@ -13,6 +13,7 @@ router.use(isAdmin);
 
 // Admin Dashboard & Analytics Routes
 router.get('/dashboard', adminController.getAnalyticsPage);
+router.get('/orders', adminController.getOrdersPage);
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);
