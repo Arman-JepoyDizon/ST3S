@@ -9,10 +9,6 @@ const productSchema = new mongoose.Schema({
         trim: true,
         unique: true
     },
-    description: {
-        type: String,
-        trim: true
-    },
     price: {
         type: Number,
         required: [true, 'Product price is required.'],
@@ -26,7 +22,7 @@ const productSchema = new mongoose.Schema({
     imageUrl: {
         type: String,
         required: false 
-    }
+    },
 }, { 
 
     timestamps: true 

@@ -22,28 +22,52 @@
                             <label for="name">Product Name</label>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <select name="category" id="category" class = "form-select" required>
-                                        <%categories.forEach(cat=>{%>
-                                            <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
-                                        <%})%>
-                                    </select>
-                                    <label for="category">Category</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                                    <label for="price">Price</label>
-                                </div>
+                        <div class="col-md-12">
+                            <div class="form-floating mb-3">
+                                <select name="category" id="category" class = "form-select" required>
+                                    <%categories.forEach(cat=>{%>
+                                        <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
+                                    <%})%>
+                                </select>
+                                <label for="category">Category</label>
                             </div>
                         </div>
+                  
+                        <div class="col-md-12" id = "price-container">
+                            <%if(sizes && sizes.length <= 0){ %>
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
+                                    <label for="price">Price</label>
+                                </div>
+                            <%}%>
+                        </div>
 
-                        <div class="form-floating mb-3">
-                            <textarea class="form-control" id="description" name="description" placeholder="Description" style="height: 100px"><%= product.description %></textarea>
-                            <label for="description">Description</label>
+                        <button class = "col-12 mb-3 btn btn-lg btn-primary" type = "button" id="add-size-btn">Add Size (optional)</button>
+                        <div id="size-price-container">
+                        <% if (sizes.length > 0) { %>
+                            <% sizes.forEach((size, index) => { %>
+                                <div class="row mb-3 align-items-center justify-content-center size-price-row">
+                                <div class="col-md-5">
+                                    <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="size-<%= index %>" name="size[]" placeholder="Size Label" value="<%= size.label %>" required>
+                                    <label for="size-<%= index %>">Size Label</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="price-<%= index %>" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= prices[index] ? prices[index].price : '' %>" required>
+                                    <label for="price-<%= index %>">Price</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+                                    <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                </div>
+                            <% }) %>
+                        <% } %>
+
                         </div>
 
                         <div class="form-floating mb-3">
@@ -58,6 +82,93 @@
         </main>
     </div>
 </div>
+<script>
+  const addSizeBtn = document.getElementById('add-size-btn');
+  const priceContainer = document.getElementById('price-container');
+  const sizePriceContainer = document.getElementById('size-price-container');
+  const form = document.querySelector('form');
+
+  // 🔹 Attach delete behavior to a button
+  function attachRemoveEvent(button) {
+    button.addEventListener('click', () => {
+        const row = button.closest('.row');
+        if (!row) return;
+
+        // Handle deleted sizes (from DB)
+        const hiddenInput = row.querySelector('input[name="sizeId"]');
+        if (hiddenInput) {
+        const deletedInput = document.createElement('input');
+        deletedInput.type = 'hidden';
+        deletedInput.name = 'deletedSizes[]';
+        deletedInput.value = hiddenInput.value;
+        form.appendChild(deletedInput);
+        }
+
+        // Remove row visually
+        row.remove();
+
+        // ✅ Corrected condition
+        if (sizePriceContainer.querySelectorAll('.size-price-row').length === 0) {
+        restoreSinglePriceInput();
+        }
+    });
+    }
+  // 🔹 Attach to all existing delete buttons
+  document.querySelectorAll('.btn-remove-size').forEach(btn => attachRemoveEvent(btn));
+
+  // 🔹 Function to restore the single price field
+  function restoreSinglePriceInput() {
+    if (!priceContainer) return;
+    priceContainer.style.display = 'block';
+    priceContainer.innerHTML = `
+      <div class="form-floating mb-3">
+        <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" required>
+        <label for="price">Price</label>
+      </div>
+    `;
+  }
+
+  // 🔹 Add new size rows dynamically
+  addSizeBtn.addEventListener('click', () => {
+    // Hide single price input when switching to multi-size mode
+    if (priceContainer) {
+      priceContainer.innerHTML = '';
+      priceContainer.style.display = 'none';
+    }
+
+    const sizePriceGroup = document.createElement('div');
+    sizePriceGroup.classList.add('row', 'mb-3', 'align-items-center', 'justify-content-center', 'size-price-row');
+
+    sizePriceGroup.innerHTML = `
+      <div class="col-md-5">
+        <div class="form-floating mb-3">
+          <input type="text" class="form-control" name="size[]" placeholder="Size" required>
+          <label>Size</label>
+        </div>
+      </div>
+
+      <div class="col-md-5">
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+          <label>Price</label>
+        </div>
+      </div>
+
+      <div class="col-md-2 text-center">
+        <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `;
+
+    sizePriceContainer.appendChild(sizePriceGroup);
+
+    // Attach delete behavior to the new button
+    const removeBtn = sizePriceGroup.querySelector('.btn-remove-size');
+    attachRemoveEvent(removeBtn);
+  });
+</script>
+
 
 <%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
 <%- include('../partials/adminFooter') %>
