@@ -2,9 +2,16 @@ const User = require('../models/user');
 const Product = require('../models/product');
 const Transaction = require('../models/transaction');
 const Category = require('../models/category');
+const Size = require('../models/size');
+const Price = require('../models/price');
 
 const getLoginPage = (req, res) => {
-    res.render('login', { user: req.session.user });
+    if (req.session.user) {
+        if (req.session.user.role === 'Admin') return res.redirect('/admin/dashboard');
+        if (req.session.user.role === 'Cook') return res.redirect('/cook/dashboard');
+        return res.redirect('/');
+    }
+    res.render('login');
 };
 
 const postLogin = async (req, res) => {
@@ -27,7 +34,6 @@ const postLogin = async (req, res) => {
             role: user.role
         };
 
-        
         let redirectUrl = '/';
         if (user.role === 'Admin') {
             redirectUrl = '/admin/dashboard';
@@ -35,7 +41,6 @@ const postLogin = async (req, res) => {
             redirectUrl = '/cook/dashboard';
         }
 
-      
         return res.status(200).json({ success: true, redirectUrl: redirectUrl });
 
     } catch (error) {
@@ -85,16 +90,23 @@ const getOrderScreen = async (req, res) => {
     }
 };
 
-
 const getProductDetailPage = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id).populate('category', 'name');
+        const productId = req.params.id;
+        const product = await Product.findById(productId).populate('category', 'name');
+        
         if (!product) {
             return res.status(404).send('Product not found');
         }
+
+        const sizes = await Size.find({ productId: productId });
+        const prices = await Price.find({ productId: productId, status: 'Active' });
         const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+
         res.render('frontline/productDetail', {
             product: product,
+            sizes: sizes,
+            prices: prices,
             user: req.session.user,
             activePage: 'products',
             readyOrdersCount: readyOrdersCount
@@ -104,7 +116,6 @@ const getProductDetailPage = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
-
 
 const getCartPage = async (req, res) => {
     const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
@@ -125,10 +136,7 @@ const getSalesPage = async (req, res) => {
 
         const todaysTransactions = await Transaction.find({
             createdAt: { $gte: startOfDay, $lte: endOfDay }
-        })
-        .sort({ createdAt: -1 })
-        .populate('createdBy', 'username')
-        .populate('items.productId', 'name'); 
+        }).sort({ createdAt: -1 }).populate('createdBy', 'username').populate('items.productId', 'name');
 
         const completedTransactions = todaysTransactions.filter(t => t.status === 'Completed');
         const totalSales = completedTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
@@ -158,21 +166,17 @@ const createOrder = async (req, res) => {
         if (!cart || cart.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
         }
-
-        const productIds = cart.map(item => item.id);
-        const productsFromDB = await Product.find({ '_id': { $in: productIds } });
-
+        
         let serverTotalAmount = 0;
         const orderItems = cart.map(cartItem => {
-            const product = productsFromDB.find(p => p._id.toString() === cartItem.id);
-            if (!product) {
-                throw new Error(`Product with ID ${cartItem.id} not found.`);
-            }
-            serverTotalAmount += product.price * cartItem.quantity;
+            // Directly use the price and size from the cart object sent by the client
+            serverTotalAmount += cartItem.price * cartItem.quantity;
+            
             return {
-                productId: product._id,
+                productId: cartItem.id,
                 quantity: cartItem.quantity,
-                price: product.price
+                price: cartItem.price,
+                sizeLabel: cartItem.sizeLabel 
             };
         });
 
@@ -185,16 +189,14 @@ const createOrder = async (req, res) => {
 
         await newTransaction.save();
 
-        
         const populatedTransaction = await Transaction.findById(newTransaction._id)
             .populate('items.productId', 'name');
-
         
         req.io.emit('newOrder', populatedTransaction);
 
         res.status(201).json({ 
             success: true, 
-            message: 'Order created successfully!',
+            message: 'Order placed successfully!',
             orderId: newTransaction._id 
         });
 
@@ -209,15 +211,12 @@ const completeOrder = async (req, res) => {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
         const oldStatus = transaction.status;
-
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
-        
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId, 
             oldStatus: oldStatus,
             newStatus: 'Completed' 
         });
-
         res.redirect('/sales');
     } catch (error) {
         console.error('Error completing order:', error);
@@ -230,24 +229,18 @@ const cancelOrder = async (req, res) => {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
         const oldStatus = transaction.status;
-
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
-
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId,
             oldStatus: oldStatus,
             newStatus: 'Cancelled' 
         });
-
         res.redirect('/sales');
     } catch (error) {
         console.error('Error cancelling order:', error);
         res.status(500).send('Server Error');
     }
 };
-
-
-
 
 module.exports = {
     getLoginPage,

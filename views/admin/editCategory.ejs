@@ -9,7 +9,7 @@
         <main class="p-3">
             <div class="page-header d-flex justify-content-between align-items-center mb-4">
                 <h2 class="h3">Edit Category</h2>
-                <a href="/admin/products" class="btn btn-outline-secondary">
+                <a href="/admin/categories" class="btn btn-outline-secondary">
                     Cancel
                 </a>
             </div>
@@ -18,8 +18,8 @@
                 <div class="card-body">
                     <form action="/admin/categories/edit/<%= category_details._id %>" method="POST">
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Product Name" value="<%= category_details.name %>" required>
-                            <label for="name">Product Name</label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Category Name" value="<%= category_details.name %>" required>
+                            <label for="name">Category Name</label>
                         </div>
                         
                         <button type="submit" class="btn btn-primary w-100 btn-lg">Save Changes</button>

@@ -11,9 +11,6 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <meta name="theme-color" content="#FF0066">
     
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -31,7 +28,29 @@
             <div>
                 <span class="badge badge-category"><%= product.category.name %></span>
                 <h2 class="my-2" id="product-name"><%= product.name %></h2>
-                <h1 class="fw-bold text-primary mb-4" id="product-price">₱<%= product.price.toFixed(2) %></h1>
+                <h1 class="fw-bold text-primary mb-4" id="product-price">
+                    <% if (prices.length > 1) { %>
+                        ₱<%= product.price.toFixed(2) %>
+                    <% } else { %>
+                        ₱<%= prices[0] ? prices[0].price.toFixed(2) : 'N/A' %>
+                    <% } %>
+                </h1>
+
+                <% if (sizes && sizes.length > 0) { %>
+                    <p class="text-muted fw-bold">Variants</p>
+                    <div class="variant-buttons mb-3">
+                        <% sizes.forEach((size, index) => { %>
+                            <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
+                            <button class="btn btn-variant" 
+                                data-price="<%= correspondingPrice ? correspondingPrice.price : '' %>"
+                                data-size-id="<%= size._id %>"
+                                data-size-label="<%= size.label %>">
+                                <%= size.label %>
+                            </button>
+                        <% }) %>
+                    </div>
+                <% } %>
+
 
                 <p class="text-muted fw-bold">Quantity</p>
                 <div class="d-flex align-items-center justify-content-between my-3">
@@ -44,7 +63,13 @@
 
                 <div class="d-flex justify-content-between align-items-center">
                     <p class="text-muted mb-0">Total Price</p>
-                    <h3 class="fw-bold mb-0" id="total-price">₱<%= product.price.toFixed(2) %></h3>
+                    <h3 class="fw-bold mb-0" id="total-price">
+                        <% if (prices.length > 1) { %>
+                            ₱<%= product.price.toFixed(2) %>
+                        <% } else { %>
+                            ₱<%= prices[0] ? prices[0].price.toFixed(2) : 'N/A' %>
+                        <% } %>
+                    </h3>
                 </div>
             </div>
 

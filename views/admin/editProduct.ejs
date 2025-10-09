@@ -22,29 +22,61 @@
                             <label for="name">Product Name</label>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <select name="category" id="category" class = "form-select" required>
-                                        <%categories.forEach(cat=>{%>
-                                            <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
-                                        <%})%>
-                                    </select>
-                                    <label for="category">Category</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                                    <label for="price">Price</label>
-                                </div>
-                            </div>
+                        <div class="form-floating mb-3">
+                            <select name="category" id="category" class="form-select" required>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
+                                <% }) %>
+                            </select>
+                            <label for="category">Category</label>
                         </div>
 
-                        <div class="form-floating mb-3">
-                            <textarea class="form-control" id="description" name="description" placeholder="Description" style="height: 100px"><%= product.description %></textarea>
-                            <label for="description">Description</label>
+                        <hr>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="mb-0">Pricing & Variants</h5>
+                            <button class="btn btn-primary" type="button" id="add-size-btn">
+                                <i class="bi bi-plus-lg"></i> Add Variant
+                            </button>
                         </div>
+
+                        <div class="col-md-12" id="price-container">
+                            <% if(sizes.length === 0) { %>
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
+                                    <label for="price">Price</label>
+                                </div>
+                            <% } %>
+                        </div>
+
+                        <div id="size-price-container">
+                            <% if (sizes.length > 0) { %>
+                                <% sizes.forEach((size, index) => { %>
+                                    <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
+                                    <div class="row mb-2 align-items-center size-price-row">
+                                        <div class="col-5">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="size[]" placeholder="Size Label" value="<%= size.label %>" required>
+                                                <label>Size Label</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required>
+                                                <label>Price</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-2 text-center">
+                                            <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                <% }) %>
+                            <% } %>
+                        </div>
+                        
+                        <hr>
 
                         <div class="form-floating mb-3">
                             <input type="text" class="form-control" id="imageUrl" name="imageUrl" placeholder="Image URL (Optional)" value="<%= product.imageUrl || '' %>">
@@ -58,6 +90,67 @@
         </main>
     </div>
 </div>
+<script>
+    const addSizeBtn = document.getElementById('add-size-btn');
+    const priceContainer = document.getElementById('price-container');
+    const sizePriceContainer = document.getElementById('size-price-container');
+    const form = document.querySelector('form');
+
+    function attachRemoveEvent(button) {
+        button.addEventListener('click', () => {
+            const row = button.closest('.size-price-row');
+            if (row) {
+                row.remove();
+                if (sizePriceContainer.querySelectorAll('.size-price-row').length === 0) {
+                    restoreSinglePriceInput();
+                }
+            }
+        });
+    }
+
+    document.querySelectorAll('.btn-remove-size').forEach(btn => attachRemoveEvent(btn));
+
+    function restoreSinglePriceInput() {
+        priceContainer.style.display = 'block';
+        priceContainer.innerHTML = `
+            <div class="form-floating mb-3">
+                <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                <label for="price">Price</label>
+            </div>
+        `;
+    }
+
+    addSizeBtn.addEventListener('click', () => {
+        if (priceContainer) {
+            priceContainer.innerHTML = '';
+            priceContainer.style.display = 'none';
+        }
+
+        const sizePriceGroup = document.createElement('div');
+        sizePriceGroup.classList.add('row', 'mb-2', 'align-items-center', 'size-price-row');
+        sizePriceGroup.innerHTML = `
+            <div class="col-5">
+                <div class="form-floating">
+                    <input type="text" class="form-control" name="size[]" placeholder="Size" required>
+                    <label>Size</label>
+                </div>
+            </div>
+            <div class="col-5">
+                <div class="form-floating">
+                    <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                    <label>Price</label>
+                </div>
+            </div>
+            <div class="col-2 text-center">
+                <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        sizePriceContainer.appendChild(sizePriceGroup);
+        attachRemoveEvent(sizePriceGroup.querySelector('.btn-remove-size'));
+    });
+</script>
 
 <%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
 <%- include('../partials/adminFooter') %>

@@ -4,14 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
     socket.on('newOrder', (newOrder) => {
-        // If the user is on the Cook's dashboard, reload the page to show the new order.
         if (document.querySelector('.cook-main-content')) {
             location.reload();
         }
     });
 
     socket.on('orderStatusUpdated', (data) => {
-        // --- Live Badge Update Logic ---
         const salesNavLink = document.querySelector('.bottom-nav-frontline a[href="/sales"]');
         if (salesNavLink) {
             let badge = salesNavLink.querySelector('.nav-badge');
@@ -23,24 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentCount--;
             }
 
-            // Now, create, update, or remove the badge based on the new count
             if (currentCount > 0) {
                 if (!badge) {
-                    // If the badge doesn't exist, create it
                     badge = document.createElement('span');
                     badge.classList.add('badge', 'rounded-pill', 'bg-danger', 'nav-badge');
                     salesNavLink.appendChild(badge);
                 }
                 badge.innerText = currentCount;
             } else {
-                // If the count is 0 and the badge exists, remove it
                 if (badge) {
                     badge.remove();
                 }
             }
         }
 
-        // --- Page Reload Logic ---
         if (
             document.querySelector('.cook-main-content') || 
             document.querySelector('.sales-main-content') ||
@@ -52,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
     // --- STATE & CORE FUNCTIONS ---
     let cart = JSON.parse(localStorage.getItem('miraCart')) || [];
 
@@ -60,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('miraCart', JSON.stringify(cart));
     };
 
-     const updateCartUI = () => {
+    const updateCartUI = () => {
         const cartCountBadge = document.querySelector('.cart-count');
         if (cartCountBadge) {
             let totalItems = 0;
@@ -79,44 +72,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 document.getElementById('order-bar-items').innerText = `${totalItems} ${totalItems > 1 ? 'items' : 'item'}`;
                 document.getElementById('order-bar-total').innerText = `₱${totalPrice.toFixed(2)}`;
-                currentOrderBar.classList.add('show'); // Use .show class for animation
+                currentOrderBar.classList.add('show');
             } else {
-                currentOrderBar.classList.remove('show'); // Use .show class for animation
+                currentOrderBar.classList.remove('show');
             }
         }
     };
 
-    const addToCart = (id, name, price, quantity) => {
-        const existingItem = cart.find(item => item.id === id);
+    const addToCart = (id, name, price, quantity, sizeLabel) => {
+        const cartItemId = sizeLabel ? `${id}-${sizeLabel}` : id;
+        const itemName = sizeLabel ? `${name} - ${sizeLabel}` : name;
+
+        const existingItem = cart.find(item => item.cartItemId === cartItemId);
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
-            cart.push({ id, name, price, quantity });
+            cart.push({ cartItemId, id, name: itemName, price, quantity, sizeLabel });
         }
         saveCart();
         updateCartUI();
     };
 
-
     // --- PAGE-SPECIFIC LOGIC ---
+
+    // Logic for the MAIN MENU PAGE
     const menuPage = document.querySelector('.frontline-main-content');
     if (menuPage) {
         let lastScrollTop = 0;
         const currentOrderBar = document.getElementById('current-order-bar');
-
         window.addEventListener('scroll', function() {
             let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             if (scrollTop > lastScrollTop) {
-                // Scrolling Down
                 currentOrderBar.classList.add('is-hidden-on-scroll');
             } else {
-                // Scrolling Up
                 currentOrderBar.classList.remove('is-hidden-on-scroll');
             }
-            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop; // For Mobile or negative scrolling
+            lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }, false);
-    }
 
+        // --- Live Search Logic ---
+        const searchInput = document.getElementById('searchMenu');
+        const productItems = document.querySelectorAll('.row.g-3 .col-6');
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+    
+                productItems.forEach(item => {
+                    const productName = item.querySelector('.card-title a').innerText.toLowerCase();
+                    if (productName.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+    }
 
     // Logic for the PRODUCT DETAIL PAGE
     const detailPage = document.querySelector('.product-detail-page');
@@ -124,15 +136,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const quantityInput = document.getElementById('quantity-input');
         const quantityMinus = document.getElementById('quantity-minus');
         const quantityPlus = document.getElementById('quantity-plus');
+        const priceEl = document.getElementById('product-price');
         const totalPriceEl = document.getElementById('total-price');
         const addToCartBtn = document.getElementById('add-to-cart-btn');
-        const basePrice = parseFloat(document.getElementById('product-price').innerText.replace('₱', ''));
+        const variantButtons = document.querySelectorAll('.btn-variant');
+        
+        let currentPrice = parseFloat(priceEl.innerText.replace('₱', ''));
+        let selectedSizeLabel = null;
 
         const updateTotalPrice = () => {
             const quantity = parseInt(quantityInput.value);
-            const newTotal = basePrice * quantity;
+            const newTotal = currentPrice * quantity;
             totalPriceEl.innerText = `₱${newTotal.toFixed(2)}`;
         };
+
+        variantButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                variantButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                currentPrice = parseFloat(button.dataset.price);
+                selectedSizeLabel = button.dataset.sizeLabel;
+                priceEl.innerText = `₱${currentPrice.toFixed(2)}`;
+                updateTotalPrice();
+            });
+        });
+
+        if (variantButtons.length > 0) {
+            variantButtons[0].click();
+        }
 
         quantityMinus.addEventListener('click', () => {
             let currentValue = parseInt(quantityInput.value);
@@ -151,10 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
         addToCartBtn.addEventListener('click', () => {
             const id = addToCartBtn.dataset.productId;
             const name = document.getElementById('product-name').innerText;
-            const price = basePrice;
+            const price = currentPrice;
             const quantity = parseInt(quantityInput.value);
+            const sizeLabel = selectedSizeLabel;
 
-            addToCart(id, name, price, quantity);
+            addToCart(id, name, price, quantity, sizeLabel);
             
             window.location.href = '/';
         });
@@ -192,14 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <h5 class="card-title">${item.name}</h5>
-                                <button class="btn-delete-item" data-product-id="${item.id}"><i class="bi bi-trash3"></i></button>
+                                <button class="btn-delete-item" data-cart-item-id="${item.cartItemId}"><i class="bi bi-trash3"></i></button>
                             </div>
                             <p class="card-text text-muted">₱${item.price.toFixed(2)} each</p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
-                                    <button class="btn btn-quantity" data-product-id="${item.id}" data-action="decrease">-</button>
+                                    <button class="btn btn-quantity" data-cart-item-id="${item.cartItemId}" data-action="decrease">-</button>
                                     <span class="mx-3 fs-5 fw-bold">${item.quantity}</span>
-                                    <button class="btn btn-quantity btn-primary" data-product-id="${item.id}" data-action="increase">+</button>
+                                    <button class="btn btn-quantity btn-primary" data-cart-item-id="${item.cartItemId}" data-action="increase">+</button>
                                 </div>
                                 <div>
                                     <small class="text-muted">Subtotal</small>
@@ -221,13 +254,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = e.target.closest('button');
             if (!target) return;
 
-            const productId = target.dataset.productId;
-            if (!productId) return;
+            const cartItemId = target.dataset.cartItemId;
+            if (!cartItemId) return;
 
-            const itemInCart = cart.find(item => item.id === productId);
+            const itemInCart = cart.find(item => item.cartItemId === cartItemId);
 
             if (target.classList.contains('btn-delete-item')) {
-                cart = cart.filter(item => item.id !== productId);
+                cart = cart.filter(item => item.cartItemId !== cartItemId);
             }
             if (target.dataset.action === 'increase') {
                 itemInCart.quantity++;
@@ -236,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (itemInCart.quantity > 1) {
                     itemInCart.quantity--;
                 } else {
-                    cart = cart.filter(item => item.id !== productId);
+                    cart = cart.filter(item => item.cartItemId !== cartItemId);
                 }
             }
             
@@ -244,10 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCartPage();
         });
         
-        // --- PLACE ORDER LOGIC ---
         const placeOrderBtn = document.querySelector('.place-order-footer button');
-        const successModalEl = document.getElementById('orderSuccessModal');
-        const successModal = new bootstrap.Modal(successModalEl);
         placeOrderBtn.addEventListener('click', () => {
             if (cart.length === 0) {
                 alert('Your cart is empty.');
@@ -266,11 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     cart = [];
                     saveCart();
-                    
-                    // Populate and show the success modal
                     document.getElementById('success-order-id').innerText = data.orderId.toString().slice(-6).toUpperCase();
+                    const successModal = new bootstrap.Modal(document.getElementById('orderSuccessModal'));
                     successModal.show();
-
                 } else {
                     alert(`Error placing order: ${data.message}`);
                 }
@@ -281,14 +309,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Add listener to redirect after the success modal is hidden
-        successModalEl.addEventListener('hidden.bs.modal', () => {
-            window.location.href = '/';
-        });
+        const successModalEl = document.getElementById('orderSuccessModal');
+        if (successModalEl) {
+            successModalEl.addEventListener('hidden.bs.modal', () => {
+                window.location.href = '/';
+            });
+        }
         
         renderCartPage();
     }
-
 
     // --- INITIALIZATION ---
     updateCartUI();

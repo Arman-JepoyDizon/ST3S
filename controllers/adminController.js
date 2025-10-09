@@ -5,10 +5,10 @@ const Price = require('../models/price');
 const User = require('../models/user');
 const Category = require('../models/category');
 const Transaction = require('../models/transaction'); 
+const Size = require('../models/size');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        // --- Calculate Stats (remains the same) ---
         const totalOrders = await Transaction.countDocuments();
         const salesData = await Transaction.aggregate([
             { $match: { status: 'Completed' } },
@@ -16,13 +16,13 @@ const getAnalyticsPage = async (req, res) => {
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
-        // --- Calculate Best Sellers (remains the same) ---
+       
         const bestSellers = await Transaction.aggregate([
             { $match: { status: 'Completed' } },
             { $unwind: '$items' },
             { 
                 $group: { 
-                    _id: '$items.productId',
+                    _id: { productId: '$items.productId', sizeLabel: '$items.sizeLabel' }, 
                     totalQuantity: { $sum: '$items.quantity' },
                     totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 } 
@@ -32,7 +32,7 @@ const getAnalyticsPage = async (req, res) => {
             {
                 $lookup: {
                     from: 'products',
-                    localField: '_id',
+                    localField: '_id.productId',
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -40,7 +40,6 @@ const getAnalyticsPage = async (req, res) => {
             { $unwind: '$productDetails' }
         ]);
         
-        // --- Calculate Sales Trend Data (remains the same) ---
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -68,16 +67,15 @@ const getAnalyticsPage = async (req, res) => {
             data.push(salesMap.get(dateString) || 0);
         }
 
-        // --- Fetch Recent Transactions (Limit changed to 3) ---
         const recentTransactions = await Transaction.find({})
             .sort({ createdAt: -1 })
-            .limit(3) // Limit changed from 5 to 3
+            .limit(3)
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
 
         const salesTrendData = { labels, data };
         const topProductsData = {
-            labels: bestSellers.map(p => p.productDetails.name),
+            labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
             data: bestSellers.map(p => p.totalQuantity)
         };
 
@@ -103,7 +101,7 @@ const getOrdersPage = async (req, res) => {
         const transactions = await Transaction.find({})
             .sort({ createdAt: -1 })
             .populate('createdBy', 'username')
-            .populate('items.productId', 'name'); // Added populate for item names
+            .populate('items.productId', 'name');
 
         res.render('admin/orders', {
             user: req.session.user,
@@ -119,7 +117,7 @@ const getOrdersPage = async (req, res) => {
 
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({}).populate('category', 'name')
+        const products = await Product.find({}).populate('category', 'name');
         res.render('admin/products', {
             user: req.session.user,
             products: products,
@@ -141,15 +139,45 @@ const getAddProductPage = async (req, res) => {
 
 const postAddProduct = async (req, res) => {
     try {
-        const { name, description, price, category, imageUrl } = req.body;
-        const newProduct = await Product.create({ name, description, price, category, imageUrl });
-        const newProductPrice = await Price.create({productId: newProduct._id, price: price})
-        if(!newProductPrice){
+        const { name, price, size, category, imageUrl } = req.body;
+        console.log(req.body)
+
+        const prices = Array.isArray(price) ? price : [price];
+
+        let sizes = Array.isArray(size) ? size : []; 
+        
+        sizes = sizes.filter(s => s && s.trim() !== '');
+
+        if(!name || !price || !category){
+            return res.status(400).json({message: "Missing Field, please enter required Fields", type: "error"})
+        }
+        const lowestPrice = Math.min(...prices.map(p => parseFloat(p)))
+        const newProduct = await Product.create({ name, price: lowestPrice, category, imageUrl });
+
+        if(sizes.length > 0){
+            var newSizes = []
+            for(let i = 0; i < sizes.length; i++){
+                const insertedSize = await Size.create({productId: newProduct._id, label: sizes[i]})
+                newSizes.push(insertedSize)
+            }
+        }
+
+        if(prices && prices.length > 0){
+            var newProductPrice = []
+            for(let i = 0; i < prices.length; i++){
+                const insertedPrice = await Price.create({productId: newProduct._id, sizeId: (newSizes && newSizes[i]) ? newSizes[i]._id : null, price: prices[i]})
+                newProductPrice.push(insertedPrice)
+            }
+        }
+
+        if(newProductPrice.length<1){
             return res.status(500).json({message: "Error Creating Price", type: "error"})
         }
+
         if(!newProduct){
             return res.status(500).json({message: "Error Creating Product", type: "error"})
         }
+        console.log("Added Product")
         return res.redirect('/admin/products');
     } catch (error) {
         console.error('Error adding product:', error);
@@ -159,6 +187,8 @@ const postAddProduct = async (req, res) => {
 
 const getEditProductPage = async (req, res) => {
     try {
+        const sizes = await Size.find({productId: req.params.id})
+        const prices = await Price.find({productId: req.params.id, status: 'Active'})
         const categories = await Category.find()
         const product = await Product.findById(req.params.id);
         if (!product) {
@@ -167,6 +197,8 @@ const getEditProductPage = async (req, res) => {
         res.render('admin/editProduct', {
             user: req.session.user,
             product: product,
+            sizes: sizes? sizes : [],
+            prices: prices,
             categories: categories,
             activePage: 'products'
         });
@@ -177,25 +209,169 @@ const getEditProductPage = async (req, res) => {
 };
 
 const postUpdateProduct = async (req, res) => {
-    try {
-        const productId = req.params.id
-        const { name, description, price, category, imageUrl } = req.body;
-        const product = await Product.findById(productId);
-        if(!product){
-            return res.status(400).json({message: "Product Not Found", type: "error"})
-        }
+  try {
+    const productId = req.params.id;
+    const { name, price, size, category, imageUrl } = req.body;
 
-        if (product.price != price){
-            await Price.create({productId: productId, price: price})
-        }
-        await Product.findByIdAndUpdate( productId, {name, description, price, category, imageUrl})
+    const prices = Array.isArray(price) ? price : [price];
+    let sizes = Array.isArray(size) ? size : [];
+    sizes = sizes.filter(s => s && s.trim() !== '');
 
-        res.redirect('/admin/products');
-    } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).send('Server error while updating product.');
+    if (!name || !price || !category) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        type: "error"
+      });
     }
+
+    const newSinglePrice = parseFloat(prices[0]);
+    const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const existingSizes = await Size.find({ productId });
+    const existingPrices = await Price.find({ productId, status: "Active" });
+
+    const existingLabels = existingSizes.map(s => s.label.toLowerCase());
+    const normalizedNewLabels = sizes.map(x => x.toLowerCase());
+
+    if (existingSizes.length > 0 && sizes.length === 0) {
+      console.log("Transition: Many → One");
+      await Price.updateMany({ productId }, { status: "Inactive" });
+      await Size.deleteMany({ productId });
+      await Price.create({
+        productId,
+        price: newSinglePrice,
+        status: "Active"
+      });
+      await Product.findByIdAndUpdate(productId, {
+        name,
+        price: newSinglePrice,
+        category,
+        imageUrl
+      });
+      console.log("✅ Converted to single-price mode.");
+      return res.redirect("/admin/products");
+    }
+
+    if (existingSizes.length === 0 && sizes.length > 0) {
+      console.log("Transition: One → Many");
+      await Price.updateMany(
+        {
+          productId,
+          $or: [{ sizeId: { $exists: false } }, { sizeId: null }],
+          status: "Active"
+        },
+        { status: "Inactive" }
+      );
+      for (let i = 0; i < sizes.length; i++) {
+        const label = sizes[i].trim();
+        const p = parseFloat(prices[i] || prices[0]);
+        const newSize = await Size.create({ productId, label });
+        await Price.create({
+          productId,
+          sizeId: newSize._id,
+          price: p,
+          status: "Active"
+        });
+      }
+      await Product.findByIdAndUpdate(productId, {
+        name,
+        price: lowestPrice,
+        category,
+        imageUrl
+      });
+      console.log("✅ Converted to multi-price mode.");
+      return res.redirect("/admin/products");
+    }
+
+    if (sizes.length > 0) {
+      console.log("Updating multi-price product.");
+      for (const s of existingSizes) {
+        if (!normalizedNewLabels.includes(s.label.toLowerCase())) {
+          await Size.findByIdAndDelete(s._id);
+          await Price.updateMany({ sizeId: s._id }, { status: "Inactive" });
+        }
+      }
+      for (let i = 0; i < sizes.length; i++) {
+        const label = sizes[i].trim();
+        if (!existingLabels.includes(label.toLowerCase())) {
+          const insertedSize = await Size.create({ productId, label });
+          const p = parseFloat(prices[i] || prices[0]);
+          await Price.create({
+            productId,
+            sizeId: insertedSize._id,
+            price: p,
+            status: "Active"
+          });
+        }
+      }
+      for (let i = 0; i < existingSizes.length; i++) {
+        const existingSize = existingSizes[i];
+        const matchIndex = normalizedNewLabels.indexOf(
+          existingSize.label.toLowerCase()
+        );
+        if (matchIndex > -1) {
+          const newPrice = parseFloat(prices[matchIndex] || prices[0]);
+          const currentPrice = existingPrices.find(
+            p =>
+              p.sizeId &&
+              p.sizeId.toString() === existingSize._id.toString() &&
+              p.status === "Active"
+          );
+
+          if (!currentPrice || currentPrice.price !== newPrice) {
+            if (currentPrice) {
+              await Price.findByIdAndUpdate(currentPrice._id, {
+                status: "Inactive"
+              });
+            }
+            await Price.create({
+              productId,
+              sizeId: existingSize._id,
+              price: newPrice,
+              status: "Active"
+            });
+          }
+        }
+      }
+      await Price.updateMany(
+        {
+          productId,
+          $or: [{ sizeId: { $exists: false } }, { sizeId: null }],
+          status: "Active"
+        },
+        { status: "Inactive" }
+      );
+    }
+
+    if (existingSizes.length === 0 && sizes.length === 0) {
+      console.log("Single-price product update.");
+      const existingPrice = existingPrices[0];
+      if (!existingPrice || existingPrice.price !== newSinglePrice) {
+        await Price.updateMany({ productId }, { status: "Inactive" });
+        await Price.create({
+          productId,
+          price: newSinglePrice,
+          status: "Active"
+        });
+      }
+    }
+    await Product.findByIdAndUpdate(productId, {
+      name,
+      price: lowestPrice,
+      category,
+      imageUrl
+    });
+    console.log("✅ Product updated successfully!");
+    return res.redirect("/admin/products");
+  } catch (error) {
+    console.error("❌ Error updating product:", error);
+    res.status(500).send("Server error while updating product.");
+  }
 };
+
 
 const deleteProduct = async (req, res) => {
     try {
@@ -374,6 +550,25 @@ const postDeletedCategory = async (req, res) => {
     }
 }
 
+const deleteSize = async (req, res) => {
+    try {
+        const sizeId = req.params.id;
+        const sizeToDelete = await Size.findById(sizeId);
+
+        if (!sizeToDelete) {
+            return res.status(404).send("Size not found");
+        }
+
+        await Price.updateMany({ sizeId: sizeId }, { status: 'Inactive' });
+        await Size.findByIdAndDelete(sizeId);
+
+        res.redirect(`/admin/products/edit/${sizeToDelete.productId}`);
+    } catch (error) {
+        console.error('Error deleting size:', error);
+        res.status(500).send('Server error while deleting size.');
+    }
+};
+
 module.exports = {
     getAnalyticsPage,
     getProducts,
@@ -394,5 +589,6 @@ module.exports = {
     postAddCategory,
     postEditCategory,
     postDeletedCategory,
-    getOrdersPage
+    getOrdersPage,
+    deleteSize
 };

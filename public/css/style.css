@@ -474,6 +474,24 @@ body {
     border-radius: 6px;
 }
 
+/* Variant Buttons */
+.variant-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.btn-variant {
+    border-radius: 50px;
+    background-color: var(--light-gray);
+    border: 1px solid #eee;
+    font-weight: 600;
+}
+.btn-variant.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
 /* Cart Page */
 .cart-header {
     background-color: var(--primary-color);
@@ -592,9 +610,6 @@ body {
 }
 
 /* Cook Interface */
-.cook-body {
-    /* padding-top: 130px;  This was removed */
-}
 .cook-main-content {
     padding: 0 1rem 1rem 1rem;
 }
@@ -671,7 +686,13 @@ body {
 .btn-ready:hover {
     background-color: #007a4e;
     border-color: #007a4e;
-    
+}
+
+/* Admin Form Variants */
+#size-price-container .row {
+    padding: 0.75rem;
+    border: 1px solid #eee;
+    border-radius: var(--border-radius);
 }
 
 /* Responsive Adjustments */
@@ -680,4 +701,3 @@ body {
         padding-bottom: 0;
     }
 }
-

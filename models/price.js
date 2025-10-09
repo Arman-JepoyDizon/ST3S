@@ -7,9 +7,19 @@ const priceSchema = new Schema({
         ref: 'Product',
         required: true
     },
+    sizeId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Size',
+        required: false
+    },
     price: {
         type: Number,
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['Active', 'Inactive'],
+        default: 'Active'
     },
     effectiveDate: {
         type: Date,

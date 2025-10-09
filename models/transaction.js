@@ -21,6 +21,10 @@ const transactionSchema = new Schema({
         price: {
             type: Number,
             required: true 
+        },
+        sizeLabel: { 
+            type: String,
+            required: false 
         }
     }],
     totalAmount: {

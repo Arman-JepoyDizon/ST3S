@@ -38,9 +38,14 @@
                 <div class="card-body">
                     <% order.items.forEach(item => { %>
                         <div class="card order-item-card-cook mb-2">
-                            <div class="card-body">
+                            <div class="card-body d-flex">
                                 <span class="item-quantity"><%= item.quantity %>x</span>
-                                <span class="item-name"><%= item.productId.name %></span>
+                                <div>
+                                    <span class="item-name"><%= item.productId ? item.productId.name : 'Product Not Found' %></span>
+                                    <% if (item.sizeLabel) { %>
+                                        <small class="d-block text-muted"><%= item.sizeLabel %></small>
+                                    <% } %>
+                                </div>
                             </div>
                         </div>
                     <% }) %>
@@ -48,7 +53,7 @@
                 <div class="card-footer">
                     <form action="/cook/orders/<%= order._id %>/ready" method="POST" class="d-grid">
                         <button type="submit" class="btn btn-success btn-lg btn-ready">
-                            <i class="bi bi-check-circle-fill me-2"></i>Order Ready
+                            <i class="bi bi-check-circle-fill me-2"></i>Ready for Pickup
                         </button>
                     </form>
                 </div>

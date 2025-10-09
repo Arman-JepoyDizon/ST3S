@@ -77,7 +77,7 @@
                             <% bestSellers.forEach(item => { %>
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <div>
-                                        <p class="mb-0 fw-bold"><%= item.productDetails.name %></p>
+                                        <p class="mb-0 fw-bold"><%= item.productDetails.name %><% if (item._id.sizeLabel) { %> - <%= item._id.sizeLabel %><% } %></p>
                                         <small class="text-muted"><%= item.totalQuantity %> sold</small>
                                     </div>
                                     <span class="fw-bold">₱<%= item.totalRevenue.toFixed(2) %></span>
@@ -124,15 +124,19 @@
                                 <ul class="list-group list-group-flush sales-item-list my-2">
                                     <% transaction.items.forEach(item => { %>
                                         <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-                                            <span>
+                                            <div>
                                                 <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
-                                            </span>
+                                                <% if (item.sizeLabel) { %>
+                                                    <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
+                                                <% } %>
+                                            </div>
+                                            <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
                                         </li>
                                     <% }) %>
                                 </ul>
 
                                 <div class="d-flex justify-content-between align-items-center border-top pt-2">
-                                    <p class="text-muted mb-0"><%= transaction.items.length %> <%= transaction.items.length > 1 ? 'types of items' : 'type of item' %></p>
+                                    <p class="text-muted mb-0 fw-bold">Total</p>
                                     <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
                                 </div>
                             </div>
