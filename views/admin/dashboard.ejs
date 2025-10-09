@@ -10,12 +10,13 @@
             <div class="page-header mb-3">
                 <h2 class="h3 mb-0">Sales Analytics</h2>
                 <p class="text-muted">Track your business performance</p>
+          
             </div>
 
             <div class="d-flex mb-4">
-                <button class="btn btn-primary fw-bold me-2">Week</button>
-                <button class="btn btn-outline-secondary fw-bold me-2">Month</button>
-                <button class="btn btn-outline-secondary fw-bold">Year</button>
+                <a href="/admin/dashboard?filter=week" style="border-radius: 12px;" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Week</a>
+                <a href="/admin/dashboard?filter=month" style="border-radius: 12px;" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Month</a>
+                <a href="/admin/dashboard?filter=year"  style="border-radius: 12px;" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold">Year</a>
             </div>
 
             <div class="row">
@@ -23,129 +24,163 @@
                     <div class="card stat-card-revamp">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
+     
                                 <div class="stat-icon-wrapper bg-success-light">
                                     <i class="bi bi-currency-dollar text-success-dark"></i>
+                                
                                 </div>
                                 <div class="ms-3">
                                     <p class="card-text text-muted mb-0">Total Sales (Completed)</p>
+                          
                                     <h3 class="card-title mb-0">₱<%= totalSales.toFixed(2) %></h3>
                                 </div>
                             </div>
                         </div>
+  
                     </div>
                 </div>
                 <div class="col-12 mb-3">
                     <div class="card stat-card-revamp">
                         <div class="card-body">
+ 
                             <div class="d-flex align-items-center">
                                 <div class="stat-icon-wrapper bg-primary-light">
                                     <i class="bi bi-receipt text-primary"></i>
                                 </div>
                                 <div class="ms-3">
+                                 
                                     <p class="card-text text-muted mb-0">Total Orders (All)</p>
                                     <h3 class="card-title mb-0"><%= totalOrders %></h3>
                                 </div>
-                            </div>
+                    
+                        </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <div class="card mb-4">
+      
                 <div class="card-body">
-                    <h5 class="card-title">Sales Trend (Last 7 Days)</h5>
+                    <h5 class="card-title"><%= salesTrendData.title %></h5>
                     <canvas id="salesTrendChart"></canvas>
                 </div>
             </div>
 
             <div class="card mb-4">
+ 
                 <div class="card-body">
                     <h5 class="card-title">Top Products (by Quantity Sold)</h5>
                     <canvas id="topProductsChart" style="max-height: 250px;"></canvas>
                 </div>
             </div>
-            
+        
+     
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Best Sellers (by Revenue)</h5>
                     <% if (bestSellers && bestSellers.length > 0) { %>
+             
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item d-flex justify-content-between px-0">
                                 <span class="fw-bold text-muted small">PRODUCT</span>
+                    
                                 <span class="fw-bold text-muted small">REVENUE</span>
                             </li>
                             <% bestSellers.forEach(item => { %>
+                         
                                 <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                                     <div>
                                         <p class="mb-0 fw-bold"><%= item.productDetails.name %><% if (item._id.sizeLabel) { %> - <%= item._id.sizeLabel %><% } %></p>
                                         <small class="text-muted"><%= item.totalQuantity %> sold</small>
                                     </div>
+                  
                                     <span class="fw-bold">₱<%= item.totalRevenue.toFixed(2) %></span>
                                 </li>
                             <% }) %>
+                 
                         </ul>
                     <% } else { %>
                         <p class="text-muted">No completed sales data available yet.</p>
                     <% } %>
                 </div>
+ 
             </div>
 
             <div class="recent-transactions mt-4">
                 <h2 class="h4">Recent Transactions</h2>
                 <% if (recentTransactions && recentTransactions.length > 0) { %>
                     <% recentTransactions.forEach(transaction => { %>
+         
                         <div class="card transaction-card mb-3">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
+                  
                                     <div>
                                         <h6 class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
+                                       
                                         <% if (transaction.customerName) { %>
                                             <p class="text-primary fw-bold mb-0 customer-name-display">
+                                               
                                                 <i class="bi bi-person-badge"></i> 
                                                 <%= transaction.customerName %>
                                             </p>
+  
                                         <% } %>
                                         <small class="text-muted d-block mt-1">
+                 
                                             <i class="bi bi-person"></i> 
                                             <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
                                         </small>
                                     </div>
+                     
                                     <% if (transaction.status === 'Completed') { %>
                                         <span class="badge badge-status-completed">Completed</span>
                                     <% } else if (transaction.status === 'Cancelled') { %>
                                         <span class="badge badge-status-cancelled">Cancelled</span>
                                     <% } else if (transaction.status === 'Ready') { %>
+       
                                         <span class="badge badge-status-ready">Ready</span>
                                     <% } else { %>
+                         
                                         <span class="badge badge-status-pending">Pending</span>
                                     <% } %>
                                 </div>
-                                
+             
                                 <ul class="list-group list-group-flush sales-item-list my-2">
                                     <% transaction.items.forEach(item => { %>
+     
                                         <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
                                             <div>
+               
                                                 <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
                                                 <% if (item.sizeLabel) { %>
+                                           
                                                     <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
                                                 <% } %>
+                                    
                                             </div>
                                             <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
                                         </li>
+  
                                     <% }) %>
                                 </ul>
 
+                                
                                 <div class="d-flex justify-content-between align-items-center border-top pt-2">
                                     <p class="text-muted mb-0 fw-bold">Total</p>
                                     <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+              
                                 </div>
                             </div>
                         </div>
                     <% }) %>
+        
                 <% } else { %>
                     <div class="card text-center py-5">
                         <p class="text-muted">No transactions have been made yet.</p>
                     </div>
+               
                 <% } %>
             </div>
 
@@ -168,27 +203,30 @@
                 labels: salesTrendData.labels,
                 datasets: [{
                     label: 'Sales',
+                 
                     data: salesTrendData.data,
                     backgroundColor: '#FF0066',
                     borderColor: '#FF0066',
                     borderWidth: 1,
                     borderRadius: 8
+            
                 }]
             },
             options: {
                 scales: {
                     y: {
                         beginAtZero: true
+        
                     }
                 },
                 plugins: {
                     legend: {
                         display: false
+         
                     }
                 }
             }
         });
-
         // --- 2. Top Products Pie Chart ---
         const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
         new Chart(topProductsCtx, {
@@ -197,21 +235,25 @@
                 labels: topProductsData.labels,
                 datasets: [{
                     label: 'Quantity Sold',
+                
                     data: topProductsData.data,
                     backgroundColor: [
                         '#FF0066',
                         '#FFD1E3',
                         '#F875AA',
+  
                         '#343a40',
                         '#6c757d'
                     ],
                     hoverOffset: 4
+             
                 }]
             },
             options: {
                  plugins: {
                     legend: {
                         position: 'bottom',
+        
                     }
                 }
             }

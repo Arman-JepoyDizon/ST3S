@@ -14,6 +14,7 @@ router.use(isAdmin);
 // Admin Dashboard & Analytics Routes
 router.get('/dashboard', adminController.getAnalyticsPage);
 router.get('/orders', adminController.getOrdersPage);
+router.get('/orders/export', adminController.exportOrders); 
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);

@@ -20,21 +20,45 @@
 <body class="frontline-body">
 
     <header class="frontline-header">
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="header-top-row">
             <h1 class="h4 mb-0 fw-bold">✨ Mira's Menu</h1>
-            <div class="buttons"><a href="/logout" style="color: white; justify-content: space-between;">
-                <i class="bi bi-person-circle fs-4" style="margin-right: 20px;"></i ></a>
-            <a href="/cart" class="cart-icon-wrapper">
-                <i class="bi bi-cart3 fs-4"></i>
-                <span class="badge rounded-pill bg-white text-dark cart-count">0</span>
-            </a></div>
+            <div class="cart-icon-wrapper">
+                <div class="cart-link-wrapper">
+                    <a href="/cart" class="text-white">
+                        <i class="bi bi-cart3 fs-4"></i>
+                        <span class="badge rounded-pill bg-white text-dark cart-count">0</span>
+                    </a>
+                </div>
+                <a href="#" class="text-white" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
+                    <i class="bi bi-person-circle fs-4"></i>
+                </a>
+            </div>
         </div>
-        <p class="text-white-50">What would you like to order?</p>
-        <div class="form-floating">
-            <input type="search" class="form-control search-bar" id="searchMenu" placeholder="Search delicious food...">
-            <label for="searchMenu"><i class="bi bi-search me-2"></i>Search delicious food...</label>
-        </div>
-        
+   
+        <p class="header-greeting">What would you like to order?</p>
 
-        
+        <div class="search-bar-wrapper">
+            <i class="bi bi-search search-bar-icon"></i>
+            <input type="search" class="form-control search-bar" id="searchMenu" placeholder="Search delicious food...">
+        </div>
     </header>
+
+    <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <h5 class="mb-3" id="logoutModalLabel">Do you wish to logout?</h5>
+                    <p class="text-muted small">You will be logged out automatically.</p>
+                    
+                    <div class="progress" role="progressbar" aria-label="Logout countdown" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="height: 10px">
+                        <div class="progress-bar bg-primary" id="logout-progress-bar" style="width: 100%"></div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <a href="/logout" class="btn btn-primary" id="confirm-logout-btn">Logout Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

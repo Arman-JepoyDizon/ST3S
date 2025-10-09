@@ -1,6 +1,7 @@
 /* Global CSS Variables */
 :root {
     --primary-color: #FF0066;
+    --primary-darker: #D60056;
     --primary-light: #FFF0F5;
     --secondary-color: #FFD1E3;
     --background-color: #F8F9FA;
@@ -256,25 +257,66 @@ body {
     left: 0;
     width: 100%;
     z-index: 1020;
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
     color: var(--white);
     padding: 1rem;
+    padding-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 0 0 20px 20px;
+}
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.header-greeting {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
 }
 .cart-icon-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.cart-link-wrapper {
     position: relative;
-    color: var(--white);
 }
 .cart-count {
     position: absolute;
     top: -5px;
-    right: -10px;
+    right: -8px;
     font-size: 0.7rem;
     padding: 0.2em 0.5em;
+}
+.search-bar-wrapper {
+    position: relative;
+}
+.search-bar-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 1.2rem;
 }
 .frontline-header .search-bar {
     border-radius: 50px;
     border: none;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding-left: 45px; /* Make space for icon */
+    height: 50px;
 }
+.frontline-header .search-bar::placeholder {
+    color: #999;
+}
+.frontline-header .search-bar:focus {
+    background-color: var(--white);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+}
+
 .frontline-main-content {
     padding: 1rem;
 }
@@ -351,7 +393,7 @@ body {
     align-items: center;
     justify-content: center;
     padding-bottom: 4px;
-    pointer-events: none;
+    cursor: pointer;
 }
 .bottom-nav-frontline {
     position: fixed;
@@ -610,8 +652,11 @@ body {
 }
 
 /* Cook Interface */
+.cook-body {
+    padding-top: 0; /* Removed padding */
+}
 .cook-main-content {
-    padding: 0 1rem 1rem 1rem;
+    padding: 1rem; /* Added default padding */
 }
 .cook-summary-card {
     border-left: 5px solid var(--primary-color);
@@ -695,9 +740,130 @@ body {
     border-radius: var(--border-radius);
 }
 
+/* Logout Modal Styles */
+#logoutConfirmModal .modal-content,
+#adminLogoutConfirmModal .modal-content,
+#cookLogoutConfirmModal .modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+}
+#logoutConfirmModal .btn,
+#adminLogoutConfirmModal .btn,
+#cookLogoutConfirmModal .btn {
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    font-weight: 600;
+}
+#logout-progress-bar,
+#admin-logout-progress-bar,
+#cook-logout-progress-bar {
+    transition: width 0.1s linear;
+}
+
+
 /* Responsive Adjustments */
+@media (min-width: 768px) {
+    .frontline-body {
+        padding-top: 130px;
+        padding-bottom: 2rem;
+    }
+    .frontline-header {
+        border-radius: 0;
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .header-top-row {
+        margin-bottom: 0;
+        flex-grow: 1;
+    }
+    .header-greeting {
+        display: none; /* Hide greeting on desktop */
+    }
+    .search-bar-wrapper {
+        width: 100%;
+        max-width: 400px;
+        margin-left: 2rem;
+    }
+    .bottom-nav-frontline {
+        display: none; /* Hide mobile bottom nav on desktop */
+    }
+    .frontline-main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .product-card-frontline .card-img-top {
+        height: 220px; /* Make product image taller on desktop */
+    }
+    .current-order-bar {
+        bottom: 1rem;
+        left: auto;
+        width: 350px;
+    }
+
+    .sales-main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .transaction-list-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    .cook-main-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    /* Desktop Product Detail View */
+    .detail-page-active.frontline-body {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+    .product-detail-page {
+        max-width: 1000px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        min-height: auto;
+    }
+    .product-detail-image-header {
+        height: auto;
+        position: static;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    .product-detail-body {
+        margin-top: 0;
+        border-radius: var(--border-radius);
+        background-color: var(--background-color);
+        padding: 0;
+        justify-content: center;
+    }
+    .btn-close-detail {
+        display: none; /* Hide close button on desktop */
+    }
+}
+
 @media (min-width: 992px) {
     .admin-content {
         padding-bottom: 0;
+    }
+    .sales-main-content .transaction-list-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .cook-main-content {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .product-detail-page {
+        gap: 3rem;
     }
 }

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- REAL-TIME UPDATES ---
+    // --- REAL-TIME UPDATES (SOCKET.IO) ---
     const socket = io();
 
     socket.on('newOrder', (newOrder) => {
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (
             document.querySelector('.cook-main-content') || 
             document.querySelector('.sales-main-content') ||
-            document.querySelector('.admin-content')
+            document.querySelector('.admin-content .transaction-list')
         ) {
             setTimeout(() => {
                 location.reload();
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- STATE & CORE FUNCTIONS ---
+    // --- STATE & CORE FUNCTIONS (CART) ---
     let cart = JSON.parse(localStorage.getItem('miraCart')) || [];
 
     const saveCart = () => {
@@ -56,8 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateCartUI = () => {
         const cartCountBadge = document.querySelector('.cart-count');
         if (cartCountBadge) {
-            let totalItems = 0;
-            cart.forEach(item => { totalItems += item.quantity; });
             cartCountBadge.innerText = cart.length;
         }
 
@@ -81,13 +79,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const addToCart = (id, name, price, quantity, sizeLabel) => {
         const cartItemId = sizeLabel ? `${id}-${sizeLabel}` : id;
-        const itemName = sizeLabel ? `${name} - ${sizeLabel}` : name;
-
+        
         const existingItem = cart.find(item => item.cartItemId === cartItemId);
         if (existingItem) {
             existingItem.quantity += quantity;
         } else {
-            cart.push({ cartItemId, id, name: itemName, price, quantity, sizeLabel });
+            cart.push({ cartItemId, id, name, price, quantity, sizeLabel });
         }
         saveCart();
         updateCartUI();
@@ -95,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- PAGE-SPECIFIC LOGIC ---
 
-    // Logic for the MAIN MENU PAGE
+    // ## Frontline: Main Menu Page ##
     const menuPage = document.querySelector('.frontline-main-content');
     if (menuPage) {
         let lastScrollTop = 0;
@@ -110,27 +107,44 @@ document.addEventListener('DOMContentLoaded', () => {
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }, false);
 
-        // --- Live Search Logic ---
+        // Live Search Logic
         const searchInput = document.getElementById('searchMenu');
-        const productItems = document.querySelectorAll('.row.g-3 .col-6');
-
-        if (searchInput) {
+        const productItems = menuPage.querySelectorAll('.row.g-3 .col-6');
+        if (searchInput && productItems.length > 0) {
             searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-    
+                const searchTerm = e.target.value.toLowerCase().trim();
                 productItems.forEach(item => {
                     const productName = item.querySelector('.card-title a').innerText.toLowerCase();
-                    if (productName.includes(searchTerm)) {
-                        item.style.display = 'flex';
+                    const categoryName = item.querySelector('.badge-category').innerText.toLowerCase();
+                    
+                    if (productName.includes(searchTerm) || categoryName.includes(searchTerm)) {
+                        item.classList.remove('d-none');
                     } else {
-                        item.style.display = 'none';
+                        item.classList.add('d-none');
                     }
                 });
             });
         }
+        
+        const productGrid = menuPage.querySelector('.row.g-3');
+        if(productGrid) {
+            productGrid.addEventListener('click', (e) => {
+                const addButton = e.target.closest('.btn-add-to-cart');
+                if (addButton) {
+                    e.preventDefault(); 
+                    const card = addButton.closest('.product-card-frontline');
+                    if (card && card.dataset.productId) {
+                        const id = card.dataset.productId;
+                        const name = card.dataset.productName;
+                        const price = parseFloat(card.dataset.productPrice);
+                        addToCart(id, name, price, 1, null);
+                    }
+                }
+            });
+        }
     }
 
-    // Logic for the PRODUCT DETAIL PAGE
+    // ## Frontline: Product Detail Page ##
     const detailPage = document.querySelector('.product-detail-page');
     if (detailPage) {
         const quantityInput = document.getElementById('quantity-input');
@@ -186,14 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const price = currentPrice;
             const quantity = parseInt(quantityInput.value);
             const sizeLabel = selectedSizeLabel;
-
             addToCart(id, name, price, quantity, sizeLabel);
-            
             window.location.href = '/';
         });
     }
 
-    // Logic for the CART PAGE
+    // ## Frontline: Cart Page ##
     const cartPage = document.querySelector('.cart-main-content');
     if (cartPage) {
         const itemsContainer = document.getElementById('cart-items-container');
@@ -318,6 +330,125 @@ document.addEventListener('DOMContentLoaded', () => {
         
         renderCartPage();
     }
+
+    // ## Admin: Universal Search Logic ##
+    const adminContent = document.querySelector('.admin-content');
+    if (adminContent) {
+        const createSearchFilter = (inputId, listSelector, cardSelector, titleSelector) => {
+            const searchInput = document.getElementById(inputId);
+            if (searchInput) {
+                const cards = document.querySelectorAll(`${listSelector} ${cardSelector}`);
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    cards.forEach(card => {
+                        const title = card.querySelector(titleSelector).innerText.toLowerCase();
+                        if (title.includes(searchTerm)) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            }
+        };
+        createSearchFilter('searchProducts', '.product-list', '.product-card-revamp', '.card-title');
+        createSearchFilter('searchUsers', '.user-list', '.user-card-link', '.card-title');
+        createSearchFilter('searchOrders', '.transaction-list', '.transaction-card', 'h6');
+    }
+
+    // ## Cook Interface: Real-time Order Timers ##
+    const cookPage = document.querySelector('.cook-main-content');
+    if (cookPage) {
+        const updateOrderTimers = () => {
+            const orderCards = document.querySelectorAll('.order-card-cook');
+            
+            orderCards.forEach((card, index) => {
+                const timerElement = card.querySelector('.order-timer');
+                if (!timerElement) {
+                    console.warn(`Card ${index} is missing a .order-timer element.`);
+                    return;
+                }
+
+                const createdAtTimestamp = card.dataset.createdAt;
+                if (!createdAtTimestamp) {
+                    console.warn(`Card ${index} is missing the data-created-at attribute.`);
+                    return;
+                }
+
+                const createdAt = new Date(createdAtTimestamp);
+                if (isNaN(createdAt.getTime())) {
+                    console.error(`Card ${index} has an invalid timestamp: ${createdAtTimestamp}`);
+                    return;
+                }
+
+                const elapsedSeconds = Math.floor((new Date() - createdAt) / 1000);
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                const timerText = `(${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')})`;
+                timerElement.innerText = timerText;
+
+                // Update urgent status
+                if (elapsedSeconds > 180 && !card.classList.contains('is-urgent')) {
+                    card.classList.add('is-urgent');
+                    const cardHeader = card.querySelector('.card-header');
+                    if (cardHeader && !cardHeader.querySelector('.badge-urgent')) {
+                        const urgentBadge = document.createElement('span');
+                        urgentBadge.classList.add('badge', 'badge-urgent');
+                        urgentBadge.innerText = 'URGENT';
+                        cardHeader.appendChild(urgentBadge);
+                    }
+                }
+            });
+        };
+        
+        setInterval(updateOrderTimers, 1000);
+        updateOrderTimers();
+    }
+
+    // ## Reusable Logout Confirmation Modal Logic ##
+    const initializeLogoutModal = (modalId, progressBarId) => {
+        const logoutModalEl = document.getElementById(modalId);
+        if (logoutModalEl) {
+            let logoutTimer;
+            let countdownInterval;
+            const countdownDuration = 10000; // 10 seconds
+
+            logoutModalEl.addEventListener('show.bs.modal', () => {
+                const progressBar = document.getElementById(progressBarId);
+                let timeLeft = countdownDuration;
+                
+                progressBar.style.width = '100%';
+                progressBar.classList.remove('bg-danger');
+                progressBar.classList.add('bg-primary');
+
+                logoutTimer = setTimeout(() => {
+                    window.location.href = '/logout';
+                }, countdownDuration);
+
+                countdownInterval = setInterval(() => {
+                    timeLeft -= 100;
+                    const widthPercentage = (timeLeft / countdownDuration) * 100;
+                    progressBar.style.width = `${widthPercentage}%`;
+
+                    if (timeLeft <= 3000) {
+                        progressBar.classList.remove('bg-primary');
+                        progressBar.classList.add('bg-danger');
+                    }
+                }, 100);
+            });
+
+            logoutModalEl.addEventListener('hide.bs.modal', () => {
+                clearTimeout(logoutTimer);
+                clearInterval(countdownInterval);
+            });
+        }
+    };
+
+    // Initialize all logout modals
+    initializeLogoutModal('logoutConfirmModal', 'logout-progress-bar');
+    initializeLogoutModal('adminLogoutConfirmModal', 'admin-logout-progress-bar');
+    initializeLogoutModal('cookLogoutConfirmModal', 'cook-logout-progress-bar');
 
     // --- INITIALIZATION ---
     updateCartUI();

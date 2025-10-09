@@ -9,16 +9,34 @@ const Size = require('../models/size');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        const totalOrders = await Transaction.countDocuments();
+        const { filter } = req.query; // e.g., 'week', 'month', 'year'
+        let startDate = new Date();
+        let currentFilter = 'week'; // Default filter
+
+        switch (filter) {
+            case 'month':
+                startDate.setDate(startDate.getDate() - 30);
+                currentFilter = 'month';
+                break;
+            case 'year':
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                currentFilter = 'year';
+                break;
+            case 'week':
+            default:
+                startDate.setDate(startDate.getDate() - 7);
+                break;
+        }
+
+        const totalOrders = await Transaction.countDocuments({ createdAt: { $gte: startDate } });
         const salesData = await Transaction.aggregate([
-            { $match: { status: 'Completed' } },
+            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
-       
         const bestSellers = await Transaction.aggregate([
-            { $match: { status: 'Completed' } },
+            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
             { $unwind: '$items' },
             { 
                 $group: { 
@@ -40,31 +58,55 @@ const getAnalyticsPage = async (req, res) => {
             { $unwind: '$productDetails' }
         ]);
         
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const dailySales = await Transaction.aggregate([
-            { $match: { status: 'Completed', createdAt: { $gte: sevenDaysAgo } } },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                    dailyTotal: { $sum: "$totalAmount" }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
-
-        const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
-        const labels = [];
-        const data = [];
-
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateString = date.toISOString().split('T')[0];
-            
-            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            data.push(salesMap.get(dateString) || 0);
+        // --- Adaptive Chart Data Logic ---
+        let salesTrendData;
+        if (currentFilter === 'year') {
+            // Group by month for the 'year' filter
+            const monthlySales = await Transaction.aggregate([
+                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                        monthlyTotal: { $sum: "$totalAmount" }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+            const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
+            const labels = [];
+            const data = [];
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthString = date.toISOString().slice(0, 7);
+                labels.push(date.toLocaleString('en-US', { month: 'short' }));
+                data.push(salesMap.get(monthString) || 0);
+            }
+            salesTrendData = { labels, data, title: 'Sales Trend (Last 12 Months)' };
+        } else {
+            // Group by day for 'week' and 'month' filters
+            const dailySales = await Transaction.aggregate([
+                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        dailyTotal: { $sum: "$totalAmount" }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+            const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+            const labels = [];
+            const data = [];
+            const days = currentFilter === 'month' ? 30 : 7;
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                data.push(salesMap.get(dateString) || 0);
+            }
+            salesTrendData = { labels, data, title: `Sales Trend (Last ${days} Days)` };
         }
 
         const recentTransactions = await Transaction.find({})
@@ -73,7 +115,6 @@ const getAnalyticsPage = async (req, res) => {
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
 
-        const salesTrendData = { labels, data };
         const topProductsData = {
             labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
             data: bestSellers.map(p => p.totalQuantity)
@@ -87,7 +128,8 @@ const getAnalyticsPage = async (req, res) => {
             bestSellers,
             salesTrendData,
             topProductsData,
-            recentTransactions
+            recentTransactions,
+            currentFilter
         });
 
     } catch (error) {
@@ -114,6 +156,65 @@ const getOrdersPage = async (req, res) => {
     }
 };
 
+const exportOrders = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name');
+
+        const csvHeaders = [
+            'Order ID', 'Date', 'Time', 'Cashier', 'Customer Name', 'Items', 'Total Amount', 'Status'
+        ];
+
+        const sanitizeField = (field) => {
+            if (field === null || field === undefined) return '';
+            const str = String(field);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvRows = transactions.map(t => {
+            const orderId = `ORD-${t._id.toString().slice(-6).toUpperCase()}`;
+            const date = new Date(t.createdAt).toLocaleDateString('en-CA'); // YYYY-MM-DD
+            const time = new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const cashier = t.createdBy ? t.createdBy.username : 'N/A';
+            const customerName = t.customerName || '';
+            const itemsString = t.items.map(item => 
+                `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`
+            ).join('; ');
+            const totalAmount = t.totalAmount.toFixed(2);
+            const status = t.status;
+
+            return [orderId, date, time, cashier, customerName, itemsString, totalAmount, status].map(sanitizeField).join(',');
+        });
+        
+        // Calculate total revenue from completed orders
+        const totalRevenue = transactions.reduce((sum, transaction) => {
+            if (transaction.status === 'Completed') {
+                return sum + transaction.totalAmount;
+            }
+            return sum;
+        }, 0);
+
+        const summaryRow = [
+            '', '', '', '', '', 'Total Revenue:', totalRevenue.toFixed(2), ''
+        ].join(',');
+
+        const csvString = [csvHeaders.join(','), ...csvRows, '', summaryRow].join('\n');
+        
+        const fileName = `Miras-Transactions-${new Date().toISOString().slice(0,10)}.csv`;
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.status(200).send(csvString);
+
+    } catch (error) {
+        console.error('Error exporting orders:', error);
+        res.status(500).send('Server Error during export.');
+    }
+};
 
 const getProducts = async (req, res) => {
     try {
@@ -590,5 +691,6 @@ module.exports = {
     postEditCategory,
     postDeletedCategory,
     getOrdersPage,
+    exportOrders,
     deleteSize
 };
