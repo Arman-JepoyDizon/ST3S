@@ -38,7 +38,4 @@ router.get('/categories/edit/:id', adminController.getEditCategoryPage)
 router.post('/categories/edit/:id', adminController.postEditCategory)
 router.post('/categories/add', adminController.postAddCategory)
 router.post('/categories/delete/:id', adminController.postDeletedCategory)
-
-//Size Management Routes
-router.post('/sizes/delete/:id', adminController.deleteSize)
 module.exports = router;
