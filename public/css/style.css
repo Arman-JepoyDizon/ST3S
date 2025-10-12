@@ -31,9 +31,77 @@ body {
     background-color: var(--background-color);
 }
 
+
+/* Audio Enable Banner */
+.audio-banner {
+    display: flex;
+    position: fixed;
+    top: 20px; /* Added more space from the top */
+    left: 50%;
+    
+    /* Animation: Start off-screen and invisible */
+    transform: translate(-50%, -150%);
+    opacity: 0;
+    
+    /* Theming: Use system colors and gradient */
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
+    color: var(--white);
+    
+    padding: 0.75rem 1.25rem;
+    border-radius: 50px;
+    z-index: 1050;
+    
+    align-items: center;
+    gap: 1rem;
+    
+    /* Theming: Add shadow consistent with the system */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    
+    /* Animation: Smooth transition for transform and opacity */
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    pointer-events: none; /* Prevent interaction while hidden */
+}
+
+.audio-banner.show {
+    /* Animation: Slide into view and become visible */
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto; /* Allow interaction when visible */
+}
+
+.audio-banner .banner-icon i {
+    font-size: 1.5rem;
+    vertical-align: middle;
+}
+
+.audio-banner p {
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Custom styles for buttons inside the banner */
+.audio-banner .btn-banner {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    font-weight: 600;
+    padding: 0.3rem 1rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+    white-space: nowrap; /* Prevent button text from wrapping */
+    transition: background-color 0.2s ease;
+}
+
+.audio-banner .btn-banner:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: var(--white);
+}
+
 /* Login Page Styles */
 .login-container {
-    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
     background-color: var(--background-color);
     padding: 1rem;
 }
@@ -83,7 +151,8 @@ body {
 .admin-container {
     display: flex;
     background-color: var(--background-color);
-    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    z-index: auto;
 }
 .admin-content {
     flex-grow: 1;
@@ -648,6 +717,24 @@ body {
 }
 
 /* Frontliner: Cart Page */
+.payment-method-btn {
+    --bs-btn-color: var(--primary-color);
+    --bs-btn-border-color: var(--primary-color);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary-color);
+    --bs-btn-hover-border-color: var(--primary-color);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--primary-color);
+    --bs-btn-active-border-color: var(--primary-color);
+    --bs-btn-focus-shadow-rgb: 255, 0, 102; /* RGB value of your fuchsia theme */
+    font-weight: 600;
+}
+
+.payment-method-btn.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
 .cart-header {
     background-color: var(--primary-color);
     color: var(--white);

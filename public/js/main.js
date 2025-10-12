@@ -1,21 +1,43 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- Audio Unlock for Mobile Devices ---
+    const audioBanner = document.getElementById('audio-enable-banner');
+    const enableAudioBtn = document.getElementById('enable-audio-btn');
+    const notificationSound = document.getElementById('notification-sound');
+
+    // Check if the user has already enabled audio. If not, show the banner.
+    if (localStorage.getItem('audioEnabled') !== 'true' && notificationSound) {
+        if (audioBanner) audioBanner.classList.add('show');
+    }
+
+    if (enableAudioBtn) {
+        enableAudioBtn.addEventListener('click', () => {
+            // Play and immediately pause the sound to "prime" it
+            notificationSound.play();
+            notificationSound.pause();
+            notificationSound.currentTime = 0;
+
+            // Save the user's choice and hide the banner
+            localStorage.setItem('audioEnabled', 'true');
+            if (audioBanner) audioBanner.classList.remove('show');
+        }, { once: true });
+    }
+
+
     // --- REAL-TIME UPDATES (SOCKET.IO) ---
     const socket = io();
 
     socket.on('newOrder', (newOrder) => {
-        // If on cook's dashboard OR any admin page, reload to show the new order
         if (
             document.querySelector('.cook-main-content') ||
-            document.querySelector('.admin-main-container') || // Desktop Admin
-            document.querySelector('.admin-container')        // Mobile Admin
+            document.querySelector('.admin-main-container') || 
+            document.querySelector('.admin-container')
         ) {
             location.reload();
         }
     });
 
     socket.on('orderStatusUpdated', (data) => {
-        // This logic updates the notification badge for the frontline user
         const salesNavLink = document.querySelector('.bottom-nav-frontline a[href="/sales"]');
         if (salesNavLink) {
             let badge = salesNavLink.querySelector('.nav-badge');
@@ -23,6 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.oldStatus !== 'Ready' && data.newStatus === 'Ready') {
                 currentCount++;
+                
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(200);
+                }
+
+                // Only play sound if the user has enabled it
+                if (notificationSound && localStorage.getItem('audioEnabled') === 'true') {
+                    notificationSound.play().catch(error => console.log("Audio playback failed:", error));
+                }
+
             } else if (data.oldStatus === 'Ready' && data.newStatus !== 'Ready') {
                 currentCount--;
             }
@@ -41,12 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Reload relevant pages to reflect status changes
         if (
             document.querySelector('.cook-main-content') || 
             document.querySelector('.sales-main-content') ||
-            document.querySelector('.admin-main-container') || // Desktop Admin
-            document.querySelector('.admin-container')        // Mobile Admin
+            document.querySelector('.admin-main-container') || 
+            document.querySelector('.admin-container')
         ) {
             setTimeout(() => {
                 location.reload();
@@ -115,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }, false);
 
-        // Live Search Logic
         const searchInput = document.getElementById('searchMenu');
         const productItems = menuPage.querySelectorAll('.row.g-3 .col-6');
         if (searchInput && productItems.length > 0) {
@@ -216,9 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ## Frontline: Cart Page ##
     const cartPage = document.querySelector('.cart-main-content');
     if (cartPage) {
+        let isDiscounted = false;
+        let selectedPaymentMethod = 'Cash';
+
         const itemsContainer = document.getElementById('cart-items-container');
         const emptyCartView = document.getElementById('empty-cart-view');
         const cartSummaryWrapper = document.getElementById('cart-summary-wrapper');
+        const paymentMethodBtns = document.querySelectorAll('.payment-method-btn');
+        const discountBtn = document.getElementById('discount-btn');
         
         const renderCartPage = () => {
             itemsContainer.innerHTML = '';
@@ -264,9 +299,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemsContainer.appendChild(itemElement);
                 });
 
+                const discountRow = document.getElementById('discount-row');
+                const discountAmountEl = document.getElementById('summary-discount');
+                let discountAmount = 0;
+                let finalTotal = subtotal;
+
+                if (isDiscounted) {
+                    discountAmount = subtotal * 0.20;
+                    finalTotal = subtotal - discountAmount;
+                    discountAmountEl.innerText = `- ₱${discountAmount.toFixed(2)}`;
+                    discountRow.style.display = 'flex';
+                    discountBtn.classList.add('active');
+                    discountBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i>Remove Discount';
+                } else {
+                    discountAmountEl.innerText = `- ₱0.00`;
+                    discountRow.style.display = 'none';
+                    discountBtn.classList.remove('active');
+                    discountBtn.innerHTML = '<i class="bi bi-percent me-1"></i>Apply Discount';
+                }
+
                 document.getElementById('cart-header-count').innerText = `${totalItems} ${totalItems > 1 ? 'items' : 'item'}`;
                 document.getElementById('summary-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
-                document.getElementById('summary-total').innerText = `₱${subtotal.toFixed(2)}`;
+                document.getElementById('summary-total').innerText = `₱${finalTotal.toFixed(2)}`;
             }
         };
 
@@ -296,8 +350,23 @@ document.addEventListener('DOMContentLoaded', () => {
             saveCart();
             renderCartPage();
         });
+
+        paymentMethodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                paymentMethodBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedPaymentMethod = btn.dataset.method;
+            });
+        });
+
+        if (discountBtn) {
+            discountBtn.addEventListener('click', () => {
+                isDiscounted = !isDiscounted; 
+                renderCartPage();
+            });
+        }
         
-        const placeOrderBtn = document.querySelector('.place-order-footer button');
+        const placeOrderBtn = document.querySelector('.place-order-footer .btn-primary');
         placeOrderBtn.addEventListener('click', () => {
             if (cart.length === 0) {
                 alert('Your cart is empty.');
@@ -305,11 +374,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const customerName = document.getElementById('customer-name-input').value;
+            let finalTotal = 0;
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            if (isDiscounted) {
+                finalTotal = subtotal * 0.80;
+            } else {
+                finalTotal = subtotal;
+            }
 
             fetch('/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cart: cart, customerName: customerName }),
+                body: JSON.stringify({ 
+                    cart: cart, 
+                    customerName: customerName,
+                    paymentMethod: selectedPaymentMethod,
+                    discountApplied: isDiscounted,
+                    totalAmount: finalTotal
+                }),
             })
             .then(response => response.json())
             .then(data => {
@@ -360,7 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     };
-    // Initialize all admin search bars
     createAdminSearchFilter('searchProductsMobile', '.product-list-mobile', '.product-card-revamp', '.card-title');
     createAdminSearchFilter('searchProductsDesktop', '.product-list-desktop', '.list-table-row', '.fw-bold');
     createAdminSearchFilter('searchOrdersMobile', '.transaction-list-mobile', '.transaction-card', 'h6');
@@ -410,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (logoutModalEl) {
             let logoutTimer;
             let countdownInterval;
-            const countdownDuration = 10000; // 10 seconds
+            const countdownDuration = 10000;
 
             logoutModalEl.addEventListener('show.bs.modal', () => {
                 const progressBar = document.getElementById(progressBarId);

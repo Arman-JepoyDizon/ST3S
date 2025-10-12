@@ -31,6 +31,19 @@ const transactionSchema = new Schema({
         type: Number,
         required: true
     },
+    paymentMethod: {
+        type: String,
+        enum: ['Cash', 'Gcash'],
+        default: 'Cash'
+    },
+    discountApplied: {
+        type: Boolean,
+        default: false
+    },
+    discountAmount: {
+        type: Number,
+        default: 0
+    },
     createdBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',

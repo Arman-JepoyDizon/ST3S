@@ -39,10 +39,7 @@
                 <div id="modal-items-list" class="mb-4">
                     </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="fw-bold mb-0">Total</h5>
-                    <h5 class="fw-bold text-primary mb-0 fs-4" id="modal-total-amount">₱0.00</h5>
-                </div>
+                <div id="modal-pricing-details" class="mb-4"></div>
 
                 <div class="d-grid gap-2 mb-3">
                     <button type="button" class="btn btn-primary fw-bold btn-lg" id="modal-change-status-btn"></button>
@@ -58,7 +55,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <script src="/js/vport.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>
 <script>
@@ -72,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalOrderTimestamp = document.getElementById('modal-order-timestamp');
         const modalOrderId = document.getElementById('modal-order-id');
         const modalItemsList = document.getElementById('modal-items-list');
-        const modalTotalAmount = document.getElementById('modal-total-amount');
+        const modalPricingDetails = document.getElementById('modal-pricing-details'); // New element
         const modalChangeStatusBtn = document.getElementById('modal-change-status-btn');
 
         viewButtons.forEach(button => {
@@ -86,32 +83,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 const createdAtDate = new Date(transaction.createdAt);
                 modalOrderTimestamp.textContent = createdAtDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + createdAtDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
                 modalOrderId.textContent = `ORD-${transaction._id.toString().slice(-10).toUpperCase()}`;
-                modalTotalAmount.textContent = `₱${transaction.totalAmount.toFixed(2)}`;
 
                 // Populate Items List
-                modalItemsList.innerHTML = ''; // Clear previous items
+                modalItemsList.innerHTML = '';
                 transaction.items.forEach(item => {
                     const itemRow = document.createElement('div');
                     itemRow.className = 'modal-item-row';
-                    
                     let itemNameDisplay = item.productId ? item.productId.name : 'Product Not Found';
                     if (item.sizeLabel) {
                         itemNameDisplay += ` <small class="text-muted">(${item.sizeLabel})</small>`;
                     }
-
-                    // --- THIS IS THE UPDATED LINE ---
                     itemRow.innerHTML = `
                         <span class="modal-item-name"><span class="fw-bold me-2">${item.quantity}x</span> ${itemNameDisplay}</span>
                         <span class="modal-item-price">₱${(item.price * item.quantity).toFixed(2)}</span>
                     `;
-                    // --- END OF UPDATE ---
-                    
                     modalItemsList.appendChild(itemRow);
                 });
 
-                // Handle the dynamic status change button
-                modalChangeStatusBtn.onclick = null; // Clear previous event listeners
+                // --- NEW PRICING LOGIC ---
+                if (transaction.discountApplied) {
+                    const subtotal = transaction.totalAmount + transaction.discountAmount;
+                    modalPricingDetails.innerHTML = `
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>Subtotal</span>
+                            <span>₱${subtotal.toFixed(2)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-danger small">
+                            <span>Discount (20%)</span>
+                            <span>- ₱${transaction.discountAmount.toFixed(2)}</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">Total</h5>
+                            <h5 class="fw-bold text-primary mb-0 fs-4">₱${transaction.totalAmount.toFixed(2)}</h5>
+                        </div>
+                    `;
+                } else {
+                    // If no discount, show only the total
+                    modalPricingDetails.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0">Total</h5>
+                            <h5 class="fw-bold text-primary mb-0 fs-4">₱${transaction.totalAmount.toFixed(2)}</h5>
+                        </div>
+                    `;
+                }
+                // --- END OF NEW PRICING LOGIC ---
 
+                // Handle the dynamic status change button (remains the same)
+                modalChangeStatusBtn.onclick = null;
                 if (transaction.status === 'Pending') {
                     modalChangeStatusBtn.textContent = 'Mark as Ready';
                     modalChangeStatusBtn.classList.remove('btn-success', 'btn-danger');
@@ -132,26 +151,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     modalChangeStatusBtn.addEventListener('click', async () => {
                         const nextStatus = modalChangeStatusBtn.dataset.nextStatus;
                         if (!nextStatus) return;
-
                         try {
                             const response = await fetch(`/admin/orders/${transaction._id}/status`, {
                                 method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
+                                headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ status: nextStatus })
                             });
-
-                            if (response.ok) {
-                                window.location.reload(); 
-                            } else {
-                                const errorData = await response.json();
-                                alert('Failed to update order status: ' + (errorData.message || 'Unknown error'));
-                            }
-                        } catch (error) {
-                            console.error('Error updating order status:', error);
-                            alert('An error occurred while updating the order status.');
-                        }
+                            if (response.ok) { window.location.reload(); }
+                            else { alert('Failed to update order status'); }
+                        } catch (error) { console.error('Error:', error); alert('An error occurred.'); }
                     });
                 }
                 

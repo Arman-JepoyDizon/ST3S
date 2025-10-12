@@ -5,7 +5,7 @@
 <div class="d-lg-none">
 
     <div class="admin-container">
-        <%- include('../partials/adminSidebar', { activePage: 'analytics' }) %>
+        <%# The sidebar that was here has been removed to fix the modal issue %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
@@ -15,6 +15,7 @@
                 </div>
 
                 <div class="d-flex mb-4">
+                    <a href="/admin/dashboard?filter=today" style="border-radius: 12px;" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Today</a>
                     <a href="/admin/dashboard?filter=week" style="border-radius: 12px;" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Week</a>
                     <a href="/admin/dashboard?filter=month" style="border-radius: 12px;" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Month</a>
                     <a href="/admin/dashboard?filter=year"  style="border-radius: 12px;" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold">Year</a>
@@ -163,6 +164,7 @@
             <p class="text-muted">Track your business performance</p>
         </div>
         <div class="d-flex">
+            <a href="/admin/dashboard?filter=today" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Today</a>
             <a href="/admin/dashboard?filter=week" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Week</a>
             <a href="/admin/dashboard?filter=month" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Month</a>
             <a href="/admin/dashboard?filter=year" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold" style="border-radius: 12px;">Year</a>
@@ -294,13 +296,13 @@
                                 <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
                             </div>
                         </div>
-                    <% }) %>
-                <% } else { %>
-                    <div class="card text-center py-5">
-                        <p class="text-muted">No transactions have been made yet.</p>
                     </div>
-                <% } %>
-            </div>
+                <% }) %>
+            <% } else { %>
+                <div class="card text-center py-5">
+                    <p class="text-muted">No transactions have been made yet.</p>
+                </div>
+            <% } %>
         </div>
     </div>
 </div>
@@ -309,55 +311,69 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
-        const topProductsData = <%- JSON.stringify(topProductsData) %>;
+        // Use a try-catch block for absolute safety
+        try {
+            const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
+            const topProductsData = <%- JSON.stringify(topProductsData) %>;
 
-        const createSalesChart = (canvasId) => {
-            const ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-            new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: salesTrendData.labels,
-                    datasets: [{
-                        label: 'Sales',
-                        data: salesTrendData.data,
-                        backgroundColor: '#FF0066',
-                        borderColor: '#FF0066',
-                        borderWidth: 1,
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    scales: { y: { beginAtZero: true } },
-                    plugins: { legend: { display: false } }
+            const createSalesChart = (canvasId) => {
+                const ctx = document.getElementById(canvasId);
+                
+                if (!ctx || !salesTrendData || !salesTrendData.labels || !salesTrendData.data) {
+                    console.warn(`Sales chart '${canvasId}' skipped: Missing data or canvas element.`);
+                    return;
                 }
-            });
-        };
+                new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: salesTrendData.labels,
+                        datasets: [{
+                            label: 'Sales',
+                            data: salesTrendData.data,
+                            backgroundColor: '#FF0066',
+                            borderColor: '#FF0066',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            };
+            
+            const createTopProductsChart = (canvasId) => {
+                const ctx = document.getElementById(canvasId);
+                
+                if (!ctx || !topProductsData || !topProductsData.labels || !topProductsData.data) {
+                    console.warn(`Top products chart '${canvasId}' skipped: Missing data or canvas element.`);
+                    return;
+                }
+                new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: topProductsData.labels,
+                        datasets: [{
+                            label: 'Quantity Sold',
+                            data: topProductsData.data,
+                            backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        plugins: { legend: { position: 'right' } }
+                    }
+                });
+            };
+
+            createSalesChart('salesTrendChartMobile');
+            createSalesChart('salesTrendChartDesktop');
+            createTopProductsChart('topProductsChartMobile');
+            createTopProductsChart('topProductsChartDesktop');
         
-        const createTopProductsChart = (canvasId) => {
-            const ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-            new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: topProductsData.labels,
-                    datasets: [{
-                        label: 'Quantity Sold',
-                        data: topProductsData.data,
-                        backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'],
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    plugins: { legend: { position: 'right' } }
-                }
-            });
-        };
-
-        createSalesChart('salesTrendChartMobile');
-        createSalesChart('salesTrendChartDesktop');
-        createTopProductsChart('topProductsChartMobile');
-        createTopProductsChart('topProductsChartDesktop');
+        } catch (error) {
+            console.error("Error initializing charts on analytics page:", error);
+        }
     });
 </script>

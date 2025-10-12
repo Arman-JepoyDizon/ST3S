@@ -9,22 +9,24 @@ const Size = require('../models/size');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        const { filter } = req.query; // e.g., 'week', 'month', 'year'
+        const { filter } = req.query;
         let startDate = new Date();
-        let currentFilter = 'week'; // Default filter
+        let currentFilter = filter || 'today'; // Default to 'today'
 
-        switch (filter) {
+        switch (currentFilter) {
+            case 'week':
+                startDate.setDate(startDate.getDate() - 7);
+                break;
             case 'month':
                 startDate.setDate(startDate.getDate() - 30);
-                currentFilter = 'month';
                 break;
             case 'year':
                 startDate.setFullYear(startDate.getFullYear() - 1);
-                currentFilter = 'year';
                 break;
-            case 'week':
+            case 'today':
             default:
-                startDate.setDate(startDate.getDate() - 7);
+                startDate.setHours(0, 0, 0, 0); // Set to the beginning of the current day
+                currentFilter = 'today';
                 break;
         }
 
@@ -61,7 +63,6 @@ const getAnalyticsPage = async (req, res) => {
         // --- Adaptive Chart Data Logic ---
         let salesTrendData;
         if (currentFilter === 'year') {
-            // Group by month for the 'year' filter
             const monthlySales = await Transaction.aggregate([
                 { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
                 {
@@ -84,7 +85,24 @@ const getAnalyticsPage = async (req, res) => {
             }
             salesTrendData = { labels, data, title: 'Sales Trend (Last 12 Months)' };
         } else {
-            // Group by day for 'week' and 'month' filters
+            // Logic for 'today', 'week', and 'month'
+            let days;
+            let title;
+            switch(currentFilter) {
+                case 'today':
+                    days = 1;
+                    title = 'Sales Trend (Today)';
+                    break;
+                case 'week':
+                    days = 7;
+                    title = 'Sales Trend (Last 7 Days)';
+                    break;
+                case 'month':
+                    days = 30;
+                    title = 'Sales Trend (Last 30 Days)';
+                    break;
+            }
+
             const dailySales = await Transaction.aggregate([
                 { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
                 {
@@ -98,7 +116,7 @@ const getAnalyticsPage = async (req, res) => {
             const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
             const labels = [];
             const data = [];
-            const days = currentFilter === 'month' ? 30 : 7;
+            
             for (let i = days - 1; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
@@ -106,7 +124,7 @@ const getAnalyticsPage = async (req, res) => {
                 labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 data.push(salesMap.get(dateString) || 0);
             }
-            salesTrendData = { labels, data, title: `Sales Trend (Last ${days} Days)` };
+            salesTrendData = { labels, data, title };
         }
 
         const recentTransactions = await Transaction.find({})
@@ -164,7 +182,8 @@ const exportOrders = async (req, res) => {
             .populate('items.productId', 'name');
 
         const csvHeaders = [
-            'Order ID', 'Date', 'Time', 'Cashier', 'Customer Name', 'Items', 'Total Amount', 'Status'
+            'Order ID', 'Date', 'Time', 'Cashier', 'Customer Name', 'Items', 
+            'Discount Applied', 'Discount Amount', 'Total Amount', 'Payment Method', 'Status'
         ];
 
         const sanitizeField = (field) => {
@@ -178,20 +197,25 @@ const exportOrders = async (req, res) => {
 
         const csvRows = transactions.map(t => {
             const orderId = `ORD-${t._id.toString().slice(-6).toUpperCase()}`;
-            const date = new Date(t.createdAt).toLocaleDateString('en-CA'); // YYYY-MM-DD
+            const date = new Date(t.createdAt).toLocaleDateString('en-CA');
             const time = new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
             const cashier = t.createdBy ? t.createdBy.username : 'N/A';
             const customerName = t.customerName || '';
             const itemsString = t.items.map(item => 
                 `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`
             ).join('; ');
+            const discountApplied = t.discountApplied ? 'Yes' : 'No';
+            const discountAmount = t.discountAmount.toFixed(2);
             const totalAmount = t.totalAmount.toFixed(2);
+            const paymentMethod = t.paymentMethod;
             const status = t.status;
 
-            return [orderId, date, time, cashier, customerName, itemsString, totalAmount, status].map(sanitizeField).join(',');
+            return [
+                orderId, date, time, cashier, customerName, itemsString, 
+                discountApplied, discountAmount, totalAmount, paymentMethod, status
+            ].map(sanitizeField).join(',');
         });
         
-        // Calculate total revenue from completed orders
         const totalRevenue = transactions.reduce((sum, transaction) => {
             if (transaction.status === 'Completed') {
                 return sum + transaction.totalAmount;
@@ -199,9 +223,7 @@ const exportOrders = async (req, res) => {
             return sum;
         }, 0);
 
-        const summaryRow = [
-            '', '', '', '', '', 'Total Revenue:', totalRevenue.toFixed(2), ''
-        ].join(',');
+        const summaryRow = ['', '', '', '', '', '', '', 'Total Revenue:', totalRevenue.toFixed(2), '', ''].join(',');
 
         const csvString = [csvHeaders.join(','), ...csvRows, '', summaryRow].join('\n');
         

@@ -4,7 +4,6 @@
 
 <div class="d-lg-none">
     <div class="admin-container">
-        <%- include('../partials/adminSidebar', { activePage: 'orders' }) %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
@@ -45,6 +44,10 @@
                                                 <i class="bi bi-person"></i> 
                                                 <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
                                             </small>
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-credit-card"></i> 
+                                                <%= transaction.paymentMethod %>
+                                            </small>
                                         </div>
                                         <% if (transaction.status === 'Completed') { %>
                                             <span class="badge badge-status-completed">Completed</span>
@@ -69,9 +72,22 @@
                                             </li>
                                         <% }) %>
                                     </ul>
-                                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
-                                        <p class="text-muted mb-0 fw-bold">Total</p>
-                                        <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                                    <div class="border-top pt-2">
+                                        <% if (transaction.discountApplied) { %>
+                                            <div class="d-flex justify-content-between">
+                                                <p class="text-muted mb-1 small">Subtotal</p>
+                                                <p class="fw-bold text-muted mb-1 small">₱<%= (transaction.totalAmount + transaction.discountAmount).toFixed(2) %></p>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <p class="text-muted mb-1 small">Discount (20%)</p>
+                                                <p class="fw-bold text-danger mb-1 small">- ₱<%= transaction.discountAmount.toFixed(2) %></p>
+                                            </div>
+                                            <hr class="my-1">
+                                        <% } %>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <p class="text-muted mb-0 fw-bold">Total</p>
+                                            <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -114,7 +130,7 @@
             <div class="list-table-header orders-grid">
                 <div>Order Number</div>
                 <div>Date & Time</div>
-                <div>Items</div>
+                <div>Payment</div>
                 <div>Total</div>
                 <div>Status</div>
                 <div class="text-end">Actions</div>
@@ -125,8 +141,13 @@
                     <div class="list-table-row orders-grid">
                         <div class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></div>
                         <div><%= new Date(transaction.createdAt).toLocaleString() %></div>
-                        <div><%= transaction.items.length %> items</div>
-                        <div class="fw-bold text-primary">₱<%= transaction.totalAmount.toFixed(2) %></div>
+                        <div><%= transaction.paymentMethod %></div>
+                        <div class="fw-bold text-primary">
+                            <% if (transaction.discountApplied) { %>
+                                <span class="text-decoration-line-through text-muted small">₱<%= (transaction.totalAmount + transaction.discountAmount).toFixed(2) %></span><br>
+                            <% } %>
+                            ₱<%= transaction.totalAmount.toFixed(2) %>
+                        </div>
                         <div>
                             <% if (transaction.status === 'Completed') { %>
                                 <span class="badge badge-status-completed">Completed</span>

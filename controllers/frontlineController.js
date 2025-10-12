@@ -161,17 +161,23 @@ const getSalesPage = async (req, res) => {
 
 const createOrder = async (req, res) => {
     try {
-        const { cart, customerName } = req.body;
+        const { cart, customerName, paymentMethod, discountApplied, totalAmount } = req.body;
 
         if (!cart || cart.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
         }
         
-        let serverTotalAmount = 0;
+        // Server-side calculation for security
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const discountAmount = discountApplied ? subtotal * 0.20 : 0;
+        const serverTotalAmount = subtotal - discountAmount;
+        
+        // Optional: Validate that client total matches server total
+        if (Math.abs(serverTotalAmount - totalAmount) > 0.01) { // Check for small floating point differences
+            console.warn('Client-side total did not match server-side total. Using server total.');
+        }
+        
         const orderItems = cart.map(cartItem => {
-            // Directly use the price and size from the cart object sent by the client
-            serverTotalAmount += cartItem.price * cartItem.quantity;
-            
             return {
                 productId: cartItem.id,
                 quantity: cartItem.quantity,
@@ -183,7 +189,10 @@ const createOrder = async (req, res) => {
         const newTransaction = new Transaction({
             customerName: customerName,
             items: orderItems,
-            totalAmount: serverTotalAmount,
+            totalAmount: serverTotalAmount, // Use the secure server-calculated total
+            paymentMethod: paymentMethod,
+            discountApplied: discountApplied,
+            discountAmount: discountAmount,
             createdBy: req.session.user.id
         });
 
