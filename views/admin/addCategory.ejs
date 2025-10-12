@@ -1,34 +1,51 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'categories' }) %>
+<%# This top navigation is for BOTH desktop and mobile %>
+<%- include('../partials/adminDesktopNav', { activePage: 'categories' }) %>
 
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
+<%# This is the single, main content container for ALL screen sizes %>
+<div class="admin-main-container">
 
-        <main class="p-3">
-            <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                <h2 class="h3">Add New Category</h2>
-                <a href="/admin/categories" class="btn btn-outline-secondary">
-                    Back to Categories
-                </a>
-            </div>
+    <%# The page header adapts for mobile and desktop %>
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Add New Category</h2>
+            <%# This descriptive text only shows on desktop %>
+            <p class="text-muted d-none d-lg-block mb-0">Create a new category for your products.</p>
+        </div>
+        
+        <%# Desktop "Cancel" button with icon %>
+        <a href="/admin/categories" class="btn btn-outline-secondary d-none d-lg-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+        
+        <%# Mobile "Back" button (simpler) %>
+        <a href="/admin/categories" class="btn btn-outline-secondary d-lg-none">
+            Back
+        </a>
+    </div>
 
-            <div class="card form-card">
-                <div class="card-body">
-                    <form action="/admin/categories/add" method="POST">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Category Name" required>
-                            <label for="name">Category Name</label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 btn-lg">Add Category</button>
-                    </form>
+    <%# The single, unified form. No more duplication! %>
+    <div class="card form-card">
+        <div class="card-body p-lg-4">
+            <form action="/admin/categories/add" method="POST">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="categoryName" name="name" placeholder="Category Name" required>
+                    <label for="categoryName">Category Name</label>
                 </div>
-            </div>
-        </main>
+                
+                <%# The button is full-width on mobile and auto-width on desktop %>
+                <div class="text-lg-end">
+                    <button type="submit" class="btn btn-primary w-100 w-lg-auto btn-lg">Add Category</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'categories' }) %>
+<%# The mobile bottom nav is still separate, as it only appears on small screens %>
+<div class="d-lg-none">
+    <%- include('../partials/adminBottomNav', { activePage: 'categories' }) %>
+</div>
+
 <%- include('../partials/adminFooter') %>

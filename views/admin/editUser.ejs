@@ -1,43 +1,88 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'users' }) %>
+<%- include('../partials/adminDesktopNav', { activePage: 'users' }) %>
 
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
-
-        <main class="p-3">
-            <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                <h2 class="h3">Edit User</h2>
-                <a href="/admin/users" class="btn btn-outline-secondary">
-                    Cancel
-                </a>
-            </div>
-
-            <div class="card form-card">
-                <div class="card-body">
-                    <form action="/admin/users/edit/<%= user_details._id %>" method="POST">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= user_details.username %>" required>
-                            <label for="name">Username</label>
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <select class="form-select" id="role" name="role" aria-label="User Role">
-                                <option value="Front Liner" <%=user_details.role == 'Front Liner'? 'selected': '' %>>Frontliner</option>
-                                <option value="Cook" <%=user_details.role == 'Cook'? 'selected': '' %>>Cook</option>
-                                <option value="Admin" <%=user_details.role == 'Admin'? 'selected': '' %>>Admin</option>
-                            </select>
-                            <label for="role">Role</label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 btn-lg">Save Changes</button>
-                    </form>
+<div class="d-lg-none">
+    <div class="admin-container">
+        <%# Sidebar is removed %>
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
+            <main class="p-3">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h3">Edit User</h2>
+                    <a href="/admin/users" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
                 </div>
-            </div>
-        </main>
+
+                <div class="card form-card">
+                    <div class="card-body">
+                        <form action="/admin/users/edit/<%= user_details._id %>" method="POST">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="usernameMobile" name="username" placeholder="Username" value="<%= user_details.username %>" required>
+                                <label for="usernameMobile">Username</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="roleMobile" name="role" aria-label="User Role">
+                                    <option value="Front Liner" <%= user_details.role == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
+                                    <option value="Cook" <%= user_details.role == 'Cook' ? 'selected' : '' %>>Cook</option>
+                                    <option value="Admin" <%= user_details.role == 'Admin' ? 'selected' : '' %>>Admin</option>
+                                </select>
+                                <label for="roleMobile">Role</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
+</div>
+
+<div class="admin-main-container d-none d-lg-block">
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Edit User</h2>
+            <p class="text-muted">Update details for <%= user_details.username %>.</p>
+        </div>
+        <a href="/admin/users" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+    <div class="card form-card">
+        <div class="card-body p-4">
+            <form action="/admin/users/edit/<%= user_details._id %>" method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="usernameDesktop" name="username" placeholder="Username" value="<%= user_details.username %>" required>
+                            <label for="usernameDesktop">Username</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="roleDesktop" name="role" aria-label="User Role">
+                                <option value="Front Liner" <%= user_details.role == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
+                                <option value="Cook" <%= user_details.role == 'Cook' ? 'selected' : '' %>>Cook</option>
+                                <option value="Admin" <%= user_details.role == 'Admin' ? 'selected' : '' %>>Admin</option>
+                            </select>
+                            <label for="roleDesktop">Role</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
 <%- include('../partials/adminFooter') %>

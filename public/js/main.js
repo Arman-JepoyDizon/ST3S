@@ -4,12 +4,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
 
     socket.on('newOrder', (newOrder) => {
-        if (document.querySelector('.cook-main-content')) {
+        // If on cook's dashboard OR any admin page, reload to show the new order
+        if (
+            document.querySelector('.cook-main-content') ||
+            document.querySelector('.admin-main-container') || // Desktop Admin
+            document.querySelector('.admin-container')        // Mobile Admin
+        ) {
             location.reload();
         }
     });
 
     socket.on('orderStatusUpdated', (data) => {
+        // This logic updates the notification badge for the frontline user
         const salesNavLink = document.querySelector('.bottom-nav-frontline a[href="/sales"]');
         if (salesNavLink) {
             let badge = salesNavLink.querySelector('.nav-badge');
@@ -35,10 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Reload relevant pages to reflect status changes
         if (
             document.querySelector('.cook-main-content') || 
             document.querySelector('.sales-main-content') ||
-            document.querySelector('.admin-content .transaction-list')
+            document.querySelector('.admin-main-container') || // Desktop Admin
+            document.querySelector('.admin-container')        // Mobile Admin
         ) {
             setTimeout(() => {
                 location.reload();
@@ -331,64 +339,54 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCartPage();
     }
 
-    // ## Admin: Universal Search Logic ##
-    const adminContent = document.querySelector('.admin-content');
-    if (adminContent) {
-        const createSearchFilter = (inputId, listSelector, cardSelector, titleSelector) => {
-            const searchInput = document.getElementById(inputId);
-            if (searchInput) {
-                const cards = document.querySelectorAll(`${listSelector} ${cardSelector}`);
-                searchInput.addEventListener('input', (e) => {
-                    const searchTerm = e.target.value.toLowerCase().trim();
-                    cards.forEach(card => {
-                        const title = card.querySelector(titleSelector).innerText.toLowerCase();
+    // ## Admin Search Logic ##
+    const createAdminSearchFilter = (inputId, listSelector, itemSelector, titleSelector) => {
+        const searchInput = document.getElementById(inputId);
+        if (searchInput) {
+            const items = document.querySelectorAll(`${listSelector} ${itemSelector}`);
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                items.forEach(item => {
+                    const titleElement = item.querySelector(titleSelector);
+                    if (titleElement) {
+                        const title = titleElement.innerText.toLowerCase();
                         if (title.includes(searchTerm)) {
-                            card.style.display = 'block';
+                            item.style.display = item.classList.contains('list-table-row') ? 'grid' : 'block';
                         } else {
-                            card.style.display = 'none';
+                            item.style.display = 'none';
                         }
-                    });
+                    }
                 });
-            }
-        };
-        createSearchFilter('searchProducts', '.product-list', '.product-card-revamp', '.card-title');
-        createSearchFilter('searchUsers', '.user-list', '.user-card-link', '.card-title');
-        createSearchFilter('searchOrders', '.transaction-list', '.transaction-card', 'h6');
-    }
+            });
+        }
+    };
+    // Initialize all admin search bars
+    createAdminSearchFilter('searchProductsMobile', '.product-list-mobile', '.product-card-revamp', '.card-title');
+    createAdminSearchFilter('searchProductsDesktop', '.product-list-desktop', '.list-table-row', '.fw-bold');
+    createAdminSearchFilter('searchOrdersMobile', '.transaction-list-mobile', '.transaction-card', 'h6');
+    createAdminSearchFilter('searchOrdersDesktop', '.transaction-list-desktop', '.list-table-row', '.fw-bold');
+    createAdminSearchFilter('searchUsersMobile', '.user-list-mobile', '.user-card-link', '.card-title');
+    createAdminSearchFilter('searchUsersDesktop', '.user-list-desktop', '.list-table-row', '.fw-bold');
+
 
     // ## Cook Interface: Real-time Order Timers ##
     const cookPage = document.querySelector('.cook-main-content');
     if (cookPage) {
         const updateOrderTimers = () => {
             const orderCards = document.querySelectorAll('.order-card-cook');
-            
-            orderCards.forEach((card, index) => {
+            orderCards.forEach(card => {
                 const timerElement = card.querySelector('.order-timer');
-                if (!timerElement) {
-                    console.warn(`Card ${index} is missing a .order-timer element.`);
-                    return;
-                }
+                if (!timerElement) return;
 
-                const createdAtTimestamp = card.dataset.createdAt;
-                if (!createdAtTimestamp) {
-                    console.warn(`Card ${index} is missing the data-created-at attribute.`);
-                    return;
-                }
-
-                const createdAt = new Date(createdAtTimestamp);
-                if (isNaN(createdAt.getTime())) {
-                    console.error(`Card ${index} has an invalid timestamp: ${createdAtTimestamp}`);
-                    return;
-                }
+                const createdAt = new Date(card.dataset.createdAt);
+                if (isNaN(createdAt.getTime())) return;
 
                 const elapsedSeconds = Math.floor((new Date() - createdAt) / 1000);
                 const minutes = Math.floor(elapsedSeconds / 60);
                 const seconds = elapsedSeconds % 60;
                 
-                const timerText = `(${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')})`;
-                timerElement.innerText = timerText;
+                timerElement.innerText = `(${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')})`;
 
-                // Update urgent status
                 if (elapsedSeconds > 180 && !card.classList.contains('is-urgent')) {
                     card.classList.add('is-urgent');
                     const cardHeader = card.querySelector('.card-header');

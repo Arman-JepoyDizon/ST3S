@@ -1,111 +1,158 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'orders' }) %>
+<%- include('../partials/adminDesktopNav', { activePage: 'orders' }) %>
 
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
-
-        <main class="p-3">
-            <div class="page-header d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h2 class="h3 mb-0">All Orders</h2>
-                    <p class="text-muted mb-0">A complete history of all sales records</p>
+<div class="d-lg-none">
+    <div class="admin-container">
+        <%- include('../partials/adminSidebar', { activePage: 'orders' }) %>
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
+            <main class="p-3">
+                <div class="page-header d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2 class="h3 mb-0">All Orders</h2>
+                        <p class="text-muted mb-0">A complete history of all sales records</p>
+                    </div>
+                    <a href="/admin/orders/export" class="btn btn-primary">
+                        <i class="bi bi-download"></i>
+                    </a>
                 </div>
-                <a href="/admin/orders/export" class="btn btn-primary">
-                    <i class="bi bi-download me-2"></i>Export Data
-                </a>
-            </div>
 
-            <div class="form-floating mb-4">
-                <input type="search" class="form-control" id="searchOrders" placeholder="Search by order number...">
-                <label for="searchOrders"><i class="bi bi-search me-2"></i>Search by order number...</label>
-            </div>
+                <div class="form-floating mb-4">
+                    <input type="search" class="form-control" id="searchOrdersMobile" placeholder="Search by order number...">
+                    <label for="searchOrdersMobile"><i class="bi bi-search me-2"></i>Search by order number...</label>
+                </div>
 
-            <div class="transaction-list">
-          
-                <% if (transactions && transactions.length > 0) { %>
-                    <% transactions.forEach(transaction => { %>
-                        <div class="card transaction-card mb-3">
-                            <div class="card-body">
-      
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
-                                   
-                                        <h6 class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
-                                        <% if (transaction.customerName) { %>
-                                            <p class="text-primary fw-bold mb-0 customer-name-display">
-                                                <i class="bi bi-person-badge"></i> 
-                                                <%= transaction.customerName %>
-                                            </p>
+                <div class="transaction-list-mobile">
+                    <% if (transactions && transactions.length > 0) { %>
+                        <% transactions.forEach(transaction => { %>
+                            <div class="card transaction-card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
+                                            <% if (transaction.customerName) { %>
+                                                <p class="text-primary fw-bold mb-0 customer-name-display">
+                                                    <i class="bi bi-person-badge"></i> 
+                                                    <%= transaction.customerName %>
+                                                </p>
+                                            <% } %>
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="bi bi-calendar-event"></i>
+                                                <%= new Date(transaction.createdAt).toLocaleDateString() %>
+                                            </small>
+                                            <small class="text-muted d-block">
+                                                <i class="bi bi-person"></i> 
+                                                <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
+                                            </small>
+                                        </div>
+                                        <% if (transaction.status === 'Completed') { %>
+                                            <span class="badge badge-status-completed">Completed</span>
+                                        <% } else if (transaction.status === 'Cancelled') { %>
+                                            <span class="badge badge-status-cancelled">Cancelled</span>
+                                        <% } else if (transaction.status === 'Ready') { %>
+                                            <span class="badge badge-status-ready">Ready</span>
+                                        <% } else { %>
+                                            <span class="badge badge-status-pending">Pending</span>
                                         <% } %>
-             
-                                        <small class="text-muted d-block mt-1">
-                                            <i class="bi bi-calendar-event"></i>
-                        
-                                            <%= new Date(transaction.createdAt).toLocaleDateString() %>
-                                        </small>
-                                     
-                                        <small class="text-muted d-block">
-                                            <i class="bi bi-person"></i> 
-                                            <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
-                                        </small>
                                     </div>
-                     
-                                    <% if (transaction.status === 'Completed') { %>
-                                        <span class="badge badge-status-completed">Completed</span>
-                                    <% } else if (transaction.status === 'Cancelled') { %>
-                                        <span class="badge badge-status-cancelled">Cancelled</span>
-                                    <% } else if (transaction.status === 'Ready') { %>
-       
-                                        <span class="badge badge-status-ready">Ready</span>
-                                    <% } else { %>
-                         
-                                        <span class="badge badge-status-pending">Pending</span>
-                                    <% } %>
-                                </div>
-             
-                                <ul class="list-group list-group-flush sales-item-list my-2">
-                                    <% transaction.items.forEach(item => { %>
-     
-                                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-                                            <div>
-               
-                                                <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
-                                                <% if (item.sizeLabel) { %>
-                                           
-                                                    <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
-                                                <% } %>
-                                    
-                                            </div>
-                                            <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
-                                        </li>
-  
-                                    <% }) %>
-                                </ul>
-
-                                
-                                <div class="d-flex justify-content-between align-items-center border-top pt-2">
-                                    <p class="text-muted mb-0 fw-bold">Total</p>
-                                    <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
-              
+                                    <ul class="list-group list-group-flush sales-item-list my-2">
+                                        <% transaction.items.forEach(item => { %>
+                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                                <div>
+                                                    <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
+                                                    <% if (item.sizeLabel) { %>
+                                                        <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
+                                                    <% } %>
+                                                </div>
+                                                <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
+                                            </li>
+                                        <% }) %>
+                                    </ul>
+                                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                                        <p class="text-muted mb-0 fw-bold">Total</p>
+                                        <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                                    </div>
                                 </div>
                             </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="card text-center py-5">
+                             <div class="card-body">
+                                <p class="text-muted">No transactions have been made yet.</p>
+                             </div>
                         </div>
-                    <% }) %>
-        
-                <% } else { %>
-                    <div class="card text-center py-5">
-                         <div class="card-body">
-                            <p class="text-muted">No transactions have been made yet.</p>
-     
-                         </div>
-                    </div>
-                <% } %>
+                    <% } %>
+                </div>
+            </main>
+        </div>
+    </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'orders' }) %>
+</div>
+
+
+<div class="admin-main-container d-none d-lg-block">
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Transactions</h2>
+            <p class="text-muted">All orders and sales records</p>
+        </div>
+        <a href="/admin/orders/export" class="btn btn-primary fw-bold">
+            <i class="bi bi-download me-2"></i>Export to CSV
+        </a>
+    </div>
+
+    <div class="list-table-container">
+        <div class="p-3">
+             <div class="form-floating">
+                <input type="search" class="form-control" id="searchOrdersDesktop" placeholder="Search by order number...">
+                <label for="searchOrdersDesktop"><i class="bi bi-search me-2"></i>Search by order number...</label>
             </div>
-        </main>
+        </div>
+
+        <% if (transactions && transactions.length > 0) { %>
+            <div class="list-table-header orders-grid">
+                <div>Order Number</div>
+                <div>Date & Time</div>
+                <div>Items</div>
+                <div>Total</div>
+                <div>Status</div>
+                <div class="text-end">Actions</div>
+            </div>
+
+            <div class="transaction-list-desktop">
+                <% transactions.forEach(transaction => { %>
+                    <div class="list-table-row orders-grid">
+                        <div class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></div>
+                        <div><%= new Date(transaction.createdAt).toLocaleString() %></div>
+                        <div><%= transaction.items.length %> items</div>
+                        <div class="fw-bold text-primary">₱<%= transaction.totalAmount.toFixed(2) %></div>
+                        <div>
+                            <% if (transaction.status === 'Completed') { %>
+                                <span class="badge badge-status-completed">Completed</span>
+                            <% } else if (transaction.status === 'Cancelled') { %>
+                                <span class="badge badge-status-cancelled">Cancelled</span>
+                            <% } else if (transaction.status === 'Ready') { %>
+                                <span class="badge badge-status-ready">Ready</span>
+                            <% } else { %>
+                                <span class="badge badge-status-pending">Pending</span>
+                            <% } %>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-outline-secondary btn-sm view-order-btn" 
+                                    data-transaction='<%- JSON.stringify(transaction) %>'>
+                                View
+                            </button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <p class="text-muted">No transactions have been made yet.</p>
+            </div>
+        <% } %>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'orders' }) %>
 <%- include('../partials/adminFooter') %>
