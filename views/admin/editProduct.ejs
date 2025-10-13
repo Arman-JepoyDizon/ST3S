@@ -45,8 +45,23 @@
                             <div id="price-container-mobile">
                                 <% if(sizes.length === 0) { %>
                                     <div class="form-floating mb-3">
-                                        <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
+                                        <input type="number" list = "mobilePastPricesList" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
                                         <label>Price</label>
+                                        <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
+                                            <datalist id="mobilePastPricesList">
+                                            <% pastSinglePrices.forEach(price => { %>
+                                                <option 
+                                                value="<%= price.price %>">
+                                                ₱<%= price.price %> — 
+                                                <%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { 
+                                                    year: 'numeric', 
+                                                    month: 'short', 
+                                                    day: '2-digit' 
+                                                }) %>
+                                                </option>
+                                            <% }) %>
+                                            </datalist>
+                                        <% } %>
                                     </div>
                                 <% } %>
                             </div>
@@ -54,16 +69,82 @@
                             <div id="size-price-container-mobile">
                                 <% if (sizes.length > 0) { %>
                                     <% sizes.forEach(size => { %>
-                                        <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                                        <div class="row g-2 mb-2 align-items-center size-price-row">
-                                            <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required><label>Size</label></div></div>
-                                            <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required><label>Price</label></div></div>
-                                            <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button></div>
+                                    <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
+
+                                    <div class="row g-2 mb-2 align-items-center size-price-row">
+                                        
+                                        <!-- SIZE INPUT -->
+                                        <div class="col-5">
+                                        <div class="form-floating">
+                                            <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            name="size[]" 
+                                            placeholder="Size" 
+                                            value="<%= size.label %>" 
+                                            list="pastSizeLabelsList" 
+                                            required
+                                            >
+                                            <label>Size</label>
+
+                                            <% if (pastProductSizes && pastProductSizes.length > 0) { %>
+                                            <datalist id="pastSizeLabelsList">
+                                                <% pastProductSizes.forEach(pastSize => { %>
+                                                <option value="<%= pastSize.label %>"><%= pastSize.label %></option>
+                                                <% }) %>
+                                            </datalist>
+                                            <% } %>
                                         </div>
+                                        </div>
+
+                                        <!-- PRICE INPUT -->
+                                        <div class="col-5">
+                                        <div class="form-floating">
+                                            <input 
+                                            type="number" 
+                                            class="form-control" 
+                                            name="price[]" 
+                                            step="0.01" 
+                                            min="0" 
+                                            placeholder="Price" 
+                                            value="<%= correspondingPrice ? correspondingPrice.price : '' %>" 
+                                            list="pastSizePricesList"
+                                            required
+                                            >
+                                            <label>Price</label>
+
+                                            <% if (pastSizePrices && pastSizePrices.length > 0) { %>
+                                            <datalist id="pastSizePricesList">
+                                                <% pastSizePrices.forEach(price => { 
+                                                    const relatedSize = pastProductSizes.find(s => s._id.toString() === String(price.sizeId));
+                                                %>
+                                                <option value="<%= price.price %>">
+                                                    ₱<%= price.price %>
+                                                    <% if (relatedSize) { %> — <%= relatedSize.label %><% } %>
+                                                    (<%= new Date(price.effectiveDate).toLocaleDateString('en-PH', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: '2-digit'
+                                                    }) %>)
+                                                </option>
+                                                <% }) %>
+                                            </datalist>
+                                            <% } %>
+                                        </div>
+                                        </div>
+
+                                        <!-- REMOVE BUTTON -->
+                                        <div class="col-2 text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        </div>
+
+                                    </div>
                                     <% }) %>
                                 <% } %>
                             </div>
-                            
+
                             <hr>
 
                             <div class="form-floating mb-3">
@@ -130,10 +211,35 @@
                 </div>
 
                 <div id="price-container-desktop">
-                     <% if(sizes.length === 0) { %>
+                    <% if (sizes.length === 0) { %>
                         <div class="form-floating mb-3">
-                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                            <label>Price</label>
+                        <input 
+                            type="number" 
+                            class="form-control" 
+                            name="price[]" 
+                            step="0.01" 
+                            min="0" 
+                            placeholder="Price" 
+                            value="<%= product.price %>" 
+                            list="pastPricesList" 
+                            required
+                        >
+                        <label>Price</label>
+                        <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
+                            <datalist id="pastPricesList">
+                            <% pastSinglePrices.forEach(price => { %>
+                                <option 
+                                value="<%= price.price %>">
+                                ₱<%= price.price %> — 
+                                <%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { 
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: '2-digit' 
+                                }) %>
+                                </option>
+                            <% }) %>
+                            </datalist>
+                        <% } %>
                         </div>
                     <% } %>
                 </div>

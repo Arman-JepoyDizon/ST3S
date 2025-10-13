@@ -11,6 +11,11 @@ const sizeSchema = new mongoose.Schema({
         required: [true],
         trim: true,
     },
+    status: {
+        type: String,
+        enum: ['Active', 'Inactive'],
+        default: 'Active',
+    },
 })
 
 const Size = mongoose.model('Size', sizeSchema);
