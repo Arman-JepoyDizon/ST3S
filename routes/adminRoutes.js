@@ -14,6 +14,7 @@ router.use(isAdmin);
 // Admin Dashboard & Analytics Routes
 router.get('/dashboard', adminController.getAnalyticsPage);
 router.get('/orders', adminController.getOrdersPage);
+router.get('/orders/export', adminController.exportOrders); 
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);
@@ -38,4 +39,5 @@ router.get('/categories/edit/:id', adminController.getEditCategoryPage)
 router.post('/categories/edit/:id', adminController.postEditCategory)
 router.post('/categories/add', adminController.postAddCategory)
 router.post('/categories/delete/:id', adminController.postDeletedCategory)
+
 module.exports = router;

@@ -1,6 +1,7 @@
 /* Global CSS Variables */
 :root {
     --primary-color: #FF0066;
+    --primary-darker: #D60056;
     --primary-light: #FFF0F5;
     --secondary-color: #FFD1E3;
     --background-color: #F8F9FA;
@@ -30,9 +31,77 @@ body {
     background-color: var(--background-color);
 }
 
+
+/* Audio Enable Banner */
+.audio-banner {
+    display: flex;
+    position: fixed;
+    top: 20px; /* Added more space from the top */
+    left: 50%;
+    
+    /* Animation: Start off-screen and invisible */
+    transform: translate(-50%, -150%);
+    opacity: 0;
+    
+    /* Theming: Use system colors and gradient */
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
+    color: var(--white);
+    
+    padding: 0.75rem 1.25rem;
+    border-radius: 50px;
+    z-index: 1050;
+    
+    align-items: center;
+    gap: 1rem;
+    
+    /* Theming: Add shadow consistent with the system */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    
+    /* Animation: Smooth transition for transform and opacity */
+    transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+    pointer-events: none; /* Prevent interaction while hidden */
+}
+
+.audio-banner.show {
+    /* Animation: Slide into view and become visible */
+    transform: translate(-50%, 0);
+    opacity: 1;
+    pointer-events: auto; /* Allow interaction when visible */
+}
+
+.audio-banner .banner-icon i {
+    font-size: 1.5rem;
+    vertical-align: middle;
+}
+
+.audio-banner p {
+    margin: 0;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* Custom styles for buttons inside the banner */
+.audio-banner .btn-banner {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: var(--white);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    font-weight: 600;
+    padding: 0.3rem 1rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+    white-space: nowrap; /* Prevent button text from wrapping */
+    transition: background-color 0.2s ease;
+}
+
+.audio-banner .btn-banner:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: var(--white);
+}
+
 /* Login Page Styles */
 .login-container {
-    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
     background-color: var(--background-color);
     padding: 1rem;
 }
@@ -61,6 +130,7 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(255, 0, 102, 0.25);
 }
 
+/* General Buttons & Text */
 .btn-primary {
     background-color: var(--primary-color);
     border: none;
@@ -77,22 +147,25 @@ body {
     color: var(--primary-color) !important;
 }
 
-/* Admin Layout Styles */
+/* --- Admin Mobile Layout --- */
 .admin-container {
     display: flex;
     background-color: var(--background-color);
-    min-height: 100vh;
+    min-height: calc(var(--vh, 1vh) * 100);
+    z-index: auto;
 }
 .admin-content {
     flex-grow: 1;
     padding-bottom: 80px;
 }
+.admin-navbar {
+    background-color: var(--white);
+    border-bottom: 1px solid #e9ecef;
+}
 .admin-navbar h1 {
     color: var(--text-color);
     font-weight: 700;
 }
-
-/* Sidebar (Desktop) */
 .sidebar {
     width: 280px;
     background-color: #343a40;
@@ -111,8 +184,6 @@ body {
     opacity: 1;
     background-color: var(--primary-color);
 }
-
-/* Bottom Navigation (Admin) */
 .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -142,20 +213,105 @@ body {
     color: var(--primary-color);
 }
 
-/* General Cards */
+/* General Components */
 .card {
     border: none;
     border-radius: var(--border-radius);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
-
-/* Page Header */
 .page-header h2 {
     color: var(--text-color);
     font-weight: 700;
 }
 
-/* Badge Colors */
+/* --- Admin Desktop Redesign --- */
+.admin-desktop-nav {
+    background-color: var(--white);
+    padding: 0.75rem 2rem;
+    border-bottom: 1px solid #dee2e6;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+.nav-item-desktop {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: var(--border-radius);
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+}
+.nav-item-desktop:hover {
+    background-color: var(--light-gray);
+    color: var(--text-color);
+}
+.nav-item-desktop.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+.admin-main-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+.admin-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.list-table-container {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+.list-table-header,
+.list-table-row {
+    display: grid;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+}
+.list-table-header {
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+.list-table-row {
+    border-bottom: 1px solid #e9ecef;
+}
+.list-table-row:last-child {
+    border-bottom: none;
+}
+.list-table-row .product-img,
+.list-table-row .user-avatar-initial {
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+.list-table-row .user-avatar-initial {
+    font-size: 1.2rem;
+}
+.list-table-row .action-btn {
+    color: #6c757d;
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+.products-grid { grid-template-columns: 70px 3fr 1.5fr 1fr 1fr 100px; }
+.orders-grid { grid-template-columns: 2fr 1.5fr 2fr 1fr 1fr 100px; }
+.users-grid { grid-template-columns: 70px 2fr 2fr 1fr 1fr auto; }
+
+/* Badge Styles */
+.bg-primary-light {
+    background-color: var(--primary-light);
+}
 .badge.bg-success-light {
     background-color: var(--success-light);
 }
@@ -163,11 +319,61 @@ body {
     color: var(--success-dark);
     font-weight: 600;
 }
-.bg-primary-light {
-    background-color: var(--primary-light);
+.badge-admin {
+    background-color: var(--admin-bg);
+    color: var(--admin-text);
+}
+.badge-frontliner {
+    background-color: var(--frontliner-bg);
+    color: var(--frontliner-text);
+}
+.badge-cook {
+    background-color: var(--cook-bg);
+    color: var(--cook-text);
+}
+.badge-category {
+    background-color: var(--secondary-color);
+    color: var(--primary-color);
+    font-weight: 600;
+    padding: 0.4em 0.8em;
+    border-radius: 6px;
+}
+.badge-status-pending,
+.badge-status-ready,
+.badge-status-completed,
+.badge-status-cancelled {
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.badge-status-pending {
+    background-color: var(--pending-bg);
+    color: var(--pending-text);
+}
+.badge-status-ready {
+    background-color: var(--ready-bg);
+    color: var(--ready-text);
+}
+.badge-status-completed {
+    background-color: var(--success-light);
+    color: var(--success-dark);
+}
+.badge-status-cancelled {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+}
+.badge-urgent {
+    background-color: var(--danger-bg);
+    color: var(--danger-text);
+    padding: 0.4em 0.8em;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
 }
 
-/* Product Card (Admin) */
+
+/* Admin: Product Card */
 .product-card-revamp {
     background-color: var(--white);
 }
@@ -185,7 +391,7 @@ body {
     border-radius: 8px;
 }
 
-/* User Card (Admin) */
+/* Admin: User Card */
 .user-card-link {
     text-decoration: none;
     transition: transform 0.2s ease-in-out;
@@ -215,20 +421,8 @@ body {
     font-size: 0.75rem;
     font-weight: 600;
 }
-.badge-admin {
-    background-color: var(--admin-bg);
-    color: var(--admin-text);
-}
-.badge-frontliner {
-    background-color: var(--frontliner-bg);
-    color: var(--frontliner-text);
-}
-.badge-cook {
-    background-color: var(--cook-bg);
-    color: var(--cook-text);
-}
 
-/* Analytics Page */
+/* Admin: Analytics Page */
 .stat-card-revamp .card-title {
     font-weight: 700;
     font-size: 1.75rem;
@@ -245,7 +439,7 @@ body {
     font-size: 1.5rem;
 }
 
-/* --- Front Liner Interface --- */
+/* --- Frontliner Interface --- */
 .frontline-body {
     padding-top: 170px;
     padding-bottom: 80px;
@@ -256,24 +450,64 @@ body {
     left: 0;
     width: 100%;
     z-index: 1020;
-    background-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
     color: var(--white);
     padding: 1rem;
+    padding-bottom: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-radius: 0 0 20px 20px;
+}
+.header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+.header-greeting {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    opacity: 0.9;
 }
 .cart-icon-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.cart-link-wrapper {
     position: relative;
-    color: var(--white);
 }
 .cart-count {
     position: absolute;
     top: -5px;
-    right: -10px;
+    right: -8px;
     font-size: 0.7rem;
     padding: 0.2em 0.5em;
+}
+.search-bar-wrapper {
+    position: relative;
+}
+.search-bar-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 1.2rem;
 }
 .frontline-header .search-bar {
     border-radius: 50px;
     border: none;
+    background-color: rgba(255, 255, 255, 0.9);
+    padding-left: 45px;
+    height: 50px;
+}
+.frontline-header .search-bar::placeholder {
+    color: #999;
+}
+.frontline-header .search-bar:focus {
+    background-color: var(--white);
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
 }
 .frontline-main-content {
     padding: 1rem;
@@ -351,7 +585,7 @@ body {
     align-items: center;
     justify-content: center;
     padding-bottom: 4px;
-    pointer-events: none;
+    cursor: pointer;
 }
 .bottom-nav-frontline {
     position: fixed;
@@ -411,15 +645,7 @@ body {
     padding: 0.75rem 1rem;
 }
 
-
-/* Product Detail Page */
-.btn-quantity {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--border-radius);
-    padding: 0;
-    font-size: 1.5rem;
-}
+/* Frontliner: Product Detail Page */
 .detail-page-active {
     padding-top: 0;
 }
@@ -463,18 +689,52 @@ body {
     flex-direction: column;
     justify-content: space-between;
 }
+.btn-quantity {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius);
+    padding: 0;
+    font-size: 1.5rem;
+}
 #modal-quantity-input {
     background-color: transparent;
 }
-.badge-category {
-    background-color: var(--secondary-color);
-    color: var(--primary-color);
+.variant-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.btn-variant {
+    border-radius: 50px;
+    background-color: var(--light-gray);
+    border: 1px solid #eee;
     font-weight: 600;
-    padding: 0.4em 0.8em;
-    border-radius: 6px;
+}
+.btn-variant.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
 }
 
-/* Cart Page */
+/* Frontliner: Cart Page */
+.payment-method-btn {
+    --bs-btn-color: var(--primary-color);
+    --bs-btn-border-color: var(--primary-color);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary-color);
+    --bs-btn-hover-border-color: var(--primary-color);
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--primary-color);
+    --bs-btn-active-border-color: var(--primary-color);
+    --bs-btn-focus-shadow-rgb: 255, 0, 102; /* RGB value of your fuchsia theme */
+    font-weight: 600;
+}
+
+.payment-method-btn.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
 .cart-header {
     background-color: var(--primary-color);
     color: var(--white);
@@ -531,7 +791,7 @@ body {
     position: static;
 }
 
-/* Sales Page */
+/* Frontliner: Sales Page */
 .sales-main-content {
     padding: 1rem;
     padding-bottom: 80px;
@@ -552,38 +812,6 @@ body {
 .customer-name-display {
     font-size: 0.95rem;
 }
-.badge-status-pending {
-    background-color: var(--pending-bg);
-    color: var(--pending-text);
-    padding: 0.4em 0.8em;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.badge-status-ready {
-    background-color: var(--ready-bg);
-    color: var(--ready-text);
-    padding: 0.4em 0.8em;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.badge-status-completed {
-    background-color: var(--success-light);
-    color: var(--success-dark);
-    padding: 0.4em 0.8em;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-.badge-status-cancelled {
-    background-color: var(--danger-bg);
-    color: var(--danger-text);
-    padding: 0.4em 0.8em;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
 .btn-transaction-action {
     padding: 0.25rem 0.75rem;
     font-size: 0.8rem;
@@ -593,10 +821,10 @@ body {
 
 /* Cook Interface */
 .cook-body {
-    /* padding-top: 130px;  This was removed */
+    padding-top: 0;
 }
 .cook-main-content {
-    padding: 0 1rem 1rem 1rem;
+    padding: 1rem;
 }
 .cook-summary-card {
     border-left: 5px solid var(--primary-color);
@@ -626,14 +854,6 @@ body {
     background-color: var(--white);
     border-bottom: 1px solid #eee;
     padding: 1rem 1.25rem;
-}
-.badge-urgent {
-    background-color: var(--danger-bg);
-    color: var(--danger-text);
-    padding: 0.4em 0.8em;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
 }
 .order-card-cook .card-body {
     padding: 1.25rem;
@@ -671,13 +891,174 @@ body {
 .btn-ready:hover {
     background-color: #007a4e;
     border-color: #007a4e;
-    
 }
 
-/* Responsive Adjustments */
+/* --- Cook Interface: Desktop View --- */
+.cook-desktop-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.cook-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.order-card-desktop {
+    background-color: var(--white);
+    border: 1px solid #dee2e6;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border-top: 5px solid transparent; /* Default border */
+    transition: border-color 0.3s ease;
+    margin-bottom: 1.5rem; /* Add spacing between rows */
+}
+
+/* Style for urgent orders */
+.order-card-desktop.is-urgent {
+    border-color: var(--danger-text); /* Changes the entire border to red */
+}
+
+.order-card-desktop .card-header {
+    background-color: var(--white);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #eee;
+}
+
+.order-card-desktop .card-body {
+    padding: 1.25rem;
+}
+
+.order-item-desktop {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.75rem;
+    border: 1px solid #eee;
+    background-color: var(--white);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+}
+
+.order-item-desktop:last-child {
+    margin-bottom: 0;
+}
+
+.order-card-desktop .card-footer {
+    background-color: #f8f9fa;
+    padding: 1.25rem;
+    border-top: 1px solid #eee;
+}
+
+/* Force the urgent badge to be visible when the parent card has the 'is-urgent' class */
+.order-card-cook.is-urgent .badge-urgent,
+.order-card-desktop.is-urgent .badge-urgent {
+    display: inline-block;
+}
+
+/* Admin Form Variants */
+#size-price-container .row {
+    padding: 0.75rem;
+    border: 1px solid #eee;
+    border-radius: var(--border-radius);
+}
+
+/* Modal Styles */
+#logoutConfirmModal .modal-content,
+#adminLogoutConfirmModal .modal-content,
+#cookLogoutConfirmModal .modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+}
+#logoutConfirmModal .btn,
+#adminLogoutConfirmModal .btn,
+#cookLogoutConfirmModal .btn {
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    font-weight: 600;
+}
+#logout-progress-bar,
+#admin-logout-progress-bar,
+#cook-logout-progress-bar {
+    transition: width 0.1s linear;
+}
+
+/* Custom styles for the new Order Receipt Modal */
+.receipt-icon-wrapper {
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-color);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Modal item styling */
+.modal-body #modal-items-list .modal-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #eee; /* Dashed line for receipt feel */
+}
+
+.modal-body #modal-items-list .modal-item-row:last-child {
+    border-bottom: none;
+}
+
+.modal-body #modal-items-list .modal-item-name {
+    flex-grow: 1;
+    margin-right: 1rem;
+}
+
+.modal-body #modal-items-list .modal-item-price {
+    font-weight: 600;
+}
+
+/* --- Responsive Adjustments --- */
+@media (min-width: 768px) {
+    /* Frontliner Tablet Styles */
+    .frontline-body {
+        padding-top: 0;
+        padding-bottom: 2rem;
+    }
+    .frontline-header {
+        position: static;
+        border-radius: 0;
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .header-top-row { margin-bottom: 0; flex-grow: 1; }
+    .header-greeting { display: none; }
+    .search-bar-wrapper { width: 100%; max-width: 400px; margin-left: 2rem; }
+    .bottom-nav-frontline { display: none; }
+    .frontline-main-content { max-width: 1200px; margin: 0 auto; }
+    .product-card-frontline .card-img-top { height: 220px; }
+    .current-order-bar { bottom: 1rem; left: auto; width: 350px; }
+
+    /* Sales Page Tablet Styles */
+    .sales-main-content { max-width: 1200px; margin: 0 auto; }
+    .transaction-list-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; align-items: flex-start; }
+    
+    /* Product Detail Tablet Styles */
+    .detail-page-active.frontline-body { padding-top: 2rem; padding-bottom: 2rem; }
+    .product-detail-page { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; min-height: auto; }
+    .product-detail-image-header { height: auto; position: static; border-radius: var(--border-radius); overflow: hidden; }
+    .product-detail-body { margin-top: 0; border-radius: var(--border-radius); background-color: var(--background-color); padding: 0; justify-content: center; }
+    .btn-close-detail { display: none; }
+}
+
 @media (min-width: 992px) {
     .admin-content {
-        padding-bottom: 0;
+        padding-bottom: 2rem;
     }
-}
 
+    /* --- Other Desktop Viewports --- */
+    .sales-main-content .transaction-list-grid { grid-template-columns: repeat(3, 1fr); }
+    .product-detail-page { gap: 3rem; }
+}

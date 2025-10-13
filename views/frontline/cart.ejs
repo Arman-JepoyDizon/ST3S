@@ -48,14 +48,26 @@
     <div id="cart-summary-wrapper" style="display: none;">
         <div class="order-summary-card">
             <div class="card-body">
+                <h5 class="fw-bold mb-3">Payment Method</h5>
+                <div class="btn-group w-100 mb-4" role="group" aria-label="Payment method">
+                    <button type="button" class="btn btn-outline-primary payment-method-btn active" data-method="Cash">
+                        <i class="bi bi-cash-coin me-2"></i>Cash
+                    </button>
+                    <button type="button" class="btn btn-outline-primary payment-method-btn" data-method="Gcash">
+                        <i class="bi bi-qr-code me-2"></i>Gcash
+                    </button>
+                </div>
+
                 <div class="d-flex justify-content-between">
                     <p class="text-muted">Subtotal</p>
                     <p class="fw-bold" id="summary-subtotal">₱0.00</p>
                 </div>
-                <div class="d-flex justify-content-between">
-                    <p class="text-muted">Tax & Fees</p>
-                    <p class="fw-bold" id="summary-tax">₱0.00</p>
+                
+                <div id="discount-row" class="d-flex justify-content-between" style="display: none !important;">
+                    <p class="text-muted">Discount (20%)</p>
+                    <p class="fw-bold" id="summary-discount">₱0.00</p>
                 </div>
+
                 <hr>
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold">Total</h5>
@@ -65,9 +77,14 @@
         </div>
 
         <div class="place-order-footer">
-            <button class="btn btn-primary btn-lg w-100 fw-bold">
-                <i class="bi bi-check-circle-fill me-2"></i>Place Order
-            </button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-light fw-bold flex-grow-1" id="discount-btn">
+                    <i class="bi bi-percent me-1"></i>Apply Discount
+                </button>
+                <button class="btn btn-primary btn-lg fw-bold flex-grow-2">
+                    <i class="bi bi-check-circle-fill me-2"></i>Place Order
+                </button>
+            </div>
         </div>
     </div>
 
@@ -86,7 +103,6 @@
             </div>
         </div>
     </div>
-
     
     <%- include('../partials/frontlineBottomNav') %>
     <%- include('../partials/frontlineFooter') %>

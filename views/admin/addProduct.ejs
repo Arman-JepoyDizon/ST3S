@@ -1,62 +1,143 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'products' }) %>
+<%# This is the main desktop navigation, which is always present at the top. %>
+<%- include('../partials/adminDesktopNav', { activePage: 'products' }) %>
 
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
+<div class="d-lg-none">
 
-        <main class="p-3">
-            <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                <h2 class="h3">Add New Product</h2>
-                <a href="/admin/products" class="btn btn-outline-secondary">
-                    Back to Products
-                </a>
-            </div>
+    <div class="admin-container">
+        <%# Sidebar is removed %>
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
 
-            <div class="card form-card">
-                <div class="card-body">
-                    <form action="/admin/products/add" method="POST">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="name" name="name" placeholder="Product Name" required>
-                            <label for="name">Product Name</label>
-                        </div>
-                        
-                        <div class="col-md-12">
-                            <div class="form-floating mb-3">
-                                <select name="category" id="category" class = "form-select" required>
-                                    <option value="" hidden selected>-- Select Category --</option>
-                                    <%categories.forEach(cat=>{%>
-                                        <option value="<%=cat._id%>" class="form-"><%=cat.name%></option>
-                                    <%})%>
-                                </select>
-                                <label for="category">Category</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-12" id="price-container">
-                            <div class="form-floating mb-3">
-                                <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" required>
-                                <label for="price">Price</label>
-                            </div>
-                        </div>
-
-                        <button class = "col-12 mb-3 btn btn-lg btn-primary" type = "button" id="add-size-btn">Add Size (optional)</button>
-
-                        <div class="col-md-12" id="size-price-container">
-                            <!--Dynamic inputs from adding size (optional)-->
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="imageUrl" name="imageUrl" placeholder="Image URL (Optional)">
-                            <label for="imageUrl">Image URL (Optional)</label>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 btn-lg">Add Product</button>
-                    </form>
+            <main class="p-3">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h3 mb-0">Add New Product</h2>
+                    <a href="/admin/products" class="btn btn-outline-secondary">
+                        Back to Products
+                    </a>
                 </div>
-            </div>
-        </main>
+
+                <div class="card form-card">
+                    <div class="card-body">
+                        <form action="/admin/products/add" method="POST">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="nameMobile" name="name" placeholder="Product Name" required>
+                                <label for="nameMobile">Product Name</label>
+                            </div>
+                            
+                            <div class="form-floating mb-3">
+                                <select name="category" id="categoryMobile" class="form-select" required>
+                                    <option value="" hidden selected>-- Select Category --</option>
+                                    <% categories.forEach(cat => { %>
+                                        <option value="<%= cat._id %>"><%= cat.name %></option>
+                                    <% }) %>
+                                </select>
+                                <label for="categoryMobile">Category</label>
+                            </div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">Pricing & Variants</h5>
+                                <button class="btn btn-primary" type="button" id="add-size-btn-mobile">
+                                    <i class="bi bi-plus-lg"></i> Add Variant
+                                </button>
+                            </div>
+
+                            <div id="price-container-mobile">
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                                    <label>Price</label>
+                                </div>
+                            </div>
+
+                            <div id="size-price-container-mobile">
+                                </div>
+                            
+                            <hr>
+
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="imageUrlMobile" name="imageUrl" placeholder="Image URL (Optional)">
+                                <label for="imageUrlMobile">Image URL (Optional)</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">Add Product</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
+</div>
+
+
+<div class="admin-main-container d-none d-lg-block">
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Add New Product</h2>
+            <p class="text-muted">Fill in the details to create a new product.</p>
+        </div>
+        <a href="/admin/products" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+    <div class="card form-card">
+        <div class="card-body p-4">
+            <form action="/admin/products/add" method="POST">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="nameDesktop" name="name" placeholder="Product Name" required>
+                            <label for="nameDesktop">Product Name</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                         <div class="form-floating mb-3">
+                            <select name="category" id="categoryDesktop" class="form-select" required>
+                                <option value="" hidden selected>-- Select Category --</option>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat._id %>"><%= cat.name %></option>
+                                <% }) %>
+                            </select>
+                            <label for="categoryDesktop">Category</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input type="text" class="form-control" id="imageUrlDesktop" name="imageUrl" placeholder="Image URL (Optional)">
+                    <label for="imageUrlDesktop">Image URL (Optional)</label>
+                </div>
+
+                <hr>
+                
+                <div class="d-flex justify-content-between align-items-center my-3">
+                    <h5 class="mb-0">Pricing & Variants</h5>
+                    <button class="btn btn-primary" type="button" id="add-size-btn-desktop">
+                        <i class="bi bi-plus-lg"></i> Add Variant
+                    </button>
+                </div>
+
+                <div id="price-container-desktop">
+                    <div class="form-floating mb-3">
+                        <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                        <label>Price</label>
+                    </div>
+                </div>
+
+                <div id="size-price-container-desktop">
+                    </div>
+                
+                <hr class="mt-4">
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">Add Product</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 <script>
@@ -134,5 +215,72 @@
   });
 </script>
 
-<%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
+
 <%- include('../partials/adminFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // ================== SCRIPT FOR MOBILE FORM ==================
+    const addSizeBtnMobile = document.getElementById('add-size-btn-mobile');
+    const priceContainerMobile = document.getElementById('price-container-mobile');
+    const sizePriceContainerMobile = document.getElementById('size-price-container-mobile');
+
+    if (addSizeBtnMobile) {
+        const createSizePriceRowMobile = () => {
+            const row = document.createElement('div');
+            row.classList.add('row', 'g-2', 'mb-2', 'align-items-center', 'size-price-row');
+            row.innerHTML = `
+                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" required><label>Size</label></div></div>
+                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>
+                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size"><i class="bi bi-trash"></i></button></div>
+            `;
+            row.querySelector('.btn-remove-size').addEventListener('click', () => {
+                row.remove();
+                if (!sizePriceContainerMobile.querySelector('.size-price-row')) {
+                    priceContainerMobile.innerHTML = '<div class="form-floating mb-3"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div>';
+                }
+            });
+            return row;
+        };
+
+        addSizeBtnMobile.addEventListener('click', () => {
+            if (priceContainerMobile.innerHTML !== '') {
+                priceContainerMobile.innerHTML = ''; 
+            }
+            sizePriceContainerMobile.appendChild(createSizePriceRowMobile());
+        });
+    }
+
+    // ================== SCRIPT FOR DESKTOP FORM ==================
+    const addSizeBtnDesktop = document.getElementById('add-size-btn-desktop');
+    const priceContainerDesktop = document.getElementById('price-container-desktop');
+    const sizePriceContainerDesktop = document.getElementById('size-price-container-desktop');
+
+    if (addSizeBtnDesktop) {
+        const createSizePriceRowDesktop = () => {
+            const row = document.createElement('div');
+            row.classList.add('row', 'g-2', 'mb-2', 'align-items-center', 'size-price-row');
+            row.innerHTML = `
+                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" required><label>Size</label></div></div>
+                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>
+                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size"><i class="bi bi-trash"></i></button></div>
+            `;
+            row.querySelector('.btn-remove-size').addEventListener('click', () => {
+                row.remove();
+                if (!sizePriceContainerDesktop.querySelector('.size-price-row')) {
+                    priceContainerDesktop.innerHTML = '<div class="form-floating mb-3"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div>';
+                }
+            });
+            return row;
+        };
+        
+        addSizeBtnDesktop.addEventListener('click', () => {
+            if (priceContainerDesktop.innerHTML !== '') {
+                priceContainerDesktop.innerHTML = '';
+            }
+            sizePriceContainerDesktop.appendChild(createSizePriceRowDesktop());
+        });
+    }
+});
+</script>

@@ -1,8 +1,9 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <%- include('../partials/adminSidebar', { activePage: 'products' }) %>
+<%- include('../partials/adminDesktopNav', { activePage: 'products' }) %>
 
+<div class="admin-container d-lg-none">
+ 
     <div class="admin-content">
         <%- include('../partials/adminNavbar') %>
 
@@ -18,17 +19,17 @@
                 <i class="bi bi-plus-lg me-1"></i>Add Product
             </a>
             <div class="form-floating mb-4">
-                <input type="search" class="form-control" id="searchProducts" placeholder="Search products...">
-                <label for="searchProducts"><i class="bi bi-search me-2"></i>Search products...</label>
+                <input type="search" class="form-control" id="searchProductsMobile" placeholder="Search products...">
+                <label for="searchProductsMobile"><i class="bi bi-search me-2"></i>Search products...</label>
             </div>
 
-            <div class="product-list">
+            <div class="product-list-mobile">
                 <% if (products && products.length > 0) { %>
                     <% products.forEach(product => { %>
                         <div class="card product-card-revamp mb-3">
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
-                                    <img src="<%= product.imageUrl || 'https://via.placeholder.com/150' %>" class="product-card-img-revamp me-3" alt="<%= product.name %>">
+                                    <img src="<%= product.imageUrl || '/icons/placeholder-image.png' %>" class="product-card-img-revamp me-3" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/placeholder-image.png';">
                                     <div class="flex-grow-1">
                                         <div class="d-flex justify-content-between">
                                             <h5 class="card-title mb-1"><%= product.name %></h5>
@@ -61,6 +62,70 @@
                 <% } %>
             </div>
         </main>
+    </div>
+</div>
+
+<div class="admin-main-container d-none d-lg-block">
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Products</h2>
+            <% if (products && products.length > 0) { %>
+                <p class="text-muted"><%= products.length %> products</p>
+            <% } %>
+        </div>
+        <a href="/admin/products/add" class="btn btn-primary fw-bold">
+            <i class="bi bi-plus-lg me-1"></i>Add Product
+        </a>
+    </div>
+
+    <div class="list-table-container">
+        <div class="p-3">
+            <div class="form-floating">
+                <input type="search" class="form-control" id="searchProductsDesktop" placeholder="Search products...">
+                <label for="searchProductsDesktop"><i class="bi bi-search me-2"></i>Search products...</label>
+            </div>
+        </div>
+
+        <% if (products && products.length > 0) { %>
+            <div class="list-table-header products-grid">
+                <div>Image</div>
+                <div>Name</div>
+                <div>Category</div>
+                <div>Price</div>
+                <div>Status</div>
+                <div class="text-end">Actions</div>
+            </div>
+
+            <div class="product-list-desktop">
+                <% products.forEach(product => { %>
+                    <div class="list-table-row products-grid">
+                        <div>
+                            <img src="<%= product.imageUrl || '/icons/placeholder-image.png' %>" class="product-img" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/placeholder-image.png';">
+                        </div>
+                        <div class="fw-bold"><%= product.name %></div>
+                        <div><%= product.category ? product.category.name : 'Uncategorized' %></div>
+                        <div class="fw-bold text-primary">₱<%= product.price.toFixed(2) %></div>
+                        <div>
+                            <span class="badge badge-status-completed">Active</span>
+                        </div>
+                        <div class="text-end d-flex justify-content-end gap-3">
+                            <a href="/admin/products/edit/<%= product._id %>" class="action-btn" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="/admin/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="d-inline">
+                                <button type="submit" class="action-btn bg-transparent border-0 p-0" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <p class="text-muted">No products found. Click "Add Product" to get started.</p>
+            </div>
+        <% } %>
     </div>
 </div>
 

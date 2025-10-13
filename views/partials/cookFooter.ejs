@@ -1,3 +1,47 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/timeago.js/4.0.2/timeago.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Select ALL order cards, both mobile and desktop
+        const orderCards = document.querySelectorAll('.order-card-cook, .order-card-desktop');
+        const URGENT_THRESHOLD_MINUTES = 3; 
+
+        function updateTimers() {
+            orderCards.forEach(card => {
+                const createdAt = new Date(card.dataset.createdAt);
+                const now = new Date();
+                const timeDiff = now.getTime() - createdAt.getTime();
+                
+                // Calculate total difference in minutes and seconds
+                const diffMinutes = Math.floor(timeDiff / 60000);
+                const diffSeconds = Math.floor((timeDiff % 60000) / 1000);
+                
+                // Format for display (MM:SS)
+                const timerDisplay = `${String(diffMinutes).padStart(2, '0')}:${String(diffSeconds).padStart(2, '0')}`;
+
+                const timerElement = card.querySelector('.order-timer');
+                if (timerElement) {
+                    // Apply live MM:SS timer to both mobile and desktop
+                    // Add parentheses for mobile view for better styling
+                    timerElement.textContent = card.classList.contains('order-card-desktop') ? timerDisplay : `(${timerDisplay})`;
+                }
+
+                // Check if the order is urgent and toggle classes
+                const urgentBadge = card.querySelector('.badge-urgent');
+                if (diffMinutes >= URGENT_THRESHOLD_MINUTES) {
+                    card.classList.add('is-urgent');
+                    if(urgentBadge) urgentBadge.classList.remove('d-none');
+                } else {
+                    card.classList.remove('is-urgent');
+                    if(urgentBadge) urgentBadge.classList.add('d-none');
+                }
+            });
+        }
+
+        // Initial call and then update every second for a live feel
+        updateTimers();
+        setInterval(updateTimers, 1000); 
+    });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/main.js"></script>

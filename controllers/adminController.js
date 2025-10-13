@@ -9,21 +9,40 @@ const Size = require('../models/size');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        // --- Calculate Stats (remains the same) ---
-        const totalOrders = await Transaction.countDocuments();
+        const { filter } = req.query;
+        let startDate = new Date();
+        let currentFilter = filter || 'today'; // Default to 'today'
+
+        switch (currentFilter) {
+            case 'week':
+                startDate.setDate(startDate.getDate() - 7);
+                break;
+            case 'month':
+                startDate.setDate(startDate.getDate() - 30);
+                break;
+            case 'year':
+                startDate.setFullYear(startDate.getFullYear() - 1);
+                break;
+            case 'today':
+            default:
+                startDate.setHours(0, 0, 0, 0); // Set to the beginning of the current day
+                currentFilter = 'today';
+                break;
+        }
+
+        const totalOrders = await Transaction.countDocuments({ createdAt: { $gte: startDate } });
         const salesData = await Transaction.aggregate([
-            { $match: { status: 'Completed' } },
+            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
-        // --- Calculate Best Sellers (remains the same) ---
         const bestSellers = await Transaction.aggregate([
-            { $match: { status: 'Completed' } },
+            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
             { $unwind: '$items' },
             { 
                 $group: { 
-                    _id: '$items.productId',
+                    _id: { productId: '$items.productId', sizeLabel: '$items.sizeLabel' }, 
                     totalQuantity: { $sum: '$items.quantity' },
                     totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 } 
@@ -33,7 +52,7 @@ const getAnalyticsPage = async (req, res) => {
             {
                 $lookup: {
                     from: 'products',
-                    localField: '_id',
+                    localField: '_id.productId',
                     foreignField: '_id',
                     as: 'productDetails'
                 }
@@ -41,44 +60,81 @@ const getAnalyticsPage = async (req, res) => {
             { $unwind: '$productDetails' }
         ]);
         
-        // --- Calculate Sales Trend Data (remains the same) ---
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        // --- Adaptive Chart Data Logic ---
+        let salesTrendData;
+        if (currentFilter === 'year') {
+            const monthlySales = await Transaction.aggregate([
+                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                        monthlyTotal: { $sum: "$totalAmount" }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+            const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
+            const labels = [];
+            const data = [];
+            for (let i = 11; i >= 0; i--) {
+                const date = new Date();
+                date.setMonth(date.getMonth() - i);
+                const monthString = date.toISOString().slice(0, 7);
+                labels.push(date.toLocaleString('en-US', { month: 'short' }));
+                data.push(salesMap.get(monthString) || 0);
+            }
+            salesTrendData = { labels, data, title: 'Sales Trend (Last 12 Months)' };
+        } else {
+            // Logic for 'today', 'week', and 'month'
+            let days;
+            let title;
+            switch(currentFilter) {
+                case 'today':
+                    days = 1;
+                    title = 'Sales Trend (Today)';
+                    break;
+                case 'week':
+                    days = 7;
+                    title = 'Sales Trend (Last 7 Days)';
+                    break;
+                case 'month':
+                    days = 30;
+                    title = 'Sales Trend (Last 30 Days)';
+                    break;
+            }
 
-        const dailySales = await Transaction.aggregate([
-            { $match: { status: 'Completed', createdAt: { $gte: sevenDaysAgo } } },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                    dailyTotal: { $sum: "$totalAmount" }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
-
-        const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
-        const labels = [];
-        const data = [];
-
-        for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateString = date.toISOString().split('T')[0];
+            const dailySales = await Transaction.aggregate([
+                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                        dailyTotal: { $sum: "$totalAmount" }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+            const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+            const labels = [];
+            const data = [];
             
-            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-            data.push(salesMap.get(dateString) || 0);
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateString = date.toISOString().split('T')[0];
+                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                data.push(salesMap.get(dateString) || 0);
+            }
+            salesTrendData = { labels, data, title };
         }
 
-        // --- Fetch Recent Transactions (Limit changed to 3) ---
         const recentTransactions = await Transaction.find({})
             .sort({ createdAt: -1 })
-            .limit(3) // Limit changed from 5 to 3
+            .limit(3)
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
 
-        const salesTrendData = { labels, data };
         const topProductsData = {
-            labels: bestSellers.map(p => p.productDetails.name),
+            labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
             data: bestSellers.map(p => p.totalQuantity)
         };
 
@@ -90,7 +146,8 @@ const getAnalyticsPage = async (req, res) => {
             bestSellers,
             salesTrendData,
             topProductsData,
-            recentTransactions
+            recentTransactions,
+            currentFilter
         });
 
     } catch (error) {
@@ -104,7 +161,7 @@ const getOrdersPage = async (req, res) => {
         const transactions = await Transaction.find({})
             .sort({ createdAt: -1 })
             .populate('createdBy', 'username')
-            .populate('items.productId', 'name'); // Added populate for item names
+            .populate('items.productId', 'name');
 
         res.render('admin/orders', {
             user: req.session.user,
@@ -117,6 +174,69 @@ const getOrdersPage = async (req, res) => {
     }
 };
 
+const exportOrders = async (req, res) => {
+    try {
+        const transactions = await Transaction.find({})
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'username')
+            .populate('items.productId', 'name');
+
+        const csvHeaders = [
+            'Order ID', 'Date', 'Time', 'Cashier', 'Customer Name', 'Items', 
+            'Discount Applied', 'Discount Amount', 'Total Amount', 'Payment Method', 'Status'
+        ];
+
+        const sanitizeField = (field) => {
+            if (field === null || field === undefined) return '';
+            const str = String(field);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const csvRows = transactions.map(t => {
+            const orderId = `ORD-${t._id.toString().slice(-6).toUpperCase()}`;
+            const date = new Date(t.createdAt).toLocaleDateString('en-CA');
+            const time = new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const cashier = t.createdBy ? t.createdBy.username : 'N/A';
+            const customerName = t.customerName || '';
+            const itemsString = t.items.map(item => 
+                `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`
+            ).join('; ');
+            const discountApplied = t.discountApplied ? 'Yes' : 'No';
+            const discountAmount = t.discountAmount.toFixed(2);
+            const totalAmount = t.totalAmount.toFixed(2);
+            const paymentMethod = t.paymentMethod;
+            const status = t.status;
+
+            return [
+                orderId, date, time, cashier, customerName, itemsString, 
+                discountApplied, discountAmount, totalAmount, paymentMethod, status
+            ].map(sanitizeField).join(',');
+        });
+        
+        const totalRevenue = transactions.reduce((sum, transaction) => {
+            if (transaction.status === 'Completed') {
+                return sum + transaction.totalAmount;
+            }
+            return sum;
+        }, 0);
+
+        const summaryRow = ['', '', '', '', '', '', '', 'Total Revenue:', totalRevenue.toFixed(2), '', ''].join(',');
+
+        const csvString = [csvHeaders.join(','), ...csvRows, '', summaryRow].join('\n');
+        
+        const fileName = `Miras-Transactions-${new Date().toISOString().slice(0,10)}.csv`;
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.status(200).send(csvString);
+
+    } catch (error) {
+        console.error('Error exporting orders:', error);
+        res.status(500).send('Server Error during export.');
+    }
+};
 
 const getProducts = async (req, res) => {
     try {
@@ -147,7 +267,7 @@ const postAddProduct = async (req, res) => {
 
         const prices = Array.isArray(price) ? price : [price];
 
-        let sizes = Array.isArray(size) ? size : []; //only make array if it exists
+        let sizes = Array.isArray(size) ? size : []; 
         
         sizes = sizes.filter(s => s && s.trim() !== '');
 
@@ -157,7 +277,7 @@ const postAddProduct = async (req, res) => {
         const lowestPrice = Math.min(...prices.map(p => parseFloat(p)))
         const newProduct = await Product.create({ name, price: lowestPrice, category, imageUrl });
 
-        if(sizes){
+        if(sizes.length > 0){
             var newSizes = []
             for(let i = 0; i < sizes.length; i++){
                 const insertedSize = await Size.create({productId: newProduct._id, label: sizes[i]})
@@ -168,7 +288,7 @@ const postAddProduct = async (req, res) => {
         if(prices && prices.length > 0){
             var newProductPrice = []
             for(let i = 0; i < prices.length; i++){
-                const insertedPrice = await Price.create({productId: newProduct._id, sizeId: newSizes[i] ? newSizes[i]._id : null, price: prices[i]})
+                const insertedPrice = await Price.create({productId: newProduct._id, sizeId: (newSizes && newSizes[i]) ? newSizes[i]._id : null, price: prices[i]})
                 newProductPrice.push(insertedPrice)
             }
         }
@@ -216,7 +336,6 @@ const postUpdateProduct = async (req, res) => {
     const productId = req.params.id;
     const { name, price, size, category, imageUrl } = req.body;
 
-    // Normalize arrays
     const prices = Array.isArray(price) ? price : [price];
     let sizes = Array.isArray(size) ? size : [];
     sizes = sizes.filter(s => s && s.trim() !== '');
@@ -231,55 +350,36 @@ const postUpdateProduct = async (req, res) => {
     const newSinglePrice = parseFloat(prices[0]);
     const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
 
-    // Fetch product + related docs
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     const existingSizes = await Size.find({ productId });
     const existingPrices = await Price.find({ productId, status: "Active" });
 
-    // Normalize labels
     const existingLabels = existingSizes.map(s => s.label.toLowerCase());
     const normalizedNewLabels = sizes.map(x => x.toLowerCase());
 
-    // ===========================================
-    // 🔹 CASE 1: MANY → ONE (All sizes removed)
-    // ===========================================
     if (existingSizes.length > 0 && sizes.length === 0) {
       console.log("Transition: Many → One");
-
-      // 1️⃣ Inactivate all existing prices
       await Price.updateMany({ productId }, { status: "Inactive" });
-
-      // 2️⃣ Remove all sizes
       await Size.deleteMany({ productId });
-
-      // 3️⃣ Create a fresh single active price
       await Price.create({
         productId,
         price: newSinglePrice,
         status: "Active"
       });
-
-      // 4️⃣ Update product info
       await Product.findByIdAndUpdate(productId, {
         name,
         price: newSinglePrice,
         category,
         imageUrl
       });
-
       console.log("✅ Converted to single-price mode.");
       return res.redirect("/admin/products");
     }
 
-    // ===========================================
-    // 🔹 CASE 2: ONE → MANY (Added sizes)
-    // ===========================================
     if (existingSizes.length === 0 && sizes.length > 0) {
       console.log("Transition: One → Many");
-
-      // 1️⃣ Inactivate any old single price
       await Price.updateMany(
         {
           productId,
@@ -288,8 +388,6 @@ const postUpdateProduct = async (req, res) => {
         },
         { status: "Inactive" }
       );
-
-      // 2️⃣ Add new sizes & prices
       for (let i = 0; i < sizes.length; i++) {
         const label = sizes[i].trim();
         const p = parseFloat(prices[i] || prices[0]);
@@ -301,33 +399,24 @@ const postUpdateProduct = async (req, res) => {
           status: "Active"
         });
       }
-
       await Product.findByIdAndUpdate(productId, {
         name,
         price: lowestPrice,
         category,
         imageUrl
       });
-
       console.log("✅ Converted to multi-price mode.");
       return res.redirect("/admin/products");
     }
 
-    // ===========================================
-    // 🔹 CASE 3: MANY → MANY (normal updates)
-    // ===========================================
     if (sizes.length > 0) {
       console.log("Updating multi-price product.");
-
-      // 🧹 Remove deleted sizes
       for (const s of existingSizes) {
         if (!normalizedNewLabels.includes(s.label.toLowerCase())) {
           await Size.findByIdAndDelete(s._id);
           await Price.updateMany({ sizeId: s._id }, { status: "Inactive" });
         }
       }
-
-      // ➕ Add new sizes
       for (let i = 0; i < sizes.length; i++) {
         const label = sizes[i].trim();
         if (!existingLabels.includes(label.toLowerCase())) {
@@ -341,8 +430,6 @@ const postUpdateProduct = async (req, res) => {
           });
         }
       }
-
-      // 🔁 Update changed prices
       for (let i = 0; i < existingSizes.length; i++) {
         const existingSize = existingSizes[i];
         const matchIndex = normalizedNewLabels.indexOf(
@@ -372,8 +459,6 @@ const postUpdateProduct = async (req, res) => {
           }
         }
       }
-
-      // 🧩 Deactivate stray single-price (safety)
       await Price.updateMany(
         {
           productId,
@@ -384,12 +469,8 @@ const postUpdateProduct = async (req, res) => {
       );
     }
 
-    // ===========================================
-    // 🔹 CASE 4: ONE → ONE (simple price update)
-    // ===========================================
     if (existingSizes.length === 0 && sizes.length === 0) {
       console.log("Single-price product update.");
-
       const existingPrice = existingPrices[0];
       if (!existingPrice || existingPrice.price !== newSinglePrice) {
         await Price.updateMany({ productId }, { status: "Inactive" });
@@ -400,15 +481,12 @@ const postUpdateProduct = async (req, res) => {
         });
       }
     }
-
-    // ✅ Update general product info
     await Product.findByIdAndUpdate(productId, {
       name,
       price: lowestPrice,
       category,
       imageUrl
     });
-
     console.log("✅ Product updated successfully!");
     return res.redirect("/admin/products");
   } catch (error) {
@@ -595,6 +673,25 @@ const postDeletedCategory = async (req, res) => {
     }
 }
 
+const deleteSize = async (req, res) => {
+    try {
+        const sizeId = req.params.id;
+        const sizeToDelete = await Size.findById(sizeId);
+
+        if (!sizeToDelete) {
+            return res.status(404).send("Size not found");
+        }
+
+        await Price.updateMany({ sizeId: sizeId }, { status: 'Inactive' });
+        await Size.findByIdAndDelete(sizeId);
+
+        res.redirect(`/admin/products/edit/${sizeToDelete.productId}`);
+    } catch (error) {
+        console.error('Error deleting size:', error);
+        res.status(500).send('Server error while deleting size.');
+    }
+};
+
 module.exports = {
     getAnalyticsPage,
     getProducts,
@@ -616,4 +713,6 @@ module.exports = {
     postEditCategory,
     postDeletedCategory,
     getOrdersPage,
+    exportOrders,
+    deleteSize
 };
