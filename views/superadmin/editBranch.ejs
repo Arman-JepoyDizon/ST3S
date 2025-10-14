@@ -1,0 +1,66 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'branches' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Edit Branch</h2>
+            <p class="text-muted">Update details for the <%= branch.name %> location.</p>
+        </div>
+        <a href="/superadmin/branches" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+    <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-body p-lg-4">
+            <form action="/superadmin/branches/edit/<%= branch._id %>" method="POST">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Branch Name" value="<%= branch.name %>" required>
+                            <label for="name">Branch Name</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="location" name="location" placeholder="Location Address" value="<%= branch.location %>" required>
+                            <label for="location">Location Address</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="contact" name="contact" placeholder="Contact Number (Optional)" value="<%= branch.contact || '' %>">
+                            <label for="contact">Contact Number (Optional)</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="status" name="status">
+                                <option value="Active" <%= branch.status === 'Active' ? 'selected' : '' %>>Active</option>
+                                <option value="Inactive" <%= branch.status === 'Inactive' ? 'selected' : '' %>>Inactive</option>
+                            </select>
+                            <label for="status">Status</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-check-circle-fill me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'branches' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>

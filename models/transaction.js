@@ -1,4 +1,5 @@
-// Sales
+// File: models/transaction.js
+
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -48,6 +49,11 @@ const transactionSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    branch: {
+        type: Schema.Types.ObjectId,
+        ref: 'Branch',
+        required: [true, 'Transaction must be associated with a branch.']
     },
     status: {
         type: String,

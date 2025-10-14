@@ -1,0 +1,140 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'analytics' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Analytics</h2>
+            <p class="text-muted">System-wide performance metrics</p>
+        </div>
+    </div>
+
+    <div class="card filter-bar mb-4">
+        <form action="/superadmin/analytics" method="GET" class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-control-icon-wrapper">
+                <i class="bi bi-shop"></i>
+                <select name="branch" class="form-select">
+                    <option value="">All Branches</option>
+                    <% branches.forEach(branch => { %>
+                        <option value="<%= branch._id %>" <%= String(query.branch) === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
+                    <% }) %>
+                </select>
+            </div>
+            
+            <div class="btn-group">
+                <a href="?branch=<%= query.branch || '' %>&filter=today" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %>">Today</a>
+                <a href="?branch=<%= query.branch || '' %>&filter=week" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %>">Week</a>
+                <a href="?branch=<%= query.branch || '' %>&filter=month" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %>">Month</a>
+                <a href="?branch=<%= query.branch || '' %>&filter=year" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %>">Year</a>
+            </div>
+
+            <div class="form-control-icon-wrapper flex-grow-1">
+                 <i class="bi bi-calendar-range"></i>
+                 <input type="text" id="custom-range-input" name="dateRange" class="form-control" placeholder="Custom Range" value="<%= query.dateRange || '' %>">
+                 <input type="hidden" name="filter" value="custom">
+                 <input type="hidden" name="branch" value="<%= query.branch || '' %>">
+            </div>
+             <button type="submit" class="btn btn-secondary">Filter</button>
+             <a href="/superadmin/analytics" class="btn btn-light">Clear</a>
+        </form>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="stat-card-revamp highlight h-100">
+                <div class="card-body">
+                    <p class="card-text text-muted mb-0">Total Sales</p>
+                    <h3 class="card-title mb-0">₱<%= totalSales.toFixed(2) %></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="stat-card-revamp h-100">
+                <div class="card-body">
+                    <p class="card-text text-muted mb-0">Total Orders</p>
+                    <h3 class="card-title mb-0"><%= totalOrders %></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="stat-card-revamp h-100">
+                <div class="card-body">
+                    <p class="card-text text-muted mb-0">Average Order</p>
+                    <h3 class="card-title mb-0">₱<%= (totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00') %></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-7 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><%= salesTrendData.title %></h5>
+                    <canvas id="salesTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Top Products (by Quantity)</h5>
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'analytics' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        flatpickr("#custom-range-input", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+            onClose: function(selectedDates) {
+                if (selectedDates.length === 2) {
+                    this.form.submit();
+                }
+            }
+        });
+
+        try {
+            const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
+            const topProductsData = <%- JSON.stringify(topProductsData) %>;
+
+            new Chart(document.getElementById('salesTrendChart'), {
+                type: 'bar',
+                data: {
+                    labels: salesTrendData.labels,
+                    datasets: [{
+                        label: 'Sales',
+                        data: salesTrendData.data,
+                        backgroundColor: '#FF0066',
+                        borderRadius: 8
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+            });
+
+            new Chart(document.getElementById('topProductsChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: topProductsData.labels,
+                    datasets: [{
+                        data: topProductsData.data,
+                        backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'],
+                    }]
+                },
+                options: { plugins: { legend: { position: 'right' } } }
+            });
+        } catch (error) {
+            console.error("Error initializing charts:", error);
+        }
+    });
+</script>

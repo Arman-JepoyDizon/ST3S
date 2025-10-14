@@ -1,0 +1,148 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'products' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Add New Product</h2>
+            <p class="text-muted">Create a new menu item and assign it to branches.</p>
+        </div>
+        <a href="/superadmin/products" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+    <div class="card form-card" style="max-width: 900px; margin: 0 auto;">
+        <div class="card-body p-lg-4">
+            <form action="/superadmin/products/add" method="POST">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Product Name" required>
+                            <label for="name">Product Name</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <select name="category" id="category" class="form-select" required>
+                                <option value="" hidden selected>-- Select Category --</option>
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat._id %>"><%= cat.name %></option>
+                                <% }) %>
+                            </select>
+                            <label for="category">Category</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-floating mb-4">
+                    <input type="text" class="form-control" id="imageUrl" name="imageUrl" placeholder="Image URL (Optional)">
+                    <label for="imageUrl">Image URL (Optional)</label>
+                </div>
+
+                <hr>
+
+                <div class="mb-4" id="branch-assignment-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Assign to Branches</h5>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="select-all-branches" checked>
+                            <label class="form-check-label fw-bold" for="select-all-branches">Select All</label>
+                        </div>
+                    </div>
+                    <div class="branch-checkbox-grid">
+                        <% branches.forEach(branch => { %>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input branch-checkbox" type="checkbox" name="branches" id="branch-<%= branch._id %>" value="<%= branch._id %>" checked>
+                                <label class="form-check-label" for="branch-<%= branch._id %>"><%= branch.name %></label>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between align-items-center my-3">
+                    <h5 class="mb-0">Pricing & Variants</h5>
+                    <button class="btn btn-primary" type="button" id="add-size-btn-desktop">
+                        <i class="bi bi-plus-lg"></i> Add Variant
+                    </button>
+                </div>
+
+                <div id="price-container-desktop">
+                    <div class="form-floating mb-3">
+                        <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                        <label>Price</label>
+                    </div>
+                </div>
+
+                <div id="size-price-container-desktop"></div>
+                
+                <hr class="mt-4">
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'products' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Branch selection script
+    const selectAllCheckbox = document.getElementById('select-all-branches');
+    const branchCheckboxes = document.querySelectorAll('.branch-checkbox');
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            branchCheckboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+        });
+
+        branchCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const allChecked = Array.from(branchCheckboxes).every(cb => cb.checked);
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+    }
+    
+    // Variant handling script
+    const addSizeBtnDesktop = document.getElementById('add-size-btn-desktop');
+    const priceContainerDesktop = document.getElementById('price-container-desktop');
+    const sizePriceContainerDesktop = document.getElementById('size-price-container-desktop');
+
+    if (addSizeBtnDesktop) {
+        const createSizePriceRowDesktop = () => {
+            const row = document.createElement('div');
+            row.classList.add('row', 'g-2', 'mb-2', 'align-items-center', 'size-price-row');
+            row.innerHTML = `
+                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" required><label>Size</label></div></div>
+                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>
+                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size"><i class="bi bi-trash"></i></button></div>
+            `;
+            row.querySelector('.btn-remove-size').addEventListener('click', () => {
+                row.remove();
+                if (!sizePriceContainerDesktop.querySelector('.size-price-row')) {
+                    priceContainerDesktop.innerHTML = '<div class="form-floating mb-3"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div>';
+                }
+            });
+            return row;
+        };
+        
+        addSizeBtnDesktop.addEventListener('click', () => {
+            if (priceContainerDesktop.innerHTML !== '') {
+                priceContainerDesktop.innerHTML = '';
+            }
+            sizePriceContainerDesktop.appendChild(createSizePriceRowDesktop());
+        });
+    }
+});
+</script>

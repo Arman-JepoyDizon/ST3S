@@ -16,14 +16,22 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['Admin', 'Front Liner', 'Cook'],
+        enum: ['Super Admin', 'Admin', 'Front Liner', 'Cook'],
         default: 'Front Liner'
+    },
+    branch: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Branch',
+        
+        required: [
+            function() { return this.role !== 'Super Admin'; },
+            'A branch assignment is required for this user role.'
+        ]
     }
 }, { timestamps: true });
 
-// Pre-save
+// Pre-save hook to hash password
 userSchema.pre('save', async function(next) {
-    //hash password only when modified
     if (!this.isModified('password')) {
         return next();
     }
@@ -37,7 +45,6 @@ userSchema.pre('save', async function(next) {
     }
 });
 
-// hashed password comparer
 userSchema.methods.comparePassword = async function(enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };

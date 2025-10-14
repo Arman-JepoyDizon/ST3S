@@ -1,0 +1,102 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'products' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Products</h2>
+            <% if (products && products.length > 0) { %>
+                <p class="text-muted"><%= products.length %> products total</p>
+            <% } %>
+        </div>
+        <a href="/superadmin/products/add" class="btn btn-primary fw-bold">
+            <i class="bi bi-plus-lg me-1"></i> Add Product
+        </a>
+    </div>
+
+    <div class="card filter-bar mb-4">
+        <form action="/superadmin/products" method="GET" class="d-flex gap-3 align-items-center">
+            <div class="flex-grow-1 form-control-icon-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="search" class="form-control" name="search" placeholder="Search products..." value="<%= query.search || '' %>">
+            </div>
+            <div class="form-control-icon-wrapper">
+                <i class="bi bi-shop"></i>
+                <select name="branch" class="form-select">
+                    <option value="">All Branches</option>
+                    <% if(branches && branches.length > 0) { %>
+                        <% branches.forEach(branch => { %>
+                            <option value="<%= branch._id %>" <%= query.branch === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
+                        <% }) %>
+                    <% } %>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="/superadmin/products" class="btn btn-light">Clear</a>
+        </form>
+    </div>
+
+
+    <% if (products && products.length > 0) { %>
+        <div class="list-table-container">
+            <div class="list-table-header products-grid">
+                <span>Image</span>
+                <span>Name</span>
+                <span>Category</span>
+                <span>Price</span>
+                <span>Branches</span>
+                <span>Status</span>
+                <span class="text-end">Actions</span>
+            </div>
+
+            <div class="product-list-desktop">
+                <% products.forEach(product => { %>
+                    <div class="list-table-row products-grid">
+                        <div>
+                            <img src="<%= product.imageUrl || '/icons/favicon.png' %>" class="product-img" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/favicon.png';">
+                        </div>
+                        <div class="fw-bold"><%= product.name %></div>
+                        <div><%= product.category ? product.category.name : 'N/A' %></div>
+                        <div class="fw-bold text-primary">₱<%= product.price.toFixed(2) %></div>
+                        <div>
+                            <% if (product.branches.length === branches.length) { %>
+                                All Branches
+                            <% } else { %>
+                                <%= product.branches.length %> <%= product.branches.length > 1 ? 'Branches' : 'Branch' %>
+                            <% } %>
+                        </div>
+                        <div>
+                            <span class="badge badge-status-completed">Active</span>
+                        </div>
+                        <div class="text-end d-flex justify-content-end gap-3">
+                            <a href="/superadmin/products/edit/<%= product._id %>" class="action-btn" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form action="/superadmin/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="d-inline">
+                                <button type="submit" class="action-btn text-danger bg-transparent border-0 p-0" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="card text-center py-5">
+             <div class="card-body">
+                <h5 class="card-title">No Products Found</h5>
+                <p class="text-muted">No products match your current filters, or no products have been created yet.</p>
+                <a href="/superadmin/products/add" class="btn btn-primary mt-2">
+                     <i class="bi bi-plus-lg me-2"></i> Add a Product
+                </a>
+            </div>
+        </div>
+    <% } %>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'products' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>

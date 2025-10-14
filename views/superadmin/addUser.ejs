@@ -1,0 +1,73 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'users' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Add New User</h2>
+            <p class="text-muted">Create a new staff member and assign them a role and branch.</p>
+        </div>
+        <a href="/superadmin/users" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+    <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-body p-lg-4">
+            <form action="/superadmin/users/add" method="POST">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                            <label for="username">Username</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                            <label for="password">Password</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="role" name="role">
+                                <option value="Admin">Admin</option>
+                                <option value="Front Liner" selected>Front Liner</option>
+                                <option value="Cook">Cook</option>
+                            </select>
+                            <label for="role">Role</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3" id="branch-selector-wrapper">
+                            <select class="form-select" id="branch" name="branch" required>
+                                <option value="" hidden>-- Assign a Branch --</option>
+                                <% branches.forEach(branch => { %>
+                                    <option value="<%= branch._id %>"><%= branch.name %></option>
+                                <% }) %>
+                            </select>
+                            <label for="branch">Branch</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-person-plus-fill me-2"></i>Create User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'users' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>

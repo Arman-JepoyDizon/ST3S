@@ -1,0 +1,99 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'users' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0">Users</h2>
+            <% if (users && users.length > 0) { %>
+                <p class="text-muted"><%= users.length %> users in the system</p>
+            <% } %>
+        </div>
+        <a href="/superadmin/users/add" class="btn btn-primary fw-bold">
+            <i class="bi bi-plus-lg me-1"></i> Add User
+        </a>
+    </div>
+
+    <div class="card filter-bar mb-4">
+        <form action="/superadmin/users" method="GET" class="d-flex gap-3 align-items-center">
+            <div class="flex-grow-1 form-control-icon-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="search" class="form-control" name="search" placeholder="Search by username..." value="<%= query.search || '' %>">
+            </div>
+            <div class="form-control-icon-wrapper">
+                <i class="bi bi-shop"></i>
+                <select name="branch" class="form-select">
+                    <option value="">All Branches</option>
+                    <% if(branches && branches.length > 0) { %>
+                        <% branches.forEach(branch => { %>
+                            <option value="<%= branch._id %>" <%= query.branch === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
+                        <% }) %>
+                    <% } %>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary">Filter</button>
+            <a href="/superadmin/users" class="btn btn-light">Clear</a>
+        </form>
+    </div>
+
+    <% if (users && users.length > 0) { %>
+        <div class="list-table-container">
+            <div class="list-table-header" style="grid-template-columns: 2.5fr 2fr 1.5fr 1.5fr auto;">
+                <span>User</span>
+                <span>Branch</span>
+                <span>Role</span>
+                <span>Joined</span>
+                <span class="text-end">Actions</span>
+            </div>
+
+            <div class="user-list">
+                <% users.forEach(user => { %>
+                    <div class="list-table-row" style="grid-template-columns: 2.5fr 2fr 1.5fr 1.5fr auto;">
+                        <div class="d-flex align-items-center">
+                            <div class="user-avatar-initial me-3">
+                                <span><%= user.username.charAt(0).toUpperCase() %></span>
+                            </div>
+                            <span class="fw-bold"><%= user.username %></span>
+                        </div>
+                        <div class="text-muted align-self-center"><%= user.branch ? user.branch.name : 'N/A' %></div>
+                        <div class="align-self-center">
+                            <% if (user.role === 'Admin') { %>
+                                <span class="badge badge-admin">Admin</span>
+                            <% } else if (user.role === 'Front Liner') { %>
+                                <span class="badge badge-frontliner">Front Liner</span>
+                            <% } else if (user.role === 'Cook') { %>
+                                <span class="badge badge-cook">Cook</span>
+                            <% } else if (user.role === 'Super Admin') { %>
+                                <span class="badge bg-dark">Super Admin</span>
+                            <% } else { %>
+                                <span class="badge bg-secondary"><%= user.role %></span>
+                            <% } %>
+                        </div>
+                        <div class="text-muted align-self-center"><%= new Date(user.createdAt).toLocaleDateString() %></div>
+                        <div class="text-end align-self-center">
+                            <a href="/superadmin/users/edit/<%= user._id %>" class="btn btn-sm btn-outline-secondary">
+                                Edit
+                            </a>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="card text-center py-5">
+             <div class="card-body">
+                <h5 class="card-title">No Users Found</h5>
+                <p class="text-muted">No users match your filters, or no users have been created yet.</p>
+                <a href="/superadmin/users/add" class="btn btn-primary mt-2">
+                     <i class="bi bi-plus-lg me-2"></i> Add a User
+                </a>
+            </div>
+        </div>
+    <% } %>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'users' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>

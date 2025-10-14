@@ -1,0 +1,168 @@
+<%- include('../partials/superAdminHeader') %>
+<%- include('../partials/superAdminNav', { activePage: 'dashboard' }) %>
+
+<main class="superadmin-main-container">
+    <div class="page-header">
+        <div class="d-flex align-items-center">
+            <div class="header-icon-wrapper">
+                <i class="bi bi-grid-1x2-fill"></i>
+            </div>
+            <div>
+                <h2 class="h3 mb-0">Super Admin Dashboard</h2>
+                <p class="text-muted">Multi-branch overview</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card-revamp highlight h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon-wrapper bg-primary-light">
+                            <i class="bi bi-currency-dollar text-primary"></i>
+                        </div>
+                        <div class="ms-3">
+                            <p class="card-text text-muted mb-0">Total Sales</p>
+                            <h3 class="card-title mb-0">₱<%= totalSales.toFixed(2) %></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card-revamp h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon-wrapper" style="background-color: #EBF5FF;">
+                            <i class="bi bi-receipt" style="color: #007AFF;"></i>
+                        </div>
+                        <div class="ms-3">
+                            <p class="card-text text-muted mb-0">Total Orders</p>
+                            <h3 class="card-title mb-0"><%= totalOrders %></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card-revamp h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon-wrapper" style="background-color: #E0F8F0;">
+                            <i class="bi bi-shop" style="color: #008A5E;"></i>
+                        </div>
+                        <div class="ms-3">
+                            <p class="card-text text-muted mb-0">Active Branches</p>
+                            <h3 class="card-title mb-0"><%= activeBranchesCount %></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="stat-card-revamp h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="stat-icon-wrapper" style="background-color: #EBEBFF;">
+                            <i class="bi bi-calendar-check" style="color: #5856D6;"></i>
+                        </div>
+                        <div class="ms-3">
+                            <p class="card-text text-muted mb-0">This Month</p>
+                            <h3 class="card-title mb-0">₱<%= salesThisMonth.toFixed(2) %></h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-header">
+        <h3 class="section-title">Branches</h3>
+        <a href="/superadmin/branches" class="section-manage-link">Manage <i class="bi bi-chevron-right"></i></a>
+    </div>
+
+    <div class="row">
+        <% if (branchStats && branchStats.length > 0) { %>
+            <% branchStats.forEach(branch => { %>
+                <div class="col-lg-6 mb-4">
+                    <div class="card branch-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title fw-bold"><%= branch.name %></h5>
+                                    <p class="card-text text-muted small"><%= branch.location %></p>
+                                </div>
+                                <% if (branch.status === 'Active') { %>
+                                    <span class="badge badge-status-completed">Active</span>
+                                <% } else { %>
+                                    <span class="badge badge-status-cancelled">Inactive</span>
+                                <% } %>
+                            </div>
+                            <div class="branch-inner-stats">
+                                <div class="row text-center">
+                                    <div class="col-3">
+                                        <small class="text-muted">Sales</small>
+                                        <p class="fw-bold mb-0">₱<%= branch.sales.toFixed(0) %></p>
+                                    </div>
+                                    <div class="col-3">
+                                        <small class="text-muted">Orders</small>
+                                        <p class="fw-bold mb-0"><%= branch.orders %></p>
+                                    </div>
+                                    <div class="col-3">
+                                        <small class="text-muted">Products</small>
+                                        <p class="fw-bold mb-0"><%= branch.products %></p>
+                                    </div>
+                                    <div class="col-3">
+                                        <small class="text-muted">Staff</small>
+                                        <p class="fw-bold mb-0"><%= branch.staff %></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        <% } else { %>
+            <div class="col-12">
+                <p class="text-muted text-center">No branches have been created yet.</p>
+            </div>
+        <% } %>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-md-4 mb-3">
+            <a href="/superadmin/products" class="management-link-card">
+                <div class="card-body">
+                    <i class="bi bi-box-seam"></i>
+                    <h6 class="fw-bold">Products</h6>
+                    <p class="small text-muted mb-0">Manage menu items</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 mb-3">
+            <a href="/superadmin/users" class="management-link-card">
+                <div class="card-body">
+                    <i class="bi bi-people"></i>
+                    <h6 class="fw-bold">Users</h6>
+                    <p class="small text-muted mb-0">Manage staff</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 mb-3">
+             <a href="/superadmin/analytics" class="management-link-card">
+                <div class="card-body">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <h6 class="fw-bold">Analytics</h6>
+                    <p class="small text-muted mb-0">View reports</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</main>
+
+<div class="d-lg-none">
+    <%- include('../partials/superAdminBottomNav', { activePage: 'dashboard' }) %>
+</div>
+
+<%- include('../partials/superAdminFooter') %>
