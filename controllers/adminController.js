@@ -38,7 +38,7 @@ const getAnalyticsPage = async (req, res) => {
                 case 'today': default: startDate.setHours(0, 0, 0, 0); currentFilter = 'today'; break;
             }
         }
-
+        
         const branchObjectId = new mongoose.Types.ObjectId(req.session.user.branch);
         const dateQuery = { createdAt: { $gte: startDate, $lte: endDate } };
         const branchQuery = { branch: branchObjectId };
@@ -65,21 +65,20 @@ const getAnalyticsPage = async (req, res) => {
         if (currentFilter === 'year' || (currentFilter === 'custom' && (endDate - startDate) / (1000 * 60 * 60 * 24) > 60)) {
             const monthlySales = await Transaction.aggregate([
                 { $match: { status: 'Completed', ...matchQuery } },
-                { 
-                    $group: { 
-                        // Fixed: Added timezone to monthly aggregation
-                        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Manila" } }, 
-                        monthlyTotal: { $sum: "$totalAmount" } 
-                    } 
-                },
+                { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Manila" } }, monthlyTotal: { $sum: "$totalAmount" } } },
                 { $sort: { _id: 1 } }
             ]);
             const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
             const labels = []; const data = []; let dateIterator = new Date(startDate);
             while (dateIterator <= endDate) {
-                const monthString = dateIterator.toISOString().slice(0, 7);
+                const year = dateIterator.getFullYear();
+                const month = String(dateIterator.getMonth() + 1).padStart(2, '0');
+                const monthString = `${year}-${month}`; // Format YYYY-MM
                 const currentLabel = dateIterator.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                if (!labels.includes(currentLabel)) { labels.push(currentLabel); data.push(salesMap.get(monthString) || 0); }
+                if (!labels.includes(currentLabel)) { 
+                    labels.push(currentLabel); 
+                    data.push(salesMap.get(monthString) || 0); 
+                }
                 dateIterator.setMonth(dateIterator.getMonth() + 1);
             }
             salesTrendData = { labels, data, title: 'Sales Trend (Monthly)' };
@@ -87,19 +86,23 @@ const getAnalyticsPage = async (req, res) => {
             const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
             const dailySales = await Transaction.aggregate([
                 { $match: { status: 'Completed', ...matchQuery } },
-                { 
-                    $group: { 
-                        // Fixed: Added timezone to daily aggregation
-                        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, 
-                        dailyTotal: { $sum: "$totalAmount" } 
-                    } 
-                },
+                { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
                 { $sort: { _id: 1 } }
             ]);
             const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
             const labels = []; const data = []; let dateIterator = new Date(startDate);
+            
+            // Helper function to format date consistently
+            const formatDateToYYYYMMDD = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
             while (dateIterator <= endDate) {
-                const dateString = dateIterator.toISOString().split('T')[0];
+                // Fixed: Format the date key without converting to UTC
+                const dateString = formatDateToYYYYMMDD(dateIterator);
                 labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 data.push(salesMap.get(dateString) || 0);
                 dateIterator.setDate(dateIterator.getDate() + 1);
