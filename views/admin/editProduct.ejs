@@ -1,15 +1,12 @@
 <%- include('../partials/adminHeader') %>
 
-<%# This is the main desktop navigation, which is always present at the top. %>
 <%- include('../partials/adminDesktopNav', { activePage: 'products' }) %>
 
+<%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
-
     <div class="admin-container">
-        <%# Sidebar is removed %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
-
             <main class="p-3">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
                     <h2 class="h3">Edit Product</h2>
@@ -42,26 +39,28 @@
                                 </button>
                             </div>
 
-                            <div id="price-container-mobile">
+                            <div id="price-container-mobile" class="mb-3">
                                 <% if(sizes.length === 0) { %>
-                                    <div class="form-floating mb-3">
-                                        <input type="number" list = "mobilePastPricesList" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                                        <label>Price</label>
+                                    <div class="price-history-group">
                                         <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
-                                            <datalist id="mobilePastPricesList">
-                                            <% pastSinglePrices.forEach(price => { %>
-                                                <option 
-                                                value="<%= price.price %>">
-                                                ₱<%= price.price %> — 
-                                                <%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { 
-                                                    year: 'numeric', 
-                                                    month: 'short', 
-                                                    day: '2-digit' 
-                                                }) %>
-                                                </option>
-                                            <% }) %>
-                                            </datalist>
+                                            <div class="dropdown">
+                                                <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
+                                                    <i class="bi bi-clock-history"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <% pastSinglePrices.forEach(price => { %>
+                                                        <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
+                                                            <span>₱<%= price.price.toFixed(2) %></span>
+                                                            <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
+                                                        </a></li>
+                                                    <% }) %>
+                                                </ul>
+                                            </div>
                                         <% } %>
+                                        <div class="form-floating flex-grow-1">
+                                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
+                                            <label>Price</label>
+                                        </div>
                                     </div>
                                 <% } %>
                             </div>
@@ -70,76 +69,45 @@
                                 <% if (sizes.length > 0) { %>
                                     <% sizes.forEach(size => { %>
                                     <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-
+                                    <%# Added: Filter past prices for the current size %>
+                                    <% const variantPastPrices = pastSizePrices.filter(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
                                     <div class="row g-2 mb-2 align-items-center size-price-row">
-                                        
-                                        <!-- SIZE INPUT -->
                                         <div class="col-5">
-                                        <div class="form-floating">
-                                            <input 
-                                            type="text" 
-                                            class="form-control" 
-                                            name="size[]" 
-                                            placeholder="Size" 
-                                            value="<%= size.label %>" 
-                                            list="pastSizeLabelsList" 
-                                            required
-                                            >
-                                            <label>Size</label>
-
-                                            <% if (pastProductSizes && pastProductSizes.length > 0) { %>
-                                            <datalist id="pastSizeLabelsList">
-                                                <% pastProductSizes.forEach(pastSize => { %>
-                                                <option value="<%= pastSize.label %>"><%= pastSize.label %></option>
-                                                <% }) %>
-                                            </datalist>
-                                            <% } %>
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required>
+                                                <label>Size</label>
+                                            </div>
                                         </div>
-                                        </div>
-
-                                        <!-- PRICE INPUT -->
                                         <div class="col-5">
-                                        <div class="form-floating">
-                                            <input 
-                                            type="number" 
-                                            class="form-control" 
-                                            name="price[]" 
-                                            step="0.01" 
-                                            min="0" 
-                                            placeholder="Price" 
-                                            value="<%= correspondingPrice ? correspondingPrice.price : '' %>" 
-                                            list="pastSizePricesList"
-                                            required
-                                            >
-                                            <label>Price</label>
-
-                                            <% if (pastSizePrices && pastSizePrices.length > 0) { %>
-                                            <datalist id="pastSizePricesList">
-                                                <% pastSizePrices.forEach(price => { 
-                                                    const relatedSize = pastProductSizes.find(s => s._id.toString() === String(price.sizeId));
-                                                %>
-                                                <option value="<%= price.price %>">
-                                                    ₱<%= price.price %>
-                                                    <% if (relatedSize) { %> — <%= relatedSize.label %><% } %>
-                                                    (<%= new Date(price.effectiveDate).toLocaleDateString('en-PH', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: '2-digit'
-                                                    }) %>)
-                                                </option>
-                                                <% }) %>
-                                            </datalist>
-                                            <% } %>
+                                            <div class="price-history-group">
+                                                <%# Updated: Check the new filtered array %>
+                                                 <% if (variantPastPrices && variantPastPrices.length > 0) { %>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
+                                                            <i class="bi bi-clock-history"></i>
+                                                        </button>
+                                                        <ul class="dropdown-menu">
+                                                            <%# Updated: Loop through the new filtered array %>
+                                                            <% variantPastPrices.forEach(price => { %>
+                                                                <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
+                                                                    <span>₱<%= price.price.toFixed(2) %></span>
+                                                                    <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
+                                                                </a></li>
+                                                            <% }) %>
+                                                        </ul>
+                                                    </div>
+                                                <% } %>
+                                                <div class="form-floating flex-grow-1">
+                                                    <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required>
+                                                    <label>Price</label>
+                                                </div>
+                                            </div>
                                         </div>
-                                        </div>
-
-                                        <!-- REMOVE BUTTON -->
                                         <div class="col-2 text-center">
-                                        <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                            <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         </div>
-
                                     </div>
                                     <% }) %>
                                 <% } %>
@@ -163,6 +131,7 @@
 </div>
 
 
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
     <div class="admin-page-header">
         <div>
@@ -210,36 +179,28 @@
                     </button>
                 </div>
 
-                <div id="price-container-desktop">
+                <div id="price-container-desktop" class="mb-3">
                     <% if (sizes.length === 0) { %>
-                        <div class="form-floating mb-3">
-                        <input 
-                            type="number" 
-                            class="form-control" 
-                            name="price[]" 
-                            step="0.01" 
-                            min="0" 
-                            placeholder="Price" 
-                            value="<%= product.price %>" 
-                            list="pastPricesList" 
-                            required
-                        >
-                        <label>Price</label>
-                        <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
-                            <datalist id="pastPricesList">
-                            <% pastSinglePrices.forEach(price => { %>
-                                <option 
-                                value="<%= price.price %>">
-                                ₱<%= price.price %> — 
-                                <%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { 
-                                    year: 'numeric', 
-                                    month: 'short', 
-                                    day: '2-digit' 
-                                }) %>
-                                </option>
-                            <% }) %>
-                            </datalist>
-                        <% } %>
+                        <div class="price-history-group">
+                            <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
+                                <div class="dropdown">
+                                    <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
+                                        <i class="bi bi-clock-history"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <% pastSinglePrices.forEach(price => { %>
+                                            <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
+                                                <span>₱<%= price.price.toFixed(2) %></span>
+                                                <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
+                                            </a></li>
+                                        <% }) %>
+                                    </ul>
+                                </div>
+                            <% } %>
+                             <div class="form-floating flex-grow-1">
+                                <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
+                                <label>Price</label>
+                            </div>
                         </div>
                     <% } %>
                 </div>
@@ -248,9 +209,40 @@
                     <% if (sizes.length > 0) { %>
                         <% sizes.forEach(size => { %>
                             <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
+                            <%# Added: Filter past prices for the current size %>
+                            <% const variantPastPrices = pastSizePrices.filter(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
                             <div class="row g-2 mb-2 align-items-center size-price-row">
-                                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required><label>Size</label></div></div>
-                                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required><label>Price</label></div></div>
+                                <div class="col-5">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required>
+                                        <label>Size</label>
+                                    </div>
+                                </div>
+                                <div class="col-5">
+                                    <div class="price-history-group">
+                                        <%# Updated: Check the new filtered array %>
+                                        <% if (variantPastPrices && variantPastPrices.length > 0) { %>
+                                            <div class="dropdown">
+                                                <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
+                                                    <i class="bi bi-clock-history"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <%# Updated: Loop through the new filtered array %>
+                                                     <% variantPastPrices.forEach(price => { %>
+                                                        <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
+                                                            <span>₱<%= price.price.toFixed(2) %></span>
+                                                            <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
+                                                        </a></li>
+                                                    <% }) %>
+                                                </ul>
+                                            </div>
+                                        <% } %>
+                                        <div class="form-floating flex-grow-1">
+                                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required>
+                                            <label>Price</label>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button></div>
                             </div>
                         <% }) %>
@@ -266,100 +258,11 @@
         </div>
     </div>
 </div>
-<script>
-  const addSizeBtn = document.getElementById('add-size-btn');
-  const priceContainer = document.getElementById('price-container');
-  const sizePriceContainer = document.getElementById('size-price-container');
-  const form = document.querySelector('form');
-
-  // 🔹 Attach delete behavior to a button
-  function attachRemoveEvent(button) {
-    button.addEventListener('click', () => {
-        const row = button.closest('.row');
-        if (!row) return;
-
-        // Handle deleted sizes (from DB)
-        const hiddenInput = row.querySelector('input[name="sizeId"]');
-        if (hiddenInput) {
-        const deletedInput = document.createElement('input');
-        deletedInput.type = 'hidden';
-        deletedInput.name = 'deletedSizes[]';
-        deletedInput.value = hiddenInput.value;
-        form.appendChild(deletedInput);
-        }
-
-        // Remove row visually
-        row.remove();
-
-        // ✅ Corrected condition
-        if (sizePriceContainer.querySelectorAll('.size-price-row').length === 0) {
-        restoreSinglePriceInput();
-        }
-    });
-    }
-  // 🔹 Attach to all existing delete buttons
-  document.querySelectorAll('.btn-remove-size').forEach(btn => attachRemoveEvent(btn));
-
-  // 🔹 Function to restore the single price field
-  function restoreSinglePriceInput() {
-    if (!priceContainer) return;
-    priceContainer.style.display = 'block';
-    priceContainer.innerHTML = `
-      <div class="form-floating mb-3">
-        <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" required>
-        <label for="price">Price</label>
-      </div>
-    `;
-  }
-
-  // 🔹 Add new size rows dynamically
-  addSizeBtn.addEventListener('click', () => {
-    // Hide single price input when switching to multi-size mode
-    if (priceContainer) {
-      priceContainer.innerHTML = '';
-      priceContainer.style.display = 'none';
-    }
-
-    const sizePriceGroup = document.createElement('div');
-    sizePriceGroup.classList.add('row', 'mb-3', 'align-items-center', 'justify-content-center', 'size-price-row');
-
-    sizePriceGroup.innerHTML = `
-      <div class="col-md-5">
-        <div class="form-floating mb-3">
-          <input type="text" class="form-control" name="size[]" placeholder="Size" required>
-          <label>Size</label>
-        </div>
-      </div>
-
-      <div class="col-md-5">
-        <div class="form-floating mb-3">
-          <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
-          <label>Price</label>
-        </div>
-      </div>
-
-      <div class="col-md-2 text-center">
-        <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    `;
-
-    sizePriceContainer.appendChild(sizePriceGroup);
-
-    // Attach delete behavior to the new button
-    const removeBtn = sizePriceGroup.querySelector('.btn-remove-size');
-    attachRemoveEvent(removeBtn);
-  });
-</script>
-
 
 <%- include('../partials/adminFooter') %>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
-    // Helper function to set up logic for a given form (mobile or desktop)
     const setupForm = (formElement) => {
         if (!formElement) return;
 
@@ -371,7 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', () => {
                 button.closest('.size-price-row').remove();
                 if (sizePriceContainer.querySelectorAll('.size-price-row').length === 0) {
-                    priceContainer.innerHTML = `<div class="form-floating mb-3"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div>`;
+                    priceContainer.style.display = 'block';
+                    priceContainer.innerHTML = `<div class="price-history-group"><div class="form-floating flex-grow-1"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>`;
                 }
             });
         };
@@ -379,24 +283,54 @@ document.addEventListener('DOMContentLoaded', () => {
         formElement.querySelectorAll('.btn-remove-size').forEach(attachRemoveEvent);
 
         addSizeBtn.addEventListener('click', () => {
-            if (priceContainer) priceContainer.innerHTML = '';
+            if (priceContainer) {
+                priceContainer.innerHTML = '';
+                priceContainer.style.display = 'none';
+            }
             
             const newRow = document.createElement('div');
             newRow.classList.add('row', 'g-2', 'mb-2', 'align-items-center', 'size-price-row');
             newRow.innerHTML = `
-                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size" required><label>Size</label></div></div>
-                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>
-                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button></div>
+                <div class="col-5">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" name="size[]" placeholder="Size" required>
+                        <label>Size</label>
+                    </div>
+                </div>
+                <div class="col-5">
+                     <div class="price-history-group">
+                        <div class="form-floating flex-grow-1">
+                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+                            <label>Price</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-2 text-center">
+                    <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button>
+                </div>
             `;
             sizePriceContainer.appendChild(newRow);
             attachRemoveEvent(newRow.querySelector('.btn-remove-size'));
         });
     };
 
-    // Setup for Mobile Form
     setupForm(document.querySelector('.d-lg-none form'));
-    
-    // Setup for Desktop Form
     setupForm(document.querySelector('.d-none.d-lg-block form'));
+
+    // --- Price History Dropdown Logic ---
+    document.body.addEventListener('click', function(event) {
+        const historyItem = event.target.closest('.price-history-item');
+        if (historyItem) {
+            event.preventDefault();
+            const price = historyItem.dataset.price;
+            const priceGroup = historyItem.closest('.price-history-group');
+            if (priceGroup) {
+                const input = priceGroup.querySelector('input[type="number"]');
+                if (input) {
+                    input.value = price;
+                }
+            }
+        }
+    });
 });
 </script>
