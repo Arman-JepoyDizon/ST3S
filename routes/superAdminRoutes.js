@@ -46,8 +46,9 @@ router.get('/users/edit/:id', superAdminController.getEditUserPage);
 router.post('/users/edit/:id', superAdminController.postUpdateUser);
 router.post('/users/delete/:id', superAdminController.postDeleteUser);
 
-// Analytics 
+// Analytics
 router.get('/analytics', superAdminController.getAnalyticsPage);
+router.get('/analytics/data', superAdminController.getAnalyticsData); 
 
 
 module.exports = router;

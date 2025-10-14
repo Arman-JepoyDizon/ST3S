@@ -67,10 +67,7 @@ const getOrderScreen = async (req, res) => {
     try {
         const categoryFilter = req.query.category;
         const allCategories = await Category.find({});
-        let productQuery = {};
-
-        // Associate product query with the user's branch
-        productQuery.branches = req.session.user.branch;
+        let productQuery = { branches: req.session.user.branch };
 
         if (categoryFilter) {
             const decodedCategoryName = decodeURIComponent(categoryFilter);
@@ -209,6 +206,7 @@ const createOrder = async (req, res) => {
             .populate('items.productId', 'name');
         
         req.io.emit('newOrder', populatedTransaction);
+        req.io.emit('superAdminNewOrder', { branchId: req.session.user.branch });
 
         res.status(201).json({ 
             success: true, 
@@ -226,13 +224,19 @@ const completeOrder = async (req, res) => {
     try {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+        
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
+
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId, 
             oldStatus: oldStatus,
             newStatus: 'Completed' 
         });
+        
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+
         res.redirect('/sales');
     } catch (error) {
         console.error('Error completing order:', error);
@@ -244,13 +248,19 @@ const cancelOrder = async (req, res) => {
     try {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+        
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
+        
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId,
             oldStatus: oldStatus,
             newStatus: 'Cancelled' 
         });
+        
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+
         res.redirect('/sales');
     } catch (error) {
         console.error('Error cancelling order:', error);

@@ -2,11 +2,10 @@
 
 const Transaction = require('../models/transaction');
 
-
 const getDashboard = async (req, res) => {
     try {
-        // Find all transactions that are still pending
-        const pendingOrders = await Transaction.find({ status: 'Pending' })
+        // Find all transactions that are still pending for the cook's branch
+        const pendingOrders = await Transaction.find({ status: 'Pending', branch: req.session.user.branch })
             .sort({ createdAt: 1 }) // Show the oldest orders first (First-In, First-Out)
             .populate('items.productId', 'name'); 
 
@@ -25,6 +24,8 @@ const markAsReady = async (req, res) => {
     try {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+
         const oldStatus = transaction.status;
 
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Ready' });
@@ -34,6 +35,9 @@ const markAsReady = async (req, res) => {
             oldStatus: oldStatus,
             newStatus: 'Ready' 
         });
+
+        // Added: Emit event for analytics update
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
 
         res.redirect('/cook/dashboard');
     } catch (error) {

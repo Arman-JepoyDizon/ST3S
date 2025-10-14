@@ -10,10 +10,10 @@
     </div>
 
     <div class="card filter-bar mb-4">
-        <form action="/superadmin/analytics" method="GET" class="d-flex flex-wrap gap-3 align-items-center">
+        <form action="/superadmin/analytics" method="GET" id="analytics-filter-form" class="d-flex flex-wrap gap-3 align-items-center">
             <div class="form-control-icon-wrapper">
                 <i class="bi bi-shop"></i>
-                <select name="branch" class="form-select">
+                <select name="branch" class="form-select" onchange="this.form.submit()">
                     <option value="">All Branches</option>
                     <% branches.forEach(branch => { %>
                         <option value="<%= branch._id %>" <%= String(query.branch) === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
@@ -32,8 +32,7 @@
                  <i class="bi bi-calendar-range"></i>
                  <input type="text" id="custom-range-input" name="dateRange" class="form-control" placeholder="Custom Range" value="<%= query.dateRange || '' %>">
                  <input type="hidden" name="filter" value="custom">
-                 <input type="hidden" name="branch" value="<%= query.branch || '' %>">
-            </div>
+                 </div>
              <button type="submit" class="btn btn-secondary">Filter</button>
              <a href="/superadmin/analytics" class="btn btn-light">Clear</a>
         </form>
@@ -44,7 +43,7 @@
             <div class="stat-card-revamp highlight h-100">
                 <div class="card-body">
                     <p class="card-text text-muted mb-0">Total Sales</p>
-                    <h3 class="card-title mb-0">₱<%= totalSales.toFixed(2) %></h3>
+                    <h3 class="card-title mb-0" id="total-sales">₱<%= totalSales.toFixed(2) %></h3>
                 </div>
             </div>
         </div>
@@ -52,7 +51,7 @@
             <div class="stat-card-revamp h-100">
                 <div class="card-body">
                     <p class="card-text text-muted mb-0">Total Orders</p>
-                    <h3 class="card-title mb-0"><%= totalOrders %></h3>
+                    <h3 class="card-title mb-0" id="total-orders"><%= totalOrders %></h3>
                 </div>
             </div>
         </div>
@@ -60,7 +59,7 @@
             <div class="stat-card-revamp h-100">
                 <div class="card-body">
                     <p class="card-text text-muted mb-0">Average Order</p>
-                    <h3 class="card-title mb-0">₱<%= (totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00') %></h3>
+                    <h3 class="card-title mb-0" id="average-order">₱<%= (totalOrders > 0 ? (totalSales / totalOrders).toFixed(2) : '0.00') %></h3>
                 </div>
             </div>
         </div>
@@ -70,7 +69,7 @@
         <div class="col-lg-7 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title"><%= salesTrendData.title %></h5>
+                    <h5 class="card-title" id="sales-trend-title"><%= salesTrendData.title %></h5>
                     <canvas id="salesTrendChart"></canvas>
                 </div>
             </div>
@@ -94,47 +93,82 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        let salesTrendChart;
+        let topProductsChart;
+
         flatpickr("#custom-range-input", {
             mode: "range",
             dateFormat: "Y-m-d",
             onClose: function(selectedDates) {
                 if (selectedDates.length === 2) {
-                    this.form.submit();
+                    const form = document.getElementById('analytics-filter-form');
+                    // Manually set the branch value for the form submission
+                    const branchSelect = form.querySelector('select[name="branch"]');
+                    const hiddenBranchInput = form.querySelector('input[name="branch"]');
+                    if(hiddenBranchInput) hiddenBranchInput.value = branchSelect.value;
+                    form.submit();
                 }
             }
         });
+        
+        const initializeCharts = () => {
+            try {
+                const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
+                const topProductsData = <%- JSON.stringify(topProductsData) %>;
+                
+                const salesCtx = document.getElementById('salesTrendChart').getContext('2d');
+                salesTrendChart = new Chart(salesCtx, {
+                    type: 'bar',
+                    data: { labels: salesTrendData.labels, datasets: [{ label: 'Sales', data: salesTrendData.data, backgroundColor: '#FF0066', borderRadius: 8 }] },
+                    options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+                });
 
-        try {
-            const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
-            const topProductsData = <%- JSON.stringify(topProductsData) %>;
+                const productsCtx = document.getElementById('topProductsChart').getContext('2d');
+                topProductsChart = new Chart(productsCtx, {
+                    type: 'doughnut',
+                    data: { labels: topProductsData.labels, datasets: [{ data: topProductsData.data, backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'] }] },
+                    options: { plugins: { legend: { position: 'right' } } }
+                });
 
-            new Chart(document.getElementById('salesTrendChart'), {
-                type: 'bar',
-                data: {
-                    labels: salesTrendData.labels,
-                    datasets: [{
-                        label: 'Sales',
-                        data: salesTrendData.data,
-                        backgroundColor: '#FF0066',
-                        borderRadius: 8
-                    }]
-                },
-                options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
-            });
+                window.addEventListener('updateCharts', (e) => {
+                    const data = e.detail;
+                    document.getElementById('sales-trend-title').textContent = data.salesTrendData.title;
+                    salesTrendChart.data.labels = data.salesTrendData.labels;
+                    salesTrendChart.data.datasets[0].data = data.salesTrendData.data;
+                    salesTrendChart.update();
+                    
+                    topProductsChart.data.labels = data.topProductsData.labels;
+                    topProductsChart.data.datasets[0].data = data.topProductsData.data;
+                    topProductsChart.update();
+                });
 
-            new Chart(document.getElementById('topProductsChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: topProductsData.labels,
-                    datasets: [{
-                        data: topProductsData.data,
-                        backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'],
-                    }]
-                },
-                options: { plugins: { legend: { position: 'right' } } }
-            });
-        } catch (error) {
-            console.error("Error initializing charts:", error);
-        }
+            } catch (error) {
+                console.error("Error initializing charts:", error);
+            }
+        };
+
+        const fetchAndUpdateAnalytics = async () => {
+            const form = document.getElementById('analytics-filter-form');
+            const params = new URLSearchParams(new FormData(form));
+            try {
+                const response = await fetch(`/superadmin/analytics/data?${params.toString()}`);
+                if (!response.ok) throw new Error('Network response failed');
+                const data = await response.json();
+                document.getElementById('total-sales').textContent = `₱${data.totalSales.toFixed(2)}`;
+                document.getElementById('total-orders').textContent = data.totalOrders;
+                document.getElementById('average-order').textContent = `₱${(data.totalOrders > 0 ? (data.totalSales / data.totalOrders).toFixed(2) : '0.00')}`;
+                window.dispatchEvent(new CustomEvent('updateCharts', { detail: data }));
+            } catch (error) {
+                console.error('Failed to fetch and update analytics:', error);
+            }
+        };
+
+        initializeCharts();
+
+        const socket = io();
+        socket.on('superAdminNewOrder', (data) => {
+            console.log('Real-time update triggered for branch:', data.branchId);
+            fetchAndUpdateAnalytics();
+        });
     });
 </script>
