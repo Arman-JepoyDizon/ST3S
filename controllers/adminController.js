@@ -427,6 +427,8 @@ const getEditProductPage = async (req, res) => {
         status: "Inactive"
         }).sort({ createdAt: -1 });
 
+        console.log(pastSizePrices)
+
         res.render('admin/editProduct', {
         user: req.session.user,
         product,
@@ -448,7 +450,7 @@ const getEditProductPage = async (req, res) => {
 const postUpdateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-    const { name, price, size, category, imageUrl } = req.body;
+    const { name, price, size, category, imageUrl, sizeId } = req.body;
 
     const prices = Array.isArray(price) ? price : [price];
     let sizes = Array.isArray(size) ? size : [];
@@ -492,136 +494,90 @@ const postUpdateProduct = async (req, res) => {
       return res.redirect("/admin/products");
     }
 
-    if (existingSizes.length === 0 && sizes.length > 0) {
-      console.log("Transition: One → Many");
-      await Price.updateMany(
-        {
-          productId,
-          $or: [{ sizeId: { $exists: false } }, { sizeId: null }],
-          status: "Active"
-        },
-        { status: "Inactive" }
-      );
-      for (let i = 0; i < sizes.length; i++) {
-        const label = sizes[i].trim();
-        const p = parseFloat(prices[i] || prices[0]);
-        const newSize = await Size.create({ productId, label });
-        await Price.create({
-          productId,
-          sizeId: newSize._id,
-          price: p,
-          status: "Active"
-        });
-      }
-      await Product.findByIdAndUpdate(productId, {
-        name,
-        price: lowestPrice,
-        category,
-        imageUrl
-      });
-      console.log("✅ Converted to multi-price mode.");
-      return res.redirect("/admin/products");
-    }
-
     if (sizes.length > 0 && existingSizes.length > 0) {
         console.log("Updating multi-price product.");
 
-        const keepSizeIds = new Set();
+        const sizeIds = Array.isArray(req.body.sizeId) ? req.body.sizeId : [];
+        const keepIds = new Set();
 
-        for (let i = 0; i < sizes.length; i++) {
-            const newLabel = String(sizes[i]).trim();
-            const newPrice = parseFloat(prices[i] || prices[0]);
+        // update existing rows (by submitted sizeId[])
+        for (let i = 0; i < sizeIds.length; i++) {
+            const id = sizeIds[i];
+            if (!id) continue;
 
-            console.log(newLabel)
-            console.log(newPrice)
+            const newLabel = String(sizes[i] ?? '').trim();
+            const nextPrice = parseFloat(prices[i] ?? prices[0]);
 
-            let sizeDoc =
-            existingSizes.find(s => s.label.toLowerCase() === newLabel.toLowerCase()) ||
-            existingSizes[i];
+            await Size.findByIdAndUpdate(
+            id,
+            { label: newLabel, status: "Active" },
+            { new: true }
+            );
 
-            if (sizeDoc && sizeDoc.label.toLowerCase() !== newLabel.toLowerCase()) {
-            await Size.findByIdAndUpdate(sizeDoc._id, { label: newLabel, status: "Active" });
-            sizeDoc.label = newLabel;
-            }
+            const priceExists = await Price.findOne({ productId, sizeId: id, price: nextPrice });
 
-            if (!sizeDoc) {
-            sizeDoc = await Size.create({ productId, label: newLabel });
-            existingSizes.push(sizeDoc);
+            if (priceExists) {
+            if (priceExists.status === "Inactive") {
+                const activated = await Price.findByIdAndUpdate(
+                priceExists._id,
+                { status: "Active", effectiveDate: new Date() },
+                { new: true }
+                );
+                await Price.updateMany(
+                { productId, sizeId: id, status: "Active", _id: { $ne: activated._id } },
+                { $set: { status: "Inactive" } }
+                );
             } else {
-            await Size.findByIdAndUpdate(sizeDoc._id, { status: "Active" });
+                await Price.updateOne(
+                { _id: priceExists._id },
+                { $set: { effectiveDate: new Date() } }
+                );
             }
-
-            keepSizeIds.add(String(sizeDoc._id));
-
-            const currentPrice = await Price.findOne({
-            productId,
-            sizeId: sizeDoc._id,
-            status: "Active",
-            });
-
-            if (!currentPrice) {
-            const matchingInactive = await Price.findOne({
-                productId,
-                sizeId: sizeDoc._id,
-                price: newPrice,
-                status: "Inactive",
-            });
-            if (matchingInactive) {
-                await Price.findByIdAndUpdate(matchingInactive._id, {
-                status: "Active",
-                effectiveDate: new Date(),
-                });
             } else {
-                await Price.create({
-                productId,
-                sizeId: sizeDoc._id,
-                price: newPrice,
-                status: "Active",
-                });
+            const createdPrice = await Price.create({ productId, sizeId: id, price: nextPrice, status: "Active" });
+            await Price.updateMany(
+                { productId, sizeId: id, status: "Active", _id: { $ne: createdPrice._id } },
+                { $set: { status: "Inactive" } }
+            );
             }
-            } else if (currentPrice.price !== newPrice) {
-            await Price.findByIdAndUpdate(currentPrice._id, { status: "Inactive" });
 
-            const matchingInactive = await Price.findOne({
-                productId,
-                sizeId: sizeDoc._id,
-                price: newPrice,
-                status: "Inactive",
-            });
-            if (matchingInactive) {
-                await Price.findByIdAndUpdate(matchingInactive._id, {
-                status: "Active",
-                effectiveDate: new Date(),
-                });
-            } else {
-                await Price.create({
-                productId,
-                sizeId: sizeDoc._id,
-                price: newPrice,
-                status: "Active",
-                });
-            }
-            }
+            // mark this size as kept
+            keepIds.add(String(id));
         }
 
-        const toDeactivate = existingSizes.filter(s => !keepSizeIds.has(String(s._id)));
-        for (const s of toDeactivate) {
+        // create new sizes (no id submitted)
+        for (let i = sizeIds.length; i < sizes.length; i++) {
+            const newLabel = String(sizes[i] ?? '').trim();
+            const nextPrice = parseFloat(prices[i] ?? prices[0]);
+
+            const newSize = await Size.create({ productId, label: newLabel, status: "Active" });
+            await Price.create({ productId, sizeId: newSize._id, price: nextPrice, status: "Active" });
+
+            // mark new size as kept
+            keepIds.add(String(newSize._id));
+        }
+
+        // inactivate removed sizes (not kept)
+        for (const s of existingSizes) {
+            if (!keepIds.has(String(s._id))) {
             await Size.findByIdAndUpdate(s._id, { status: "Inactive" });
-            await Price.updateMany({ productId, sizeId: s._id, status: "Active" }, { status: "Inactive" });
+            await Price.updateMany(
+                { productId, sizeId: s._id, status: "Active" },
+                { $set: { status: "Inactive" } }
+            );
+            }
         }
 
+        // inactivate any leftover single-price records
         await Price.updateMany(
-            {
-            productId,
-            $or: [{ sizeId: { $exists: false } }, { sizeId: null }],
-            status: "Active",
-            },
-            { status: "Inactive" }
+            { productId, status: "Active", $or: [{ sizeId: null }, { sizeId: { $exists: false } }] },
+            { $set: { status: "Inactive" } }
         );
 
-        const activePrices = await Price.find({ productId, status: "Active" });
-        const lowestActivePrice = activePrices.length > 0
-            ? Math.min(...activePrices.map(p => parseFloat(p.price)))
+        // update product lowest active price
+        const allActivePrices = await Price.find({ productId, status: "Active" });
+        const lowestActivePrice = allActivePrices.length
+            ? Math.min(...allActivePrices.map(p => Number(p.price)))
             : 0;
 
         await Product.findByIdAndUpdate(productId, {
@@ -631,8 +587,9 @@ const postUpdateProduct = async (req, res) => {
             price: lowestActivePrice,
         });
 
-        console.log("✅ Multi-price product updated (labels + prices) without blanking.");
+        console.log("✅ Multi-price product");
     }
+
 
 
     if (existingSizes.length === 0 && sizes.length === 0) {

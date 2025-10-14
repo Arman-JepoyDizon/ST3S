@@ -213,6 +213,7 @@
                             <% const variantPastPrices = pastSizePrices.filter(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
                             <div class="row g-2 mb-2 align-items-center size-price-row">
                                 <div class="col-5">
+                                    <input type="hidden" name = sizeId[] value="<%= size._id %>">
                                     <div class="form-floating">
                                         <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required>
                                         <label>Size</label>
