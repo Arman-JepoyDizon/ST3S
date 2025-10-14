@@ -429,6 +429,20 @@ body {
 .stat-icon-wrapper i {
     font-size: 1.5rem;
 }
+#desktop-analytics-form .btn,
+#desktop-analytics-form .form-control {
+    border-radius: 12px !important;
+}
+#desktop-analytics-form .form-control-icon-wrapper input.form-control.active,
+#desktop-analytics-form .form-control-icon-wrapper:has(input.form-control.active) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--white);
+}
+#desktop-analytics-form .form-control-icon-wrapper:has(input.form-control.active) > .bi {
+    color: var(--white);
+}
+
 
 /* Admin: Orders Page Filters & Modal */
 .filter-bar {
@@ -446,6 +460,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     color: #6c757d;
+    pointer-events: none;
 }
 .form-control-icon-wrapper .form-control,
 .form-control-icon-wrapper .form-select {
@@ -495,38 +510,7 @@ body {
     border-color: var(--primary-color);
 }
 
-/* --- Themed Flatpickr Styles --- */
-#custom-range-input-desktop,
-#custom-range-input-mobile {
-  font-weight: 600;
-  text-align: center;
-  cursor: pointer;
-  background-color: var(--white);
-  border: 1px solid #dee2e6;
-  color: #6c757d;
-  border-radius: var(--border-radius);
-  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out;
-}
-
-/* Hover state for the inactive "button" */
-#custom-range-input-desktop:hover,
-#custom-range-input-mobile:hover {
-  background-color: var(--light-gray);
-  color: var(--text-color);
-}
-
-/* Active state: When flatpickr selects a date, it adds the .active class to its input. */
-.form-control-icon-wrapper input.form-control.active {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
-  color: var(--white);
-}
-
-/* Change the icon color when the input is active */
-.form-control-icon-wrapper:has(input.form-control.active) > .bi {
-    color: var(--white);
-}
-
+/* Themed Flatpickr Styles */
 .flatpickr-calendar {
     font-family: 'Poppins', sans-serif !important;
     border-radius: var(--border-radius) !important;
@@ -579,6 +563,32 @@ body {
 }
 .flatpickr-calendar .flatpickr-day.endRange {
     border-radius: 0 50px 50px 0;
+}
+
+/* Admin Form Variants & Price History */
+.price-history-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.btn-price-history {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-radius: var(--border-radius);
+    --bs-btn-padding-y: 0.65rem; /* Align height with form-floating */
+    --bs-btn-focus-shadow-rgb: none;
+}
+.btn-price-history:hover {
+    background-color: var(--primary-darker);
+    color: var(--white);
+}
+.price-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.price-history-item small {
+    color: #6c757d;
 }
 
 /* --- Frontliner Interface --- */
@@ -1096,13 +1106,6 @@ body {
     display: inline-block;
 }
 
-/* Admin Form Variants */
-#size-price-container .row {
-    padding: 0.75rem;
-    border: 1px solid #eee;
-    border-radius: var(--border-radius);
-}
-
 /* Modal Styles */
 #logoutConfirmModal .modal-content,
 #adminLogoutConfirmModal .modal-content,
@@ -1158,19 +1161,12 @@ body {
 
 /* --- Responsive Adjustments --- */
 @media (max-width: 991.98px) {
-    /* Mobile-specific adjustments for date picker */
-    .date-range-picker {
-        width: 90vw;
-        max-width: 350px;
+    .flatpickr-calendar {
+        width: 90vw !important;
+        max-width: 350px !important;
     }
-    .picker-body {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    .picker-months {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
+    .flatpickr-rContainer {
+        width: 100% !important;
     }
 }
 
