@@ -99,7 +99,7 @@ const getProductDetailPage = async (req, res) => {
             return res.status(404).send('Product not found');
         }
 
-        const sizes = await Size.find({ productId: productId });
+        const sizes = await Size.find({ productId: productId, status: 'Active' });
         const prices = await Price.find({ productId: productId, status: 'Active' });
         const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
 

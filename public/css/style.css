@@ -36,37 +36,26 @@ body {
 .audio-banner {
     display: flex;
     position: fixed;
-    top: 20px; /* Added more space from the top */
+    top: 20px;
     left: 50%;
-    
-    /* Animation: Start off-screen and invisible */
     transform: translate(-50%, -150%);
     opacity: 0;
-    
-    /* Theming: Use system colors and gradient */
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
     color: var(--white);
-    
     padding: 0.75rem 1.25rem;
     border-radius: 50px;
     z-index: 1050;
-    
     align-items: center;
     gap: 1rem;
-    
-    /* Theming: Add shadow consistent with the system */
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    
-    /* Animation: Smooth transition for transform and opacity */
     transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-    pointer-events: none; /* Prevent interaction while hidden */
+    pointer-events: none;
 }
 
 .audio-banner.show {
-    /* Animation: Slide into view and become visible */
     transform: translate(-50%, 0);
     opacity: 1;
-    pointer-events: auto; /* Allow interaction when visible */
+    pointer-events: auto;
 }
 
 .audio-banner .banner-icon i {
@@ -80,7 +69,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Custom styles for buttons inside the banner */
 .audio-banner .btn-banner {
     background-color: rgba(255, 255, 255, 0.15);
     color: var(--white);
@@ -90,7 +78,7 @@ body {
     padding: 0.3rem 1rem;
     font-size: 0.85rem;
     text-decoration: none;
-    white-space: nowrap; /* Prevent button text from wrapping */
+    white-space: nowrap;
     transition: background-color 0.2s ease;
 }
 
@@ -141,6 +129,10 @@ body {
 }
 .btn-primary:hover {
     background-color: #e6005c;
+}
+
+.btn-outline-secondary {
+    border-radius: var(--border-radius);
 }
 
 .text-primary {
@@ -266,7 +258,6 @@ body {
 .list-table-container {
     background-color: var(--white);
     border-radius: var(--border-radius);
-    padding: 1rem;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 .list-table-header,
@@ -305,7 +296,7 @@ body {
     font-size: 1.2rem;
 }
 .products-grid { grid-template-columns: 70px 3fr 1.5fr 1fr 1fr 100px; }
-.orders-grid { grid-template-columns: 2fr 1.5fr 2fr 1fr 1fr 100px; }
+.orders-grid { grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 100px; }
 .users-grid { grid-template-columns: 70px 2fr 2fr 1fr 1fr auto; }
 
 /* Badge Styles */
@@ -437,6 +428,157 @@ body {
 }
 .stat-icon-wrapper i {
     font-size: 1.5rem;
+}
+
+/* Admin: Orders Page Filters & Modal */
+.filter-bar {
+    padding: 1.25rem;
+}
+.filter-bar .btn-filter-apply {
+    display: none;
+}
+.form-control-icon-wrapper {
+    position: relative;
+}
+.form-control-icon-wrapper .bi {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+.form-control-icon-wrapper .form-control,
+.form-control-icon-wrapper .form-select {
+    padding-left: 2.75rem;
+}
+.filter-card-mobile {
+    background-color: var(--white);
+}
+.filter-card-mobile .card-body {
+    padding: 1rem;
+}
+.filter-card-mobile .card-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+
+#exportModal .modal-content {
+    border-radius: var(--border-radius);
+}
+#exportModal .form-label {
+    margin-bottom: 0.75rem;
+}
+#exportModal .select-all-fields,
+#exportModal .deselect-all-fields {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.export-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+.export-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background-color: var(--success-light);
+    color: var(--success-dark);
+    border-color: rgba(0, 138, 94, 0.2);
+}
+.date-preset-btn.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+
+/* --- Themed Flatpickr Styles --- */
+#custom-range-input-desktop,
+#custom-range-input-mobile {
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  background-color: var(--white);
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  border-radius: var(--border-radius);
+  transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out;
+}
+
+/* Hover state for the inactive "button" */
+#custom-range-input-desktop:hover,
+#custom-range-input-mobile:hover {
+  background-color: var(--light-gray);
+  color: var(--text-color);
+}
+
+/* Active state: When flatpickr selects a date, it adds the .active class to its input. */
+.form-control-icon-wrapper input.form-control.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white);
+}
+
+/* Change the icon color when the input is active */
+.form-control-icon-wrapper:has(input.form-control.active) > .bi {
+    color: var(--white);
+}
+
+.flatpickr-calendar {
+    font-family: 'Poppins', sans-serif !important;
+    border-radius: var(--border-radius) !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+    border: 1px solid #dee2e6 !important;
+    width: auto !important;
+    background: var(--white) !important;
+}
+.flatpickr-months .flatpickr-month {
+    color: var(--text-color) !important;
+    fill: var(--text-color) !important;
+    font-weight: 600;
+}
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    color: var(--primary-color) !important;
+    fill: var(--primary-color) !important;
+}
+.flatpickr-weekdays {
+    background: var(--light-gray) !important;
+}
+.flatpickr-calendar .flatpickr-weekday {
+    color: #6c757d !important;
+    font-weight: 600 !important;
+}
+.flatpickr-calendar .flatpickr-day {
+    color: var(--text-color) !important;
+    border: none !important;
+}
+.flatpickr-calendar .flatpickr-day:hover {
+    background: var(--primary-light) !important;
+}
+.flatpickr-calendar .flatpickr-day.today {
+    border: 1px solid var(--primary-color) !important;
+}
+.flatpickr-calendar .flatpickr-day.selected, 
+.flatpickr-calendar .flatpickr-day.startRange, 
+.flatpickr-calendar .flatpickr-day.endRange {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--white) !important;
+}
+.flatpickr-calendar .flatpickr-day.inRange {
+    background: var(--primary-light) !important;
+    border-color: var(--primary-light) !important;
+    box-shadow: -5px 0 0 var(--primary-light), 5px 0 0 var(--primary-light) !important;
+}
+.flatpickr-calendar .flatpickr-day.startRange {
+    border-radius: 50px 0 0 50px;
+}
+.flatpickr-calendar .flatpickr-day.endRange {
+    border-radius: 0 50px 50px 0;
 }
 
 /* --- Frontliner Interface --- */
@@ -641,9 +783,6 @@ body {
 .current-order-bar.is-hidden-on-scroll {
     transform: translateY(200%);
 }
-.current-order-bar .card-body {
-    padding: 0.75rem 1rem;
-}
 
 /* Frontliner: Product Detail Page */
 .detail-page-active {
@@ -726,7 +865,7 @@ body {
     --bs-btn-active-color: #fff;
     --bs-btn-active-bg: var(--primary-color);
     --bs-btn-active-border-color: var(--primary-color);
-    --bs-btn-focus-shadow-rgb: 255, 0, 102; /* RGB value of your fuchsia theme */
+    --bs-btn-focus-shadow-rgb: 255, 0, 102;
     font-weight: 600;
 }
 
@@ -912,14 +1051,13 @@ body {
     border: 1px solid #dee2e6;
     border-radius: var(--border-radius);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    border-top: 5px solid transparent; /* Default border */
+    border-top: 5px solid transparent;
     transition: border-color 0.3s ease;
-    margin-bottom: 1.5rem; /* Add spacing between rows */
+    margin-bottom: 1.5rem;
 }
 
-/* Style for urgent orders */
 .order-card-desktop.is-urgent {
-    border-color: var(--danger-text); /* Changes the entire border to red */
+    border-color: var(--danger-text);
 }
 
 .order-card-desktop .card-header {
@@ -1002,7 +1140,7 @@ body {
     justify-content: space-between;
     align-items: flex-start;
     padding: 0.5rem 0;
-    border-bottom: 1px dashed #eee; /* Dashed line for receipt feel */
+    border-bottom: 1px dashed #eee;
 }
 
 .modal-body #modal-items-list .modal-item-row:last-child {
@@ -1019,6 +1157,24 @@ body {
 }
 
 /* --- Responsive Adjustments --- */
+@media (max-width: 991.98px) {
+    /* Mobile-specific adjustments for date picker */
+    .date-range-picker {
+        width: 90vw;
+        max-width: 350px;
+    }
+    .picker-body {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    .picker-months {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+
+
 @media (min-width: 768px) {
     /* Frontliner Tablet Styles */
     .frontline-body {

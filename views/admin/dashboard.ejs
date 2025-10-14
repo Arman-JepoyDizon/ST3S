@@ -2,10 +2,9 @@
 
 <%- include('../partials/adminDesktopNav', { activePage: 'analytics' }) %>
 
+<%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
-
     <div class="admin-container">
-        <%# The sidebar that was here has been removed to fix the modal issue %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
@@ -14,12 +13,23 @@
                     <p class="text-muted">Track your business performance</p>
                 </div>
 
-                <div class="d-flex mb-4">
-                    <a href="/admin/dashboard?filter=today" style="border-radius: 12px;" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Today</a>
-                    <a href="/admin/dashboard?filter=week" style="border-radius: 12px;" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Week</a>
-                    <a href="/admin/dashboard?filter=month" style="border-radius: 12px;" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Month</a>
-                    <a href="/admin/dashboard?filter=year"  style="border-radius: 12px;" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold">Year</a>
+                <%# Updated: Filter controls are now a form for auto-submission %>
+                <div class="filter-controls-mobile mb-4">
+                    <form action="/admin/dashboard" method="GET" id="mobile-analytics-form">
+                        <div class="d-flex mb-2">
+                            <a href="/admin/dashboard?filter=today" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Today</a>
+                            <a href="/admin/dashboard?filter=week" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Week</a>
+                            <a href="/admin/dashboard?filter=month" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Month</a>
+                            <a href="/admin/dashboard?filter=year" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold">Year</a>
+                        </div>
+                        <div class="form-control-icon-wrapper">
+                             <i class="bi bi-calendar-range"></i>
+                             <input type="text" class="form-control" id="custom-range-input-mobile" name="dateRange" placeholder="Custom Range" value="<%= query.dateRange || '' %>" readonly>
+                             <input type="hidden" name="filter" value="custom">
+                        </div>
+                    </form>
                 </div>
+
 
                 <div class="row">
                     <div class="col-12 mb-3">
@@ -152,23 +162,28 @@
             </main>
         </div>
     </div>
-
     <%- include('../partials/adminBottomNav', { activePage: 'analytics' }) %>
 </div>
 
 
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
     <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Sales Analytics</h2>
             <p class="text-muted">Track your business performance</p>
         </div>
-        <div class="d-flex">
-            <a href="/admin/dashboard?filter=today" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Today</a>
-            <a href="/admin/dashboard?filter=week" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Week</a>
-            <a href="/admin/dashboard?filter=month" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2" style="border-radius: 12px;">Month</a>
-            <a href="/admin/dashboard?filter=year" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold" style="border-radius: 12px;">Year</a>
-        </div>
+        <form action="/admin/dashboard" method="GET" id="desktop-analytics-form" class="d-flex align-items-center">
+            <a href="/admin/dashboard?filter=today" class="btn <%= currentFilter === 'today' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Today</a>
+            <a href="/admin/dashboard?filter=week" class="btn <%= currentFilter === 'week' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Week</a>
+            <a href="/admin/dashboard?filter=month" class="btn <%= currentFilter === 'month' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Month</a>
+            <a href="/admin/dashboard?filter=year" class="btn <%= currentFilter === 'year' ? 'btn-primary' : 'btn-outline-secondary' %> fw-bold me-2">Year</a>
+            <div class="position-relative form-control-icon-wrapper">
+                 <i class="bi bi-calendar-range"></i>
+                 <input type="text" id="custom-range-input-desktop" name="dateRange" class="form-control" placeholder="Custom Range" value="<%= query.dateRange || '' %>" readonly>
+                 <input type="hidden" name="filter" value="custom">
+            </div>
+        </form>
     </div>
 
     <div class="row">
@@ -311,14 +326,13 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Use a try-catch block for absolute safety
+        // --- CHART.JS LOGIC ---
         try {
             const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
             const topProductsData = <%- JSON.stringify(topProductsData) %>;
 
             const createSalesChart = (canvasId) => {
                 const ctx = document.getElementById(canvasId);
-                
                 if (!ctx || !salesTrendData || !salesTrendData.labels || !salesTrendData.data) {
                     console.warn(`Sales chart '${canvasId}' skipped: Missing data or canvas element.`);
                     return;
@@ -345,7 +359,6 @@
             
             const createTopProductsChart = (canvasId) => {
                 const ctx = document.getElementById(canvasId);
-                
                 if (!ctx || !topProductsData || !topProductsData.labels || !topProductsData.data) {
                     console.warn(`Top products chart '${canvasId}' skipped: Missing data or canvas element.`);
                     return;
@@ -373,7 +386,30 @@
             createTopProductsChart('topProductsChartDesktop');
         
         } catch (error) {
-            console.error("Error initializing charts on analytics page:", error);
+            console.error("Error initializing charts:", error);
         }
+
+        // --- FLATPCIKR INITIALIZATION FOR DASHBOARD ---
+        const initFlatpickrForForm = (formId, inputId) => {
+            const form = document.getElementById(formId);
+            const input = document.getElementById(inputId);
+            if (!form || !input) return;
+
+            flatpickr(input, {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "M j",
+                onClose: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        // The name of the input is already 'dateRange', so flatpickr handles it.
+                        form.submit();
+                    }
+                }
+            });
+        };
+
+        initFlatpickrForForm('desktop-analytics-form', 'custom-range-input-desktop');
+        initFlatpickrForForm('mobile-analytics-form', 'custom-range-input-mobile');
     });
 </script>

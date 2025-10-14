@@ -140,6 +140,80 @@
         </div>
     </div>
 </div>
+<script>
+  const addSizeBtn = document.getElementById('add-size-btn');
+  const priceContainer = document.getElementById('price-container');
+  const sizePriceContainer = document.getElementById('size-price-container');
+
+  // 🧩 Function: create a new size + price row
+  function createSizePriceRow() {
+    const sizePriceGroup = document.createElement('div');
+    sizePriceGroup.classList.add(
+      'row',
+      'mb-3',
+      'align-items-center',
+      'justify-content-center',
+      'size-price-row'
+    );
+
+    sizePriceGroup.innerHTML = `
+      <div class="col-md-5">
+        <div class="form-floating mb-3">
+          <input type="text" class="form-control" name="size[]" placeholder="Size" required>
+          <label>Size</label>
+        </div>
+      </div>
+
+      <div class="col-md-5">
+        <div class="form-floating mb-3">
+          <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
+          <label>Price</label>
+        </div>
+      </div>
+
+      <div class="col-md-2 text-center">
+        <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    `;
+
+    // Attach remove handler
+    const removeBtn = sizePriceGroup.querySelector('.btn-remove-size');
+    removeBtn.addEventListener('click', () => {
+      sizePriceGroup.remove();
+
+      // 🟢 If no sizes left, restore the default price input
+      if (!sizePriceContainer.querySelector('.size-price-row')) {
+        restoreDefaultPriceInput();
+      }
+    });
+
+    return sizePriceGroup;
+  }
+
+  // 🧩 Function: restore the single default price input
+  function restoreDefaultPriceInput() {
+    priceContainer.style.display = 'block';
+    priceContainer.innerHTML = `
+      <div class="form-floating mb-3">
+        <input type="number" class="form-control" id="price" name="price[]" step="0.01" min="0" placeholder="Price" required>
+        <label for="price">Price</label>
+      </div>
+    `;
+  }
+
+  // 🧩 Handle "Add Size" button
+  addSizeBtn.addEventListener('click', () => {
+    // Hide single-price input when switching to multi-size mode
+    priceContainer.innerHTML = '';
+    priceContainer.style.display = 'none';
+
+    // Create & append new size-price row
+    const newRow = createSizePriceRow();
+    sizePriceContainer.appendChild(newRow);
+  });
+</script>
 
 
 <%- include('../partials/adminFooter') %>
