@@ -1,10 +1,8 @@
 <%- include('../partials/adminHeader') %>
 
 <div class="admin-container">
-
     <div class="admin-content">
         <%- include('../partials/adminNavbar') %>
-
         <main class="p-3">
             <div class="page-header d-flex justify-content-between align-items-center mb-4">
                 <h2 class="h3">Add New User</h2>
@@ -13,21 +11,43 @@
                 </a>
             </div>
 
+            <% if (locals.errors && errors.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading">Please fix the following errors:</h5>
+                    <ul class="mb-0">
+                        <% errors.forEach(error => { %>
+                            <li><%= error %></li>
+                        <% }) %>
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% } %>
+
             <div class="card form-card">
                 <div class="card-body">
                     <form action="/admin/users/add" method="POST">
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= locals.input ? input.username : '' %>" required>
                             <label for="username">Username</label>
                         </div>
 
                         <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number (+63)" value="<%= locals.input ? input.contactNumber : '+63' %>" required>
+                            <label for="contactNumber">Contact Number (+63)</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
                             <select class="form-select" id="role" name="role" aria-label="User Role">
-                                <option value="Front Liner" selected>Frontliner</option>
-                                <option value="Cook">Cook</option>
-                                <option value="Admin">Admin</option>
+                                <option value="Front Liner" <%= (locals.input && input.role === 'Front Liner') ? 'selected' : 'selected' %>>Frontliner</option>
+                                <option value="Cook" <%= (locals.input && input.role === 'Cook') ? 'selected' : '' %>>Cook</option>
+                                <option value="Admin" <%= (locals.input && input.role === 'Admin') ? 'selected' : '' %>>Admin</option>
                             </select>
                             <label for="role">Role</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="branch" name="branch" value="<%= branchName %>" readonly disabled>
+                            <label for="branch">Branch</label>
                         </div>
 
                         <div class="row">

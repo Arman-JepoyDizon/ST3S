@@ -4,7 +4,7 @@ const Product = require('../models/product');
 const Price = require('../models/price');
 const User = require('../models/user');
 const Category = require('../models/category');
-const Transaction = require('../models/transaction'); 
+const Transaction = require('../models/transaction');
 const Size = require('../models/size');
 const Branch = require('../models/branch');
 const mongoose = require('mongoose');
@@ -38,7 +38,7 @@ const getAnalyticsPage = async (req, res) => {
                 case 'today': default: startDate.setHours(0, 0, 0, 0); currentFilter = 'today'; break;
             }
         }
-        
+
         const branchObjectId = new mongoose.Types.ObjectId(req.session.user.branch);
         const dateQuery = { createdAt: { $gte: startDate, $lte: endDate } };
         const branchQuery = { branch: branchObjectId };
@@ -60,7 +60,7 @@ const getAnalyticsPage = async (req, res) => {
             { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
             { $unwind: '$productDetails' }
         ]);
-        
+
         let salesTrendData;
         if (currentFilter === 'year' || (currentFilter === 'custom' && (endDate - startDate) / (1000 * 60 * 60 * 24) > 60)) {
             const monthlySales = await Transaction.aggregate([
@@ -73,41 +73,61 @@ const getAnalyticsPage = async (req, res) => {
             while (dateIterator <= endDate) {
                 const year = dateIterator.getFullYear();
                 const month = String(dateIterator.getMonth() + 1).padStart(2, '0');
-                const monthString = `${year}-${month}`; // Format YYYY-MM
+                const monthString = `${year}-${month}`;
                 const currentLabel = dateIterator.toLocaleString('en-US', { month: 'short', year: 'numeric' });
-                if (!labels.includes(currentLabel)) { 
-                    labels.push(currentLabel); 
-                    data.push(salesMap.get(monthString) || 0); 
+                if (!labels.includes(currentLabel)) {
+                    labels.push(currentLabel);
+                    data.push(salesMap.get(monthString) || 0);
                 }
                 dateIterator.setMonth(dateIterator.getMonth() + 1);
             }
             salesTrendData = { labels, data, title: 'Sales Trend (Monthly)' };
         } else {
-            const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
-            const dailySales = await Transaction.aggregate([
-                { $match: { status: 'Completed', ...matchQuery } },
-                { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
-                { $sort: { _id: 1 } }
-            ]);
-            const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
-            const labels = []; const data = []; let dateIterator = new Date(startDate);
-            
-            // Helper function to format date consistently
-            const formatDateToYYYYMMDD = (date) => {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
+            if (currentFilter === 'today') {
+                const hourlySales = await Transaction.aggregate([
+                    { $match: { status: 'Completed', ...matchQuery } },
+                    {
+                        $group: {
+                            _id: { $floor: { $divide: [{ $hour: { date: "$createdAt", timezone: "Asia/Manila" } }, 2] } },
+                            hourlyTotal: { $sum: "$totalAmount" }
+                        }
+                    }
+                ]);
+                const salesMap = new Map(hourlySales.map(d => [d._id, d.hourlyTotal]));
+                const labels = [
+                    '12-2am', '2-4am', '4-6am', '6-8am', '8-10am', '10-12pm',
+                    '12-2pm', '2-4pm', '4-6pm', '6-8pm', '8-10pm', '10-12am'
+                ];
+                const data = [];
+                for (let i = 0; i < 12; i++) {
+                    data.push(salesMap.get(i) || 0);
+                }
+                salesTrendData = { labels, data, title: 'Sales Trend (Today)' };
+            } else {
+                const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
+                const dailySales = await Transaction.aggregate([
+                    { $match: { status: 'Completed', ...matchQuery } },
+                    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
+                    { $sort: { _id: 1 } }
+                ]);
+                const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+                const labels = []; const data = []; let dateIterator = new Date(startDate);
 
-            while (dateIterator <= endDate) {
-                // Fixed: Format the date key without converting to UTC
-                const dateString = formatDateToYYYYMMDD(dateIterator);
-                labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-                data.push(salesMap.get(dateString) || 0);
-                dateIterator.setDate(dateIterator.getDate() + 1);
+                const formatDateToYYYYMMDD = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                while (dateIterator <= endDate) {
+                    const dateString = formatDateToYYYYMMDD(dateIterator);
+                    labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                    data.push(salesMap.get(dateString) || 0);
+                    dateIterator.setDate(dateIterator.getDate() + 1);
+                }
+                salesTrendData = { labels, data, title };
             }
-            salesTrendData = { labels, data, title };
         }
 
         const recentTransactions = await Transaction.find({ branch: req.session.user.branch })
@@ -118,7 +138,7 @@ const getAnalyticsPage = async (req, res) => {
             data: bestSellers.map(p => p.totalQuantity)
         };
 
-        res.render('admin/dashboard', { 
+        res.render('admin/dashboard', {
             user: req.session.user, activePage: 'analytics', totalSales, totalOrders, bestSellers,
             salesTrendData, topProductsData, recentTransactions, currentFilter, customDateRange, query: req.query
         });
@@ -190,13 +210,31 @@ const exportOrders = async (req, res) => {
         const sanitizeField = (field) => { if (field == null) return ''; const str = String(field); if (str.includes(',') || str.includes('"') || str.includes('\n')) { return `"${str.replace(/"/g, '""')}"`; } return str; };
         const csvRows = transactions.map(t => { const row = { orderId: `ORD-${t._id.toString().slice(-6).toUpperCase()}`, date: new Date(t.createdAt).toLocaleDateString('en-CA'), time: new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }), items: t.items.map(item => `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`).join('; '), status: t.status, totalAmount: t.totalAmount.toFixed(2), createdBy: t.createdBy ? t.createdBy.username : 'N/A', paymentMethod: t.paymentMethod, customerName: t.customerName || '', discount: t.discountApplied ? `Yes (-${t.discountAmount.toFixed(2)})` : 'No', }; return exportFields.map(field => sanitizeField(row[field])).join(','); });
         const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
-        const fileName = `Miras-Transactions-${new Date().toISOString().slice(0,10)}.csv`;
+        const fileName = `Miras-Transactions-${new Date().toISOString().slice(0, 10)}.csv`;
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         res.status(200).send(csvString);
     } catch (error) {
         console.error('Error exporting orders:', error);
         res.status(500).send('Server Error during export.');
+    }
+};
+
+const updateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const transaction = await Transaction.findOne({ _id: id, branch: req.session.user.branch });
+        if (!transaction) { return res.status(404).json({ message: 'Order not found or you do not have permission to modify it.' }); }
+        const oldStatus = transaction.status;
+        transaction.status = status;
+        await transaction.save();
+        req.io.emit('orderStatusUpdated', { orderId: id, oldStatus: oldStatus, newStatus: status });
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+        res.status(200).json({ success: true, message: 'Order status updated successfully.' });
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Server error while updating status.' });
     }
 };
 
@@ -214,7 +252,7 @@ const getAddProductPage = async (req, res) => {
     try {
         const categories = await Category.find();
         res.render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products' });
-    } catch(error) {
+    } catch (error) {
         console.error('Error getting add product page:', error);
         res.status(500).send('Server error.');
     }
@@ -225,13 +263,13 @@ const postAddProduct = async (req, res) => {
         const { name, price, size, category, imageUrl } = req.body;
         const prices = Array.isArray(price) ? price : [price];
         let sizes = Array.isArray(size) ? (size || []).filter(s => s && s.trim() !== '') : [];
-        if(!name || !prices[0] || !category) { return res.status(400).send("Missing required fields."); }
+        if (!name || !prices[0] || !category) { return res.status(400).send("Missing required fields."); }
         const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
         const newProduct = await Product.create({ name, price: lowestPrice, category, imageUrl, branches: [req.session.user.branch] });
-        if(sizes.length > 0){
-            for(let i = 0; i < sizes.length; i++){
-                const insertedSize = await Size.create({productId: newProduct._id, label: sizes[i]});
-                await Price.create({productId: newProduct._id, sizeId: insertedSize._id, price: prices[i]});
+        if (sizes.length > 0) {
+            for (let i = 0; i < sizes.length; i++) {
+                const insertedSize = await Size.create({ productId: newProduct._id, label: sizes[i] });
+                await Price.create({ productId: newProduct._id, sizeId: insertedSize._id, price: prices[i] });
             }
         } else {
             await Price.create({ productId: newProduct._id, price: prices[0] });
@@ -264,24 +302,18 @@ const postUpdateProduct = async (req, res) => {
     try {
         const productId = req.params.id;
         const { name, price, size, category, imageUrl } = req.body;
-
         const productToUpdate = await Product.findOne({ _id: productId, branches: req.session.user.branch });
-        if (!productToUpdate) {
-            return res.status(403).send("You do not have permission to edit this product.");
-        }
-
+        if (!productToUpdate) { return res.status(403).send("You do not have permission to edit this product."); }
         const prices = Array.isArray(price) ? price : [price];
         let sizes = Array.isArray(size) ? (size || []).filter(s => s && s.trim() !== '') : [];
         if (!name || !prices[0] || !category) { return res.status(400).send("Missing required fields."); }
-
         const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
         const existingSizes = await Size.find({ productId });
-        
         if (existingSizes.length > 0 && sizes.length === 0) {
             await Price.updateMany({ productId }, { status: "Inactive" });
             await Size.deleteMany({ productId });
             await Price.create({ productId, price: prices[0], status: "Active" });
-        } 
+        }
         else if (existingSizes.length === 0 && sizes.length > 0) {
             await Price.updateMany({ productId, sizeId: null }, { status: "Inactive" });
             for (let i = 0; i < sizes.length; i++) {
@@ -313,7 +345,7 @@ const postUpdateProduct = async (req, res) => {
                 await Size.findByIdAndUpdate(s._id, { status: "Inactive" });
                 await Price.updateMany({ productId, sizeId: s._id, status: "Active" }, { status: "Inactive" });
             }
-        } 
+        }
         else {
             const currentPrice = await Price.findOne({ productId, sizeId: null, status: 'Active' });
             if (!currentPrice || currentPrice.price !== parseFloat(prices[0])) {
@@ -321,7 +353,6 @@ const postUpdateProduct = async (req, res) => {
                 await Price.create({ productId, price: prices[0], status: 'Active' });
             }
         }
-        
         await Product.findByIdAndUpdate(productId, { name, price: lowestPrice, category, imageUrl });
         return res.redirect("/admin/products");
     } catch (error) {
@@ -344,134 +375,169 @@ const deleteProduct = async (req, res) => {
 };
 
 const getUserPage = async (req, res) => {
-    try{
-        const users = await User.find({ 
+    try {
+        const users = await User.find({
             branch: req.session.user.branch,
             _id: { $ne: req.session.user.id }
-        }).sort({createdAt: 'desc'});
-        res.render('admin/users',{user: req.session.user, users: users, activePage: 'users'});
-    }catch(error){
+        }).sort({ createdAt: 'desc' });
+        res.render('admin/users', { user: req.session.user, users: users, activePage: 'users' });
+    } catch (error) {
         console.error(error);
         res.status(500).send("Error fetching Users Page");
     }
 };
 
 const getAddUserPage = async (req, res) => {
-    try{
+    try {
         const adminBranch = await Branch.findById(req.session.user.branch);
-        res.render('admin/addUser',{ user:req.session.user, activePage: 'users', branchName: adminBranch ? adminBranch.name : 'Unknown Branch' });
-    }catch(error){
+        res.render('admin/addUser', {
+            user: req.session.user,
+            activePage: 'users',
+            branchName: adminBranch ? adminBranch.name : 'Unknown Branch',
+            errors: null,
+            input: {}
+        });
+    } catch (error) {
         console.error(error);
         res.status(500).send("Error Getting Add User Page");
     }
 };
 
 const postAddUser = async (req, res) => {
-    try{
-        const {username, password, passwordRepeat, role} = req.body;
-        const branchId = req.session.user.branch;
-        const existingUser = await User.findOne({username: username});
-        if(!username || !password || !passwordRepeat || !role){ return res.status(400).send("Missing required fields."); }
-        if(existingUser){ return res.status(400).send("Username already exists."); }
-        if(password != passwordRepeat){ return res.status(400).send("Passwords do not match."); }
-        const newUser = await User.create({ username, role, password, branch: branchId });
-        if(!newUser){ return res.status(500).send("Error Creating User"); }
+    const { username, contactNumber, password, passwordRepeat, role } = req.body;
+    const branchId = req.session.user.branch;
+
+    try {
+        if (password !== passwordRepeat) {
+            throw { customError: 'Passwords do not match.' };
+        }
+
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            throw { customError: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*).' };
+        }
+
+        const newUser = new User({ username, contactNumber, password, role, branch: branchId });
+        await newUser.save();
+
         res.redirect('/admin/users');
-    }catch(error){
-        console.error(error);
-        return res.status(500).send("Error creating user.");
+
+    } catch (error) {
+        const adminBranch = await Branch.findById(req.session.user.branch);
+        let errors = [];
+
+        if (error.customError) {
+            errors.push(error.customError);
+        } else if (error.code === 11000) {
+            errors.push('Username already exists. Please choose a different one.');
+        } else if (error.name === 'ValidationError') {
+            for (let field in error.errors) {
+                errors.push(error.errors[field].message);
+            }
+        } else {
+            console.error('Unexpected error creating user:', error);
+            errors.push('An unexpected error occurred. Please try again.');
+        }
+
+        res.render('admin/addUser', {
+            user: req.session.user,
+            activePage: 'users',
+            branchName: adminBranch ? adminBranch.name : 'Unknown Branch',
+            errors: errors,
+            input: req.body
+        });
     }
 };
 
 const getUserEditPage = async (req, res) => {
-    try{
+    try {
         const userDetails = await User.findOne({ _id: req.params.id, branch: req.session.user.branch });
-        if(!userDetails){ return res.status(404).send("User not found or you do not have permission to edit this user."); }
-        res.render('admin/editUser', {user: req.session.user, user_details: userDetails, activePage: 'users'});
-    }catch(error){
+        if (!userDetails) { return res.status(404).send("User not found or you do not have permission to edit this user."); }
+        res.render('admin/editUser', { user: req.session.user, user_details: userDetails, activePage: 'users' });
+    } catch (error) {
         console.error(error);
         return res.status(500).send("Error getting edit user page");
     }
 };
 
-const postUserEdit = async (req, res)=>{
-    try{
-        const {username, role} = req.body;
-        if(!username || !role){ return res.status(400).send("Missing required fields."); }
-        const updatedUser = await User.findOneAndUpdate({ _id: req.params.id, branch: req.session.user.branch }, {username, role});
-        if(!updatedUser){ return res.status(404).send("User not found or you do not have permission to edit this user."); }
+const postUserEdit = async (req, res) => {
+    try {
+        const { username, role } = req.body;
+        if (!username || !role) { return res.status(400).send("Missing required fields."); }
+        const updatedUser = await User.findOneAndUpdate({ _id: req.params.id, branch: req.session.user.branch }, { username, role });
+        if (!updatedUser) { return res.status(404).send("User not found or you do not have permission to edit this user."); }
         res.redirect('/admin/users');
-    }catch(error){
+    } catch (error) {
         console.error(error);
         return res.status(500).send("Error Updating User");
     }
 };
 
 const postUserDelete = async (req, res) => {
-    try{
+    try {
         const deletedUser = await User.findOneAndDelete({ _id: req.params.id, branch: req.session.user.branch });
-        if(!deletedUser){ return res.status(404).send("User not found or you do not have permission to delete this user."); }
+        if (!deletedUser) { return res.status(404).send("User not found or you do not have permission to delete this user."); }
         res.redirect('/admin/users');
-    }catch(error){
+    } catch (error) {
         console.error(error);
         return res.status(500).send("Error deleting user");
     }
 };
 
 const getCategories = async (req, res) => {
-    try{
+    try {
         const categories = await Category.find()
-        res.render('./admin/categories',{user: req.session.user, categories: categories, activePage: 'categories'})
-    }catch(error){
+        res.render('./admin/categories', { user: req.session.user, categories: categories, activePage: 'categories' })
+    } catch (error) {
         res.status(500).send("Error Getting Categories")
     }
 }
 
 const getAddCategoryPage = async (req, res) => {
-    try{
-        res.render('./admin/addCategory',{user: req.session.user, activePage: 'categories'})
-    }catch(error){
+    try {
+        res.render('./admin/addCategory', { user: req.session.user, activePage: 'categories' })
+    } catch (error) {
         res.status(500).send("Error Getting Add Category Page")
     }
 }
 
 const getEditCategoryPage = async (req, res) => {
-    try{
+    try {
         const category_details = await Category.findById(req.params.id)
-        res.render('./admin/editCategory',{user: req.session.user, category_details: category_details, activePage: 'categories'})
-    }catch(error){
+        res.render('./admin/editCategory', { user: req.session.user, category_details: category_details, activePage: 'categories' })
+    } catch (error) {
         res.status(500).send("Error Getting Edit Category Page")
     }
 }
 
 const postAddCategory = async (req, res) => {
-    try{
-        const {name} = req.body
-        const newCategory = await Category.create({name})
-        if(!newCategory){ return res.status(500).send("Error Creating Category"); }
+    try {
+        const { name } = req.body
+        const newCategory = await Category.create({ name })
+        if (!newCategory) { return res.status(500).send("Error Creating Category"); }
         res.redirect('/admin/categories')
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error Adding Category")
     }
 }
 
 const postEditCategory = async (req, res) => {
-    try{
-        const {name} = req.body
-        const updatedCategory = await Category.findByIdAndUpdate(req.params.id, {name})
-        if(!updatedCategory){ return res.status(500).send("Error Updating Category"); }
+    try {
+        const { name } = req.body
+        const updatedCategory = await Category.findByIdAndUpdate(req.params.id, { name })
+        if (!updatedCategory) { return res.status(500).send("Error Updating Category"); }
         res.redirect('/admin/categories')
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error Editing Category")
     }
 }
 
 const postDeletedCategory = async (req, res) => {
-    try{
+    try {
         const deletedCategory = await Category.findByIdAndDelete(req.params.id)
-        if(!deletedCategory){ return res.status(500).send("Error Deleting Category"); }
+        if (!deletedCategory) { return res.status(500).send("Error Deleting Category"); }
         res.redirect('/admin/categories')
-    }catch(error){
+    } catch (error) {
         res.status(500).send("Error Deleting Category")
     }
 }
@@ -496,5 +562,5 @@ module.exports = {
     getAnalyticsPage, getProducts, getAddProductPage, postAddProduct, getEditProductPage, postUpdateProduct,
     deleteProduct, getUserPage, getAddUserPage, postAddUser, getUserEditPage, postUserEdit, postUserDelete,
     getCategories, getAddCategoryPage, getEditCategoryPage, postAddCategory, postEditCategory, postDeletedCategory,
-    getOrdersPage, getOrdersCount, exportOrders, deleteSize
+    getOrdersPage, getOrdersCount, exportOrders, deleteSize, updateOrderStatus
 };

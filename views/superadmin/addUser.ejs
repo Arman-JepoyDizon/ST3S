@@ -14,18 +14,29 @@
 
     <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
         <div class="card-body p-lg-4">
+            <% if (errors && errors.length > 0) { %>
+                <div class="alert alert-danger" role="alert">
+                    <h5 class="alert-heading">Error!</h5>
+                    <ul class="mb-0">
+                        <% errors.forEach(error => { %>
+                            <li><%= error %></li>
+                        <% }) %>
+                    </ul>
+                </div>
+            <% } %>
+
             <form action="/superadmin/users/add" method="POST">
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= input.username || '' %>" required>
                             <label for="username">Username</label>
                         </div>
                     </div>
                     <div class="col-lg-6">
                         <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                            <label for="password">Password</label>
+                            <input type="text" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number" value="<%= input.contactNumber || '' %>">
+                            <label for="contactNumber">Contact Info (Optional)</label>
                         </div>
                     </div>
                 </div>
@@ -33,10 +44,36 @@
                 <div class="row">
                     <div class="col-lg-6">
                         <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+                            <label for="password">Password</label>
+                        </div>
+                    </div>
+                     <div class="col-lg-6">
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="passwordRepeat" name="passwordRepeat" placeholder="Confirm Password" required>
+                            <label for="passwordRepeat">Confirm Password</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-2 mb-3">
+                    <div id="passwordHelpBlock" class="form-text">
+                        Your password must be at least 8 characters long and include:
+                        <ul>
+                            <li>One uppercase and one lowercase letter</li>
+                            <li>At least one number</li>
+                            <li>At least one special character (e.g., !, @, #, $, %)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="form-floating mb-3">
                             <select class="form-select" id="role" name="role">
-                                <option value="Admin">Admin</option>
-                                <option value="Front Liner" selected>Front Liner</option>
-                                <option value="Cook">Cook</option>
+                                <option value="Admin" <%= input.role === 'Admin' ? 'selected' : '' %>>Admin</option>
+                                <option value="Front Liner" <%= (!input.role || input.role === 'Front Liner') ? 'selected' : '' %>>Front Liner</option>
+                                <option value="Cook" <%= input.role === 'Cook' ? 'selected' : '' %>>Cook</option>
                             </select>
                             <label for="role">Role</label>
                         </div>
@@ -44,9 +81,9 @@
                     <div class="col-lg-6">
                         <div class="form-floating mb-3" id="branch-selector-wrapper">
                             <select class="form-select" id="branch" name="branch" required>
-                                <option value="" hidden>-- Assign a Branch --</option>
+                                <option value="" hidden>Select a Branch</option>
                                 <% branches.forEach(branch => { %>
-                                    <option value="<%= branch._id %>"><%= branch.name %></option>
+                                    <option value="<%= branch._id %>" <%= String(input.branch) === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
                                 <% }) %>
                             </select>
                             <label for="branch">Branch</label>

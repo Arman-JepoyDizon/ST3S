@@ -9,6 +9,8 @@ const Price = require('../models/price');
 const Size = require('../models/size');
 const mongoose = require('mongoose');
 
+// ... (all other functions like getDashboardPage, getBranchesPage, etc. remain the same) ...
+
 const getDashboardPage = async (req, res) => {
     try {
         const totalSalesData = await Transaction.aggregate([
@@ -162,7 +164,7 @@ const postAddProduct = async (req, res) => {
 };
 
 const getEditProductPage = async (req, res) => {
-     try {
+    try {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).send('Product not found');
         const allBranches = await Branch.find({ status: 'Active' });
@@ -220,7 +222,13 @@ const getUsersPage = async (req, res) => {
 const getAddUserPage = async (req, res) => {
     try {
         const branches = await Branch.find({ status: 'Active' });
-        res.render('superadmin/addUser', { user: req.session.user, branches, activePage: 'users' });
+        res.render('superadmin/addUser', {
+            user: req.session.user,
+            branches,
+            activePage: 'users',
+            errors: null,
+            input: {}
+        });
     } catch (error) {
         console.error('Error getting add user page for super admin:', error);
         res.status(500).send('Server Error');
@@ -228,15 +236,46 @@ const getAddUserPage = async (req, res) => {
 };
 
 const postAddUser = async (req, res) => {
+    const { username, contactNumber, password, passwordRepeat, role, branch } = req.body;
     try {
-        const { username, password, role, branch } = req.body;
-        if (!username || !password || !role) { return res.status(400).send('Username, password, and role are required.'); }
-        if (role !== 'Super Admin' && !branch) { return res.status(400).send('A branch assignment is required for this user role.'); }
-        await User.create({ username, password, role, branch });
+        if (password !== passwordRepeat) {
+            throw { customError: 'Passwords do not match.' };
+        }
+
+        // ADDED: Password complexity validation
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            throw { customError: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*).' };
+        }
+
+        const newUser = new User({ username, contactNumber, password, role, branch });
+        await newUser.save();
+
         res.redirect('/superadmin/users');
+
     } catch (error) {
-        console.error('Error adding user (super admin):', error);
-        res.status(500).send('Server Error');
+        const branches = await Branch.find({ status: 'Active' });
+        let errors = [];
+        if (error.customError) {
+            errors.push(error.customError);
+        } else if (error.code === 11000) {
+            errors.push('Username already exists. Please choose a different one.');
+        } else if (error.name === 'ValidationError') {
+            for (let field in error.errors) {
+                errors.push(error.errors[field].message);
+            }
+        } else {
+            console.error('Unexpected error creating user:', error);
+            errors.push('An unexpected error occurred. Please try again.');
+        }
+
+        res.render('superadmin/addUser', {
+            user: req.session.user,
+            activePage: 'users',
+            branches,
+            errors: errors,
+            input: req.body
+        });
     }
 };
 
@@ -276,11 +315,11 @@ const postDeleteUser = async (req, res) => {
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        const { filter, dateRange, branch } = req.query;
+        let { filter, dateRange, branch } = req.query;
         let startDate = new Date();
         let endDate = new Date();
         let currentFilter = filter || 'week';
-        
+
         endDate.setHours(23, 59, 59, 999);
 
         if (dateRange) {
@@ -298,9 +337,9 @@ const getAnalyticsPage = async (req, res) => {
                 case 'week': default: startDate.setDate(startDate.getDate() - startDate.getDay()); startDate.setHours(0, 0, 0, 0); currentFilter = 'week'; break;
             }
         }
-        
+
         let matchQuery = { createdAt: { $gte: startDate, $lte: endDate } };
-        // Fixed: Check for a valid, non-empty branch string before creating ObjectId
+        if (Array.isArray(branch)) { branch = branch[0]; }
         if (branch && branch.trim() !== '') {
             matchQuery.branch = new mongoose.Types.ObjectId(branch);
         }
@@ -311,7 +350,7 @@ const getAnalyticsPage = async (req, res) => {
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
-        
+
         const bestSellers = await Transaction.aggregate([
             { $match: { ...matchQuery, status: 'Completed' } },
             { $unwind: '$items' },
@@ -321,12 +360,12 @@ const getAnalyticsPage = async (req, res) => {
             { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
             { $unwind: '$productDetails' }
         ]);
-        
+
         const topProductsData = {
             labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
             data: bestSellers.map(p => p.totalQuantity)
         };
-        
+
         const dailySales = await Transaction.aggregate([
             { $match: { ...matchQuery, status: 'Completed' } },
             { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
@@ -343,7 +382,7 @@ const getAnalyticsPage = async (req, res) => {
             data.push(salesMap.get(dateString) || 0);
         }
         const salesTrendData = { labels, data, title: 'Sales Trend' };
-        
+
         const allBranches = await Branch.find({ status: 'Active' });
 
         res.render('superadmin/analytics', {
@@ -358,11 +397,11 @@ const getAnalyticsPage = async (req, res) => {
 
 const getAnalyticsData = async (req, res) => {
     try {
-        const { filter, dateRange, branch } = req.query;
+        let { filter, dateRange, branch } = req.query;
         let startDate = new Date();
         let endDate = new Date();
         let currentFilter = filter || 'week';
-        
+
         endDate.setHours(23, 59, 59, 999);
 
         if (dateRange) {
@@ -378,9 +417,9 @@ const getAnalyticsData = async (req, res) => {
                 case 'week': default: startDate.setDate(startDate.getDate() - startDate.getDay()); startDate.setHours(0, 0, 0, 0); currentFilter = 'week'; break;
             }
         }
-        
+
         let matchQuery = { createdAt: { $gte: startDate, $lte: endDate } };
-        // Fixed: Check for a valid, non-empty branch string before creating ObjectId
+        if (Array.isArray(branch)) { branch = branch[0]; }
         if (branch && branch.trim() !== '') {
             matchQuery.branch = new mongoose.Types.ObjectId(branch);
         }
@@ -391,7 +430,7 @@ const getAnalyticsData = async (req, res) => {
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
-        
+
         const bestSellers = await Transaction.aggregate([
             { $match: { ...matchQuery, status: 'Completed' } },
             { $unwind: '$items' },
@@ -401,12 +440,12 @@ const getAnalyticsData = async (req, res) => {
             { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
             { $unwind: '$productDetails' }
         ]);
-        
+
         const topProductsData = {
             labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
             data: bestSellers.map(p => p.totalQuantity)
         };
-        
+
         const dailySales = await Transaction.aggregate([
             { $match: { ...matchQuery, status: 'Completed' } },
             { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
@@ -423,7 +462,7 @@ const getAnalyticsData = async (req, res) => {
             data.push(salesMap.get(dateString) || 0);
         }
         const salesTrendData = { labels, data, title: 'Sales Trend' };
-        
+
         res.json({ totalSales, totalOrders, salesTrendData, topProductsData });
     } catch (error) {
         console.error('Error fetching analytics API data:', error);
