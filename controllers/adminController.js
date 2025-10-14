@@ -9,36 +9,61 @@ const Size = require('../models/size');
 
 const getAnalyticsPage = async (req, res) => {
     try {
-        const { filter } = req.query;
+        const { filter, dateRange } = req.query;
         let startDate = new Date();
-        let currentFilter = filter || 'today'; // Default to 'today'
+        let endDate = new Date();
+        let currentFilter = filter || 'today';
+        let customDateRange = null;
 
-        switch (currentFilter) {
-            case 'week':
-                startDate.setDate(startDate.getDate() - 7);
-                break;
-            case 'month':
-                startDate.setDate(startDate.getDate() - 30);
-                break;
-            case 'year':
-                startDate.setFullYear(startDate.getFullYear() - 1);
-                break;
-            case 'today':
-            default:
-                startDate.setHours(0, 0, 0, 0); // Set to the beginning of the current day
-                currentFilter = 'today';
-                break;
+        endDate.setHours(23, 59, 59, 999);
+
+        // Updated: Logic now prioritizes dateRange for custom filters
+        if (dateRange) {
+            const [startDateStr, endDateStr] = dateRange.split(' to ');
+            startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+            
+            endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
+            endDate.setHours(23, 59, 59, 999);
+            
+            currentFilter = 'custom';
+            customDateRange = {
+                start: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                end: endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            };
+        } else {
+            switch (currentFilter) {
+                case 'week':
+                    startDate.setDate(startDate.getDate() - 6);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'month':
+                    startDate.setMonth(startDate.getMonth() - 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'year':
+                    startDate.setFullYear(startDate.getFullYear() - 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'today':
+                default:
+                    startDate.setHours(0, 0, 0, 0);
+                    currentFilter = 'today';
+                    break;
+            }
         }
 
-        const totalOrders = await Transaction.countDocuments({ createdAt: { $gte: startDate } });
+        const dateQuery = { createdAt: { $gte: startDate, $lte: endDate } };
+
+        const totalOrders = await Transaction.countDocuments(dateQuery);
         const salesData = await Transaction.aggregate([
-            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+            { $match: { status: 'Completed', ...dateQuery } },
             { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
         ]);
         const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
         const bestSellers = await Transaction.aggregate([
-            { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+            { $match: { status: 'Completed', ...dateQuery } },
             { $unwind: '$items' },
             { 
                 $group: { 
@@ -47,7 +72,7 @@ const getAnalyticsPage = async (req, res) => {
                     totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
                 } 
             },
-            { $sort: { totalQuantity: -1 } },
+            { $sort: { totalRevenue: -1 } },
             { $limit: 5 },
             {
                 $lookup: {
@@ -62,9 +87,9 @@ const getAnalyticsPage = async (req, res) => {
         
         // --- Adaptive Chart Data Logic ---
         let salesTrendData;
-        if (currentFilter === 'year') {
+        if (currentFilter === 'year' || (currentFilter === 'custom' && (endDate - startDate) / (1000 * 60 * 60 * 24) > 60)) {
             const monthlySales = await Transaction.aggregate([
-                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                { $match: { status: 'Completed', ...dateQuery } },
                 {
                     $group: {
                         _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
@@ -76,35 +101,22 @@ const getAnalyticsPage = async (req, res) => {
             const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
             const labels = [];
             const data = [];
-            for (let i = 11; i >= 0; i--) {
-                const date = new Date();
-                date.setMonth(date.getMonth() - i);
-                const monthString = date.toISOString().slice(0, 7);
-                labels.push(date.toLocaleString('en-US', { month: 'short' }));
-                data.push(salesMap.get(monthString) || 0);
+            let dateIterator = new Date(startDate);
+            while (dateIterator <= endDate) {
+                const monthString = dateIterator.toISOString().slice(0, 7);
+                const currentLabel = dateIterator.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                if (!labels.includes(currentLabel)) {
+                    labels.push(currentLabel);
+                    data.push(salesMap.get(monthString) || 0);
+                }
+                dateIterator.setMonth(dateIterator.getMonth() + 1);
             }
-            salesTrendData = { labels, data, title: 'Sales Trend (Last 12 Months)' };
+            salesTrendData = { labels, data, title: 'Sales Trend (Monthly)' };
         } else {
-            // Logic for 'today', 'week', and 'month'
-            let days;
-            let title;
-            switch(currentFilter) {
-                case 'today':
-                    days = 1;
-                    title = 'Sales Trend (Today)';
-                    break;
-                case 'week':
-                    days = 7;
-                    title = 'Sales Trend (Last 7 Days)';
-                    break;
-                case 'month':
-                    days = 30;
-                    title = 'Sales Trend (Last 30 Days)';
-                    break;
-            }
+            const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
 
             const dailySales = await Transaction.aggregate([
-                { $match: { status: 'Completed', createdAt: { $gte: startDate } } },
+                { $match: { status: 'Completed', ...dateQuery } },
                 {
                     $group: {
                         _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
@@ -117,19 +129,19 @@ const getAnalyticsPage = async (req, res) => {
             const labels = [];
             const data = [];
             
-            for (let i = days - 1; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateString = date.toISOString().split('T')[0];
-                labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            let dateIterator = new Date(startDate);
+             while (dateIterator <= endDate) {
+                const dateString = dateIterator.toISOString().split('T')[0];
+                labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
                 data.push(salesMap.get(dateString) || 0);
+                dateIterator.setDate(dateIterator.getDate() + 1);
             }
             salesTrendData = { labels, data, title };
         }
 
         const recentTransactions = await Transaction.find({})
             .sort({ createdAt: -1 })
-            .limit(3)
+            .limit(5)
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
 
@@ -147,7 +159,9 @@ const getAnalyticsPage = async (req, res) => {
             salesTrendData,
             topProductsData,
             recentTransactions,
-            currentFilter
+            currentFilter,
+            customDateRange,
+            query: req.query // Fixed: Pass the query object to the view
         });
 
     } catch (error) {
@@ -158,7 +172,38 @@ const getAnalyticsPage = async (req, res) => {
 
 const getOrdersPage = async (req, res) => {
     try {
-        const transactions = await Transaction.find({})
+        const { search, dateRange, status } = req.query;
+        let filterQuery = {};
+
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            filterQuery = {
+                $expr: {
+                    $regexMatch: {
+                        input: { $substr: [{ $toString: "$_id" }, -6, 6] },
+                        regex: searchRegex
+                    }
+                }
+            };
+        }
+
+        if (dateRange) {
+            const [startDateStr, endDateStr] = dateRange.split(' to ');
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+
+            const endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            filterQuery.createdAt = { $gte: startDate, $lte: endDate };
+        }
+
+        if (status) {
+            filterQuery.status = status;
+        }
+
+        const totalTransactionsCount = await Transaction.countDocuments({});
+        const transactions = await Transaction.find(filterQuery)
             .sort({ createdAt: -1 })
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
@@ -166,6 +211,8 @@ const getOrdersPage = async (req, res) => {
         res.render('admin/orders', {
             user: req.session.user,
             transactions: transactions,
+            totalTransactionsCount: totalTransactionsCount,
+            query: req.query,
             activePage: 'orders'
         });
     } catch (error) {
@@ -174,18 +221,80 @@ const getOrdersPage = async (req, res) => {
     }
 };
 
+const getOrdersCount = async (req, res) => {
+    try {
+        const { dateRange, status } = req.query;
+        let filterQuery = {};
+
+        if (dateRange) {
+            const [startDateStr, endDateStr] = dateRange.split(' to ');
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+
+            const endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            filterQuery.createdAt = { $gte: startDate, $lte: endDate };
+        }
+
+        if (status) {
+            filterQuery.status = status;
+        }
+
+        const count = await Transaction.countDocuments(filterQuery);
+        res.json({ count });
+
+    } catch (error) {
+        console.error('Error fetching transaction count:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
 const exportOrders = async (req, res) => {
     try {
-        const transactions = await Transaction.find({})
+        const { dateRange, status, fields } = req.query;
+        let filterQuery = {};
+
+        if (dateRange) {
+            const [startDateStr, endDateStr] = dateRange.split(' to ');
+            const startDate = new Date(startDateStr);
+            startDate.setHours(0, 0, 0, 0);
+            
+            const endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            filterQuery.createdAt = { $gte: startDate, $lte: endDate };
+        }
+        
+        if (status) {
+            filterQuery.status = status;
+        }
+
+        const transactions = await Transaction.find(filterQuery)
             .sort({ createdAt: -1 })
             .populate('createdBy', 'username')
             .populate('items.productId', 'name');
 
-        const csvHeaders = [
-            'Order ID', 'Date', 'Time', 'Cashier', 'Customer Name', 'Items', 
-            'Discount Applied', 'Discount Amount', 'Total Amount', 'Payment Method', 'Status'
-        ];
+        const exportFields = Array.isArray(fields) ? fields : (fields ? [fields] : []);
+        if (exportFields.length === 0) {
+            return res.status(400).send('No fields selected for export.');
+        }
+        
+        const headerMap = {
+            orderId: 'Order Number',
+            date: 'Date',
+            time: 'Time',
+            items: 'Item Details',
+            status: 'Status',
+            totalAmount: 'Total Amount',
+            createdBy: 'Created By',
+            paymentMethod: 'Payment Method',
+            customerName: 'Customer Name',
+            discount: 'Discount Details'
+        };
 
+        const csvHeaders = exportFields.map(field => headerMap[field] || field);
+        
         const sanitizeField = (field) => {
             if (field === null || field === undefined) return '';
             const str = String(field);
@@ -196,36 +305,22 @@ const exportOrders = async (req, res) => {
         };
 
         const csvRows = transactions.map(t => {
-            const orderId = `ORD-${t._id.toString().slice(-6).toUpperCase()}`;
-            const date = new Date(t.createdAt).toLocaleDateString('en-CA');
-            const time = new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const cashier = t.createdBy ? t.createdBy.username : 'N/A';
-            const customerName = t.customerName || '';
-            const itemsString = t.items.map(item => 
-                `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`
-            ).join('; ');
-            const discountApplied = t.discountApplied ? 'Yes' : 'No';
-            const discountAmount = t.discountAmount.toFixed(2);
-            const totalAmount = t.totalAmount.toFixed(2);
-            const paymentMethod = t.paymentMethod;
-            const status = t.status;
-
-            return [
-                orderId, date, time, cashier, customerName, itemsString, 
-                discountApplied, discountAmount, totalAmount, paymentMethod, status
-            ].map(sanitizeField).join(',');
+            const row = {
+                orderId: `ORD-${t._id.toString().slice(-6).toUpperCase()}`,
+                date: new Date(t.createdAt).toLocaleDateString('en-CA'),
+                time: new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+                items: t.items.map(item => `${item.quantity}x ${item.productId ? item.productId.name : 'N/A'}${item.sizeLabel ? ` (${item.sizeLabel})` : ''}`).join('; '),
+                status: t.status,
+                totalAmount: t.totalAmount.toFixed(2),
+                createdBy: t.createdBy ? t.createdBy.username : 'N/A',
+                paymentMethod: t.paymentMethod,
+                customerName: t.customerName || '',
+                discount: t.discountApplied ? `Yes (-${t.discountAmount.toFixed(2)})` : 'No',
+            };
+            return exportFields.map(field => sanitizeField(row[field])).join(',');
         });
         
-        const totalRevenue = transactions.reduce((sum, transaction) => {
-            if (transaction.status === 'Completed') {
-                return sum + transaction.totalAmount;
-            }
-            return sum;
-        }, 0);
-
-        const summaryRow = ['', '', '', '', '', '', '', 'Total Revenue:', totalRevenue.toFixed(2), '', ''].join(',');
-
-        const csvString = [csvHeaders.join(','), ...csvRows, '', summaryRow].join('\n');
+        const csvString = [csvHeaders.join(','), ...csvRows].join('\n');
         
         const fileName = `Miras-Transactions-${new Date().toISOString().slice(0,10)}.csv`;
         res.setHeader('Content-Type', 'text/csv');
@@ -315,21 +410,18 @@ const getEditProductPage = async (req, res) => {
         const categories = await Category.find();
         const product = await Product.findById(req.params.id);
 
-        // single-price history (no sizeId)
         const pastSinglePrices = await Price.find({
         productId: req.params.id,
         status: "Inactive",
         sizeId: null
         }).sort({ createdAt: -1 });
 
-        // size-based price history (any inactive with sizeId)
         const pastSizePrices = await Price.find({
         productId: req.params.id,
         status: "Inactive",
         sizeId: { $ne: null }
         }).sort({ createdAt: -1 });
 
-        // inactive sizes
         const pastProductSizes = await Size.find({
         productId: req.params.id,
         status: "Inactive"
@@ -787,6 +879,7 @@ module.exports = {
     postEditCategory,
     postDeletedCategory,
     getOrdersPage,
+    getOrdersCount,
     exportOrders,
     deleteSize
 };

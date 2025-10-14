@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- PAGE-SPECIFIC LOGIC ---
 
-    // ## Frontline: Main Menu Page ##
+    // ## Frontliner: Main Menu Page ##
     const menuPage = document.querySelector('.frontline-main-content');
     if (menuPage) {
         let lastScrollTop = 0;
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ## Frontline: Product Detail Page ##
+    // ## Frontliner: Product Detail Page ##
     const detailPage = document.querySelector('.product-detail-page');
     if (detailPage) {
         const quantityInput = document.getElementById('quantity-input');
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ## Frontline: Cart Page ##
+    // ## Frontliner: Cart Page ##
     const cartPage = document.querySelector('.cart-main-content');
     if (cartPage) {
         let isDiscounted = false;
@@ -445,8 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     createAdminSearchFilter('searchProductsMobile', '.product-list-mobile', '.product-card-revamp', '.card-title');
     createAdminSearchFilter('searchProductsDesktop', '.product-list-desktop', '.list-table-row', '.fw-bold');
-    createAdminSearchFilter('searchOrdersMobile', '.transaction-list-mobile', '.transaction-card', 'h6');
-    createAdminSearchFilter('searchOrdersDesktop', '.transaction-list-desktop', '.list-table-row', '.fw-bold');
     createAdminSearchFilter('searchUsersMobile', '.user-list-mobile', '.user-card-link', '.card-title');
     createAdminSearchFilter('searchUsersDesktop', '.user-list-desktop', '.list-table-row', '.fw-bold');
 
@@ -524,11 +522,107 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     };
-
-    // Initialize all logout modals
     initializeLogoutModal('logoutConfirmModal', 'logout-progress-bar');
     initializeLogoutModal('adminLogoutConfirmModal', 'admin-logout-progress-bar');
     initializeLogoutModal('cookLogoutConfirmModal', 'cook-logout-progress-bar');
+
+    // --- NEW: Admin Orders Page Logic ---
+    const adminOrdersPage = document.querySelector('.filter-bar');
+    if (adminOrdersPage) {
+        // Initialize flatpickr for the main filter bar
+        flatpickr("#filter-date-range", {
+            mode: "range",
+            dateFormat: "Y-m-d",
+        });
+
+        const exportModal = document.getElementById('exportModal');
+        if (exportModal) {
+            const exportDateRangePicker = flatpickr("#export-date-range", {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                onChange: function() {
+                    document.querySelectorAll('.date-preset-btn').forEach(btn => btn.classList.remove('active'));
+                    updateExportSummary();
+                }
+            });
+
+            const presetButtons = exportModal.querySelectorAll('.date-preset-btn');
+            const statusFilter = exportModal.querySelector('#export-status-filter');
+            const fieldCheckboxes = exportModal.querySelectorAll('input[name="exportFields"]');
+            const finalExportBtn = exportModal.querySelector('#final-export-btn');
+
+            const updateExportSummary = async () => {
+                const dateRange = exportDateRangePicker.input.value;
+                const status = statusFilter.value;
+                
+                let query = new URLSearchParams();
+                if (dateRange) query.append('dateRange', dateRange);
+                if (status) query.append('status', status);
+
+                try {
+                    const response = await fetch(`/admin/orders/count?${query.toString()}`);
+                    const data = await response.json();
+                    document.getElementById('export-count').innerText = data.count || 0;
+                } catch (error) {
+                    console.error("Error fetching export count:", error);
+                    document.getElementById('export-count').innerText = 'N/A';
+                }
+
+                const selectedCols = Array.from(fieldCheckboxes).filter(cb => cb.checked).length;
+                document.getElementById('export-columns-count').innerText = selectedCols;
+            };
+
+            presetButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    presetButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    const today = new Date();
+                    let startDate, endDate = new Date();
+
+                    switch (button.dataset.range) {
+                        case 'today':
+                            startDate = today;
+                            break;
+                        case 'week':
+                            startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+                            break;
+                        case 'month':
+                            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                            break;
+                        case '3months':
+                             startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+                            break;
+                    }
+                    exportDateRangePicker.setDate([startDate, endDate], true);
+                });
+            });
+
+            finalExportBtn.addEventListener('click', () => {
+                const dateRange = exportDateRangePicker.input.value;
+                const status = statusFilter.value;
+                const selectedFields = Array.from(fieldCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+
+                if (selectedFields.length === 0) {
+                    alert('Please select at least one field to export.');
+                    return;
+                }
+                
+                let query = new URLSearchParams();
+                if (dateRange) query.append('dateRange', dateRange);
+                if (status) query.append('status', status);
+                selectedFields.forEach(field => query.append('fields', field));
+
+                window.location.href = `/admin/orders/export?${query.toString()}`;
+            });
+            
+            exportModal.addEventListener('show.bs.modal', updateExportSummary);
+            statusFilter.addEventListener('change', updateExportSummary);
+            fieldCheckboxes.forEach(cb => cb.addEventListener('change', updateExportSummary));
+        }
+    }
 
     // --- INITIALIZATION ---
     updateCartUI();

@@ -2,6 +2,7 @@
 
 <%- include('../partials/adminDesktopNav', { activePage: 'orders' }) %>
 
+<%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
     <div class="admin-container">
         <div class="admin-content">
@@ -9,17 +10,43 @@
             <main class="p-3">
                 <div class="page-header d-flex justify-content-between align-items-center mb-3">
                     <div>
-                        <h2 class="h3 mb-0">All Orders</h2>
-                        <p class="text-muted mb-0">A complete history of all sales records</p>
+                        <h2 class="h3 mb-0">Transactions</h2>
+                        <p class="text-muted mb-0"><%= transactions.length %> of <%= totalTransactionsCount %> records</p>
                     </div>
-                    <a href="/admin/orders/export" class="btn btn-primary">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
                         <i class="bi bi-download"></i>
-                    </a>
+                    </button>
                 </div>
 
-                <div class="form-floating mb-4">
-                    <input type="search" class="form-control" id="searchOrdersMobile" placeholder="Search by order number...">
-                    <label for="searchOrdersMobile"><i class="bi bi-search me-2"></i>Search by order number...</label>
+                <div class="card filter-card-mobile mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3"><i class="bi bi-funnel me-2"></i>Filters</h5>
+                        <form action="/admin/orders" method="GET" id="mobile-filter-form">
+                            <div class="form-floating mb-3">
+                                <input type="search" class="form-control" id="searchOrdersMobile" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
+                                <label for="searchOrdersMobile">Search order number...</label>
+                            </div>
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="filter-date-range-mobile" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>">
+                                <label for="filter-date-range-mobile">Select date range</label>
+                            </div>
+                            <div class="form-floating mb-3">
+                                <select name="status" id="status-filter-mobile" class="form-select">
+                                     <option value="">All Statuses</option>
+                                    <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                    <option value="Ready" <%= locals.query && query.status === 'Ready' ? 'selected' : '' %>>Ready</option>
+                                    <option value="Completed" <%= locals.query && query.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                    <option value="Cancelled" <%= locals.query && query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                                </select>
+                                <label>All Status</label>
+                            </div>
+                             <div class="d-flex gap-2">
+                                <a href="/admin/orders" class="btn btn-light w-100">Clear</a>
+                                <%# The apply button is hidden by default and only shown if JS fails %>
+                                <button type="submit" class="btn btn-secondary w-100 d-none">Apply</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="transaction-list-mobile">
@@ -94,9 +121,10 @@
                         <% }) %>
                     <% } else { %>
                         <div class="card text-center py-5">
-                             <div class="card-body">
-                                <p class="text-muted">No transactions have been made yet.</p>
-                             </div>
+                            <i class="bi bi-receipt-cutoff fs-1 text-muted mb-3"></i>
+                            <h5 class="mb-1">No Transactions Found</h5>
+                            <p class="text-muted">No records match your current filters.</p>
+                             <a href="/admin/orders" class="btn btn-light mt-2">Clear Filters</a>
                         </div>
                     <% } %>
                 </div>
@@ -107,25 +135,44 @@
 </div>
 
 
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
     <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Transactions</h2>
-            <p class="text-muted">All orders and sales records</p>
+            <p class="text-muted"><%= transactions.length %> of <%= totalTransactionsCount %> records shown</p>
         </div>
-        <a href="/admin/orders/export" class="btn btn-primary fw-bold">
+        <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#exportModal">
             <i class="bi bi-download me-2"></i>Export to CSV
-        </a>
+        </button>
+    </div>
+
+    <div class="card filter-bar mb-4">
+        <form action="/admin/orders" method="GET" id="desktop-filter-form" class="d-flex gap-3 align-items-center">
+            <div class="flex-grow-1 form-control-icon-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="search" class="form-control" id="searchOrdersDesktop" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
+            </div>
+            <div class="form-control-icon-wrapper">
+                <i class="bi bi-calendar-range"></i>
+                <input type="text" class="form-control" id="filter-date-range" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>">
+            </div>
+            <div class="form-control-icon-wrapper">
+                <i class="bi bi-funnel"></i>
+                <select name="status" id="status-filter-desktop" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="Ready" <%= locals.query && query.status === 'Ready' ? 'selected' : '' %>>Ready</option>
+                    <option value="Completed" <%= locals.query && query.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                    <option value="Cancelled" <%= locals.query && query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-filter-apply">Filter</button>
+            <a href="/admin/orders" class="btn btn-light">Clear</a>
+        </form>
     </div>
 
     <div class="list-table-container">
-        <div class="p-3">
-             <div class="form-floating">
-                <input type="search" class="form-control" id="searchOrdersDesktop" placeholder="Search by order number...">
-                <label for="searchOrdersDesktop"><i class="bi bi-search me-2"></i>Search by order number...</label>
-            </div>
-        </div>
-
         <% if (transactions && transactions.length > 0) { %>
             <div class="list-table-header orders-grid">
                 <div>Order Number</div>
@@ -161,7 +208,7 @@
                         </div>
                         <div class="text-end">
                             <button type="button" class="btn btn-outline-secondary btn-sm view-order-btn" 
-                                    data-transaction='<%- JSON.stringify(transaction) %>'>
+                                data-transaction='<%- JSON.stringify(transaction) %>'>
                                 View
                             </button>
                         </div>
@@ -170,10 +217,166 @@
             </div>
         <% } else { %>
             <div class="text-center py-5">
-                <p class="text-muted">No transactions have been made yet.</p>
+                <i class="bi bi-receipt-cutoff fs-1 text-muted mb-3"></i>
+                <h5 class="mb-1">No Transactions Found</h5>
+                <p class="text-muted">No records match your current filters. Try clearing them to see all transactions.</p>
+                 <a href="/admin/orders" class="btn btn-light mt-2">Clear Filters</a>
             </div>
         <% } %>
     </div>
 </div>
 
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel"><i class="bi bi-download me-2"></i>Export Transactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Date Range</label>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <button class="btn btn-sm btn-outline-secondary date-preset-btn" data-range="today">Today</button>
+                        <button class="btn btn-sm btn-outline-secondary date-preset-btn" data-range="week">This Week</button>
+                        <button class="btn btn-sm btn-outline-secondary date-preset-btn" data-range="month">This Month</button>
+                        <button class="btn btn-sm btn-outline-secondary date-preset-btn" data-range="3months">Last 3 Months</button>
+                    </div>
+                    <input type="text" id="export-date-range" class="form-control" placeholder="Select custom date range (optional)">
+                    <small class="text-muted">Leave empty to export all transactions within the status filter.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label for="export-status-filter" class="form-label fw-bold">Status Filter</label>
+                    <select id="export-status-filter" class="form-select">
+                        <option value="">All Transactions</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Ready">Ready</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-bold mb-0">Fields to Export</label>
+                        <div>
+                            <a href="#" class="select-all-fields me-2">Select All</a>
+                            <a href="#" class="deselect-all-fields">Deselect All</a>
+                        </div>
+                    </div>
+                    <div class="export-fields-grid">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="orderId" id="field-orderId" checked>
+                            <label class="form-check-label" for="field-orderId">Order Number</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="date" id="field-date" checked>
+                            <label class="form-check-label" for="field-date">Date</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="time" id="field-time" checked>
+                            <label class="form-check-label" for="field-time">Time</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="status" id="field-status" checked>
+                            <label class="form-check-label" for="field-status">Status</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="items" id="field-items" checked>
+                            <label class="form-check-label" for="field-items">Item Details</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="totalAmount" id="field-totalAmount" checked>
+                            <label class="form-check-label" for="field-totalAmount">Total Amount</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="createdBy" id="field-createdBy" checked>
+                            <label class="form-check-label" for="field-createdBy">Created By</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="paymentMethod" id="field-paymentMethod">
+                            <label class="form-check-label" for="field-paymentMethod">Payment Method</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="customerName" id="field-customerName">
+                            <label class="form-check-label" for="field-customerName">Customer Name</label>
+                        </div>
+                         <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="exportFields" value="discount" id="field-discount">
+                            <label class="form-check-label" for="field-discount">Discount Details</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success export-summary">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                        <span class="fw-bold">Export Summary</span><br>
+                        This will export <strong id="export-count">...</strong> transactions with <strong id="export-columns-count">...</strong> columns.
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="final-export-btn"><i class="bi bi-download me-2"></i>Export</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <%- include('../partials/adminFooter') %>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const setupAutoSubmit = (formId, inputIds) => {
+            const form = document.getElementById(formId);
+            if (!form) return;
+
+            // Debounce function to limit how often the form is submitted
+            const debounce = (func, delay) => {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            };
+
+            const debouncedSubmit = debounce(() => form.submit(), 500);
+
+            // Search input
+            const searchInput = document.getElementById(inputIds.search);
+            if (searchInput) searchInput.addEventListener('input', debouncedSubmit);
+
+            // Status dropdown
+            const statusInput = document.getElementById(inputIds.status);
+            if (statusInput) statusInput.addEventListener('change', () => form.submit());
+            
+            // Date picker
+            flatpickr(document.getElementById(inputIds.date), {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Only submit if a full range is selected or cleared
+                    if (selectedDates.length === 2 || dateStr === '') {
+                        form.submit();
+                    }
+                }
+            });
+        };
+
+        // Initialize auto-submit for both forms
+        setupAutoSubmit('desktop-filter-form', {
+            search: 'searchOrdersDesktop',
+            date: 'filter-date-range',
+            status: 'status-filter-desktop'
+        });
+
+        setupAutoSubmit('mobile-filter-form', {
+            search: 'searchOrdersMobile',
+            date: 'filter-date-range-mobile',
+            status: 'status-filter-mobile'
+        });
+    });
+</script>
