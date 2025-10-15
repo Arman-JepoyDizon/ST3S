@@ -6,6 +6,18 @@
 <%# This is the single, main content container for ALL screen sizes %>
 <div class="admin-main-container">
 
+    <% if (locals.errors && errors.length > 0) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading">Please fix the following errors:</h5>
+                    <ul class="mb-0">
+                        <% errors.forEach(error => { %>
+                            <li><%= error %></li>
+                        <% }) %>
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% } %>
+
     <%# The page header adapts for mobile and desktop %>
     <div class="admin-page-header">
         <div>
