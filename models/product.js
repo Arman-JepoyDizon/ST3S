@@ -15,7 +15,7 @@ const productSchema = new mongoose.Schema({
         min: [0, 'Price cannot be negative.']
     },
     category: {
-        type: mongoose.SchemaTypes.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Category",
         required: true,
     },
@@ -23,8 +23,12 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: false 
     },
+    branches: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Branch',
+        required: [true, 'Product must be assigned to at least one branch.']
+    }]
 }, { 
-
     timestamps: true 
 });
 

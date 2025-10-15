@@ -16,6 +16,7 @@ router.get('/dashboard', adminController.getAnalyticsPage);
 router.get('/orders', adminController.getOrdersPage);
 router.get('/orders/count', adminController.getOrdersCount); 
 router.get('/orders/export', adminController.exportOrders); 
+router.post('/orders/:id/status', adminController.updateOrderStatus); // Added
 
 // Product Management Routes
 router.get('/products', adminController.getProducts);

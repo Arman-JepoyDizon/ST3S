@@ -7,6 +7,7 @@ const Price = require('../models/price');
 
 const getLoginPage = (req, res) => {
     if (req.session.user) {
+        if (req.session.user.role === 'Super Admin') return res.redirect('/superadmin/dashboard');
         if (req.session.user.role === 'Admin') return res.redirect('/admin/dashboard');
         if (req.session.user.role === 'Cook') return res.redirect('/cook/dashboard');
         return res.redirect('/');
@@ -31,11 +32,14 @@ const postLogin = async (req, res) => {
         req.session.user = {
             id: user._id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            branch: user.branch // Store branch ID in session
         };
 
         let redirectUrl = '/';
-        if (user.role === 'Admin') {
+        if (user.role === 'Super Admin') {
+            redirectUrl = '/superadmin/dashboard';
+        } else if (user.role === 'Admin') {
             redirectUrl = '/admin/dashboard';
         } else if (user.role === 'Cook') {
             redirectUrl = '/cook/dashboard';
@@ -63,7 +67,7 @@ const getOrderScreen = async (req, res) => {
     try {
         const categoryFilter = req.query.category;
         const allCategories = await Category.find({});
-        let productQuery = {};
+        let productQuery = { branches: req.session.user.branch };
 
         if (categoryFilter) {
             const decodedCategoryName = decodeURIComponent(categoryFilter);
@@ -74,7 +78,7 @@ const getOrderScreen = async (req, res) => {
         }
 
         const products = await Product.find(productQuery).sort({ name: 1 }).populate('category', 'name');
-        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
         
         res.render('frontline/index', { 
             user: req.session.user,
@@ -101,7 +105,7 @@ const getProductDetailPage = async (req, res) => {
 
         const sizes = await Size.find({ productId: productId, status: 'Active' });
         const prices = await Price.find({ productId: productId, status: 'Active' });
-        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
 
         res.render('frontline/productDetail', {
             product: product,
@@ -118,7 +122,7 @@ const getProductDetailPage = async (req, res) => {
 };
 
 const getCartPage = async (req, res) => {
-    const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+    const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
     res.render('frontline/cart', {
         user: req.session.user,
         activePage: 'cart',
@@ -135,6 +139,7 @@ const getSalesPage = async (req, res) => {
         endOfDay.setHours(23, 59, 59, 999);
 
         const todaysTransactions = await Transaction.find({
+            branch: req.session.user.branch,
             createdAt: { $gte: startOfDay, $lte: endOfDay }
         }).sort({ createdAt: -1 }).populate('createdBy', 'username').populate('items.productId', 'name');
 
@@ -142,7 +147,7 @@ const getSalesPage = async (req, res) => {
         const totalSales = completedTransactions.reduce((acc, transaction) => acc + transaction.totalAmount, 0);
         const totalOrders = todaysTransactions.length;
         const totalCompletedOrders = completedTransactions.length;
-        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready' });
+        const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
 
         res.render('frontline/sales', {
             user: req.session.user,
@@ -167,13 +172,11 @@ const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
         }
         
-        // Server-side calculation for security
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const discountAmount = discountApplied ? subtotal * 0.20 : 0;
         const serverTotalAmount = subtotal - discountAmount;
         
-        // Optional: Validate that client total matches server total
-        if (Math.abs(serverTotalAmount - totalAmount) > 0.01) { // Check for small floating point differences
+        if (Math.abs(serverTotalAmount - totalAmount) > 0.01) {
             console.warn('Client-side total did not match server-side total. Using server total.');
         }
         
@@ -189,11 +192,12 @@ const createOrder = async (req, res) => {
         const newTransaction = new Transaction({
             customerName: customerName,
             items: orderItems,
-            totalAmount: serverTotalAmount, // Use the secure server-calculated total
+            totalAmount: serverTotalAmount,
             paymentMethod: paymentMethod,
             discountApplied: discountApplied,
             discountAmount: discountAmount,
-            createdBy: req.session.user.id
+            createdBy: req.session.user.id,
+            branch: req.session.user.branch // Add branch ID to the transaction
         });
 
         await newTransaction.save();
@@ -202,6 +206,7 @@ const createOrder = async (req, res) => {
             .populate('items.productId', 'name');
         
         req.io.emit('newOrder', populatedTransaction);
+        req.io.emit('superAdminNewOrder', { branchId: req.session.user.branch });
 
         res.status(201).json({ 
             success: true, 
@@ -219,13 +224,19 @@ const completeOrder = async (req, res) => {
     try {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+        
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
+
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId, 
             oldStatus: oldStatus,
             newStatus: 'Completed' 
         });
+        
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+
         res.redirect('/sales');
     } catch (error) {
         console.error('Error completing order:', error);
@@ -237,13 +248,19 @@ const cancelOrder = async (req, res) => {
     try {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+        
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
+        
         req.io.emit('orderStatusUpdated', { 
             orderId: transactionId,
             oldStatus: oldStatus,
             newStatus: 'Cancelled' 
         });
+        
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+
         res.redirect('/sales');
     } catch (error) {
         console.error('Error cancelling order:', error);

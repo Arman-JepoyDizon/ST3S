@@ -97,6 +97,7 @@ const runSeeder = async () => {
                 items: transactionItems,
                 totalAmount: totalAmount,
                 createdBy: randomUser._id,
+                branch: randomUser.branch, // Fixed: Assign the transaction to the user's branch
                 status: statuses[getRandomInt(0, statuses.length - 1)],
                 createdAt: getRandomDate(365), // Spread transactions over the last year
             };

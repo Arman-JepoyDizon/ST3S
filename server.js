@@ -6,19 +6,19 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const path = require('path');
-const http = require('http'); // Added: Node's native HTTP module
-const { Server } = require("socket.io"); // Added: Socket.IO server
+const http = require('http');
+const { Server } = require("socket.io");
 
 // Route imports
 const adminRoutes = require('./routes/adminRoutes');
 const frontlineRoutes = require('./routes/frontlineRoutes');
 const cookRoutes = require('./routes/cookRoutes');
-const bcrypt = require('bcryptjs');
+const superAdminRoutes = require('./routes/superAdminRoutes'); // Added
 
 // App Initialization
 const app = express();
-const server = http.createServer(app); // Create an HTTP server from the Express app
-const io = new Server(server); // Attach Socket.IO to the HTTP server
+const server = http.createServer(app);
+const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 
@@ -32,7 +32,7 @@ app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { secure: false } // Set to true in production with HTTPS
 }));
 
 // Make io accessible to our router
@@ -46,6 +46,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // --- App Routes ---
+app.use('/superadmin', superAdminRoutes); // Added
 app.use('/admin', adminRoutes);
 app.use('/cook', cookRoutes);
 app.use('/', frontlineRoutes);
@@ -54,18 +55,17 @@ app.use('/', frontlineRoutes);
 io.on('connection', (socket) => {
     console.log('🔌 A user connected via WebSocket');
     socket.on('disconnect', () => {
-        console.log(' disconnected');
+        console.log(' A user disconnected');
     });
 });
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(async () => {
-        console.log('✅ Successfully connected to MongoDB.');
+        console.log('Successfully connected to MongoDB.');
         
-        // Start the HTTP server instead of the Express app
         server.listen(PORT, () => {
-            console.log(`🚀 Server is running on http://localhost:${PORT}`);
+            console.log(` Server is running on http://localhost:${PORT}`);
         });
     })
     .catch(err => {

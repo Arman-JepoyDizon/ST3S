@@ -1,0 +1,33 @@
+<header class="superadmin-nav">
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="/superadmin/dashboard" class="logo-wrapper">
+                <img src="/icons/favicon.png" alt="Mira's ST3S Logo">
+                <div>
+                    <span class="logo-title">Mira's ST3S</span>
+                    <span class="logo-subtitle">Super Admin</span>
+                </div>
+            </a>
+            <nav class="d-flex align-items-center">
+                <a href="/superadmin/dashboard" class="nav-link <%= activePage === 'dashboard' ? 'active' : '' %>">
+                    <i class="bi bi-grid-1x2-fill me-1"></i> Dashboard
+                </a>
+                <a href="/superadmin/branches" class="nav-link <%= activePage === 'branches' ? 'active' : '' %>">
+                    <i class="bi bi-shop me-1"></i> Branches
+                </a>
+                <a href="/superadmin/products" class="nav-link <%= activePage === 'products' ? 'active' : '' %>">
+                    <i class="bi bi-box-seam me-1"></i> Products
+                </a>
+                <a href="/superadmin/users" class="nav-link <%= activePage === 'users' ? 'active' : '' %>">
+                    <i class="bi bi-people me-1"></i> Users
+                </a>
+                <a href="/superadmin/analytics" class="nav-link <%= activePage === 'analytics' ? 'active' : '' %>">
+                    <i class="bi bi-bar-chart-line me-1"></i> Analytics
+                </a>
+                <a href="/logout" class="nav-link">
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </a>
+            </nav>
+        </div>
+    </div>
+</header>
