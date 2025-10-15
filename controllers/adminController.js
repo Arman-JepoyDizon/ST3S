@@ -263,7 +263,15 @@ const postAddProduct = async (req, res) => {
         const { name, price, size, category, imageUrl } = req.body;
         const prices = Array.isArray(price) ? price : [price];
         let sizes = Array.isArray(size) ? (size || []).filter(s => s && s.trim() !== '') : [];
-        if (!name || !prices[0] || !category) { return res.status(400).send("Missing required fields."); }
+        console.log(name)
+        console.log(prices)
+        console.log(category)
+        if (!name || !prices[0] || !category) { return res.status(400).json("Missing required fields."); }
+
+        const productExist = Product.find({name: name})
+        if(productExist){console.log("Meron na")
+            return res.status(400).json({message: "Product name already exists", type: "error"})
+        }
         const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
         const newProduct = await Product.create({ name, price: lowestPrice, category, imageUrl, branches: [req.session.user.branch] });
         if (sizes.length > 0) {
