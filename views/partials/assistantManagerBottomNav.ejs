@@ -1,0 +1,17 @@
+<%# File: views/partials/assistantManagerBottomNav.ejs %>
+<%# Added: Mobile bottom navigation bar for Assistant Manager %>
+
+<nav class="bottom-nav d-lg-none"> <%# Reusing admin style %>
+    <a href="/assistant/registrations" class="nav-link <%= activePage === 'registrations' ? 'active' : '' %>">
+        <i class="bi bi-person-check-fill"></i>
+        <span>Registrations</span>
+        <%# Add notification badge logic here if needed %>
+    </a>
+    <%# Add other links here if role expands %>
+
+    <%# Simple Logout option for mobile bottom nav %>
+     <a href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#assistantLogoutConfirmModal"> <%# Ensure unique modal ID %>
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Logout</span>
+    </a>
+</nav>

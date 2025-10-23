@@ -1,77 +1,219 @@
 <%- include('../partials/adminHeader') %>
 
-<div class="admin-container">
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
-        <main class="p-3">
-            <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                <h2 class="h3">Add New User</h2>
-                <a href="/admin/users" class="btn btn-outline-secondary">
-                    Back to Users
-                </a>
-            </div>
+<%# Desktop Nav %>
+<%- include('../partials/adminDesktopNav', { activePage: 'users' }) %>
 
-            <% if (locals.errors && errors.length > 0) { %>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <h5 class="alert-heading">Please fix the following errors:</h5>
-                    <ul class="mb-0">
-                        <% errors.forEach(error => { %>
-                            <li><%= error %></li>
-                        <% }) %>
+<%# Mobile Container %>
+<div class="d-lg-none">
+    <div class="admin-container">
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
+            <main class="p-3">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h3 mb-0">Add New User</h2>
+                    <a href="/admin/users" class="btn btn-outline-secondary">
+                      Back to Users
+                    </a>
+                </div>
+
+                <% if (locals.errors && errors.length > 0) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+                        <ul class="mb-0 small ps-3">
+                            <% errors.forEach(error => { %>
+                                <li><%- error %></li>
+                            <% }) %>
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+                <div class="card form-card">
+                    <div class="card-body">
+                        <form action="/admin/users/add" method="POST" id="add-user-form-mobile">
+
+                             <%# Added: First/Last Name %>
+                             <div class="row g-3 mb-3">
+                                <div class="col-12"> <%# Full width mobile %>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="firstNameMobile" name="firstName" placeholder="First Name *" value="<%= locals.input ? input.firstName : '' %>" required>
+                                        <label for="firstNameMobile">First Name *</label>
+                                    </div>
+                                </div>
+                                <div class="col-12"> <%# Full width mobile %>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="lastNameMobile" name="lastName" placeholder="Last Name *" value="<%= locals.input ? input.lastName : '' %>" required>
+                                        <label for="lastNameMobile">Last Name *</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                             <%# Updated: Contact Number is now login %>
+                            <div class="form-floating mb-3">
+                                <input type="tel" class="form-control" id="contactNumberMobile" name="contactNumber" placeholder="Contact Number *" pattern="^\+63\d{10}$" value="<%= locals.input ? input.contactNumber : '+63' %>" required>
+                                <label for="contactNumberMobile">Contact Number * (+63XXXXXXXXXX)</label>
+                                <div class="form-text mt-1">This will be the user's login ID.</div>
+                            </div>
+
+                            <%# Removed: Username input %>
+
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="roleMobile" name="role" required>
+                                    <option value="" selected disabled hidden>Select Role *</option>
+                                    <%# Removed Super Admin/Assistant Manager for Admin role %>
+                                    <option value="Admin" <%= (locals.input && input.role === 'Admin') ? 'selected' : '' %>>Admin</option>
+                                    <option value="Front Liner" <%= (locals.input && input.role === 'Front Liner') ? 'selected' : 'selected' %>>Frontliner</option> <%# Default select Frontliner %>
+                                    <option value="Cook" <%= (locals.input && input.role === 'Cook') ? 'selected' : '' %>>Cook</option>
+                                </select>
+                                <label for="roleMobile">Role *</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="branchMobile" name="branch" value="<%= branchName %>" readonly disabled>
+                                <label for="branchMobile">Branch</label>
+                            </div>
+
+                             <%# Password Input (No Confirmation) %>
+                             <div class="mb-3 position-relative">
+                                <div class="form-floating">
+                                    <input type="password" class="form-control" id="passwordMobile" name="password" placeholder="Password *" required minlength="8" aria-describedby="criteriaListMobile">
+                                    <label for="passwordMobile">Password *</label>
+                                </div>
+                                <i class="bi bi-eye-slash password-toggle-icon" id="togglePasswordMobile" style="top: 50%; transform: translateY(-50%); right: 0.75rem; z-index: 3; cursor: pointer;"></i>
+                                <ul class="password-criteria" id="criteriaListMobile" style="display: none;">
+                                    <li id="lengthMobile"><i class="bi bi-x-circle"></i> Minimum 8 characters</li>
+                                    <li id="lowercaseMobile"><i class="bi bi-x-circle"></i> Lowercase letter</li>
+                                    <li id="uppercaseMobile"><i class="bi bi-x-circle"></i> Uppercase letter</li>
+                                    <li id="numberMobile"><i class="bi bi-x-circle"></i> Number</li>
+                                    <li id="specialMobile"><i class="bi bi-x-circle"></i> Special char (!@#$%^&*)</li>
+                                </ul>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">Create User</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
+</div>
+
+<%# --- DESKTOP VIEW --- %>
+<div class="admin-main-container d-none d-lg-block">
+     <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Add New User</h2>
+            <p class="text-muted mb-0">Create a new user account for your branch.</p>
+        </div>
+        <a href="/admin/users" class="btn btn-outline-secondary d-flex align-items-center">
+            <i class="bi bi-x-lg me-1"></i> Cancel
+        </a>
+    </div>
+
+     <% if (locals.errors && errors.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 800px; margin: 0 auto 1.5rem auto;">
+             <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+            <ul class="mb-0 small ps-3">
+                 <% errors.forEach(error => { %><li><%- error %></li><% }) %>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
+     <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-body p-lg-4">
+            <form action="/admin/users/add" method="POST" id="add-user-form-desktop">
+                <h5 class="mb-3 fw-semibold">Personal Information</h5>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="firstNameDesktop" name="firstName" placeholder="First Name *" value="<%= locals.input ? input.firstName : '' %>" required>
+                            <label for="firstNameDesktop">First Name *</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="lastNameDesktop" name="lastName" placeholder="Last Name *" value="<%= locals.input ? input.lastName : '' %>" required>
+                            <label for="lastNameDesktop">Last Name *</label>
+                        </div>
+                    </div>
+                </div>
+                 <div class="form-floating mb-4">
+                    <input type="tel" class="form-control" id="contactNumberDesktop" name="contactNumber" placeholder="Contact Number *" pattern="^\+63\d{10}$" value="<%= locals.input ? input.contactNumber : '+63' %>" required>
+                    <label for="contactNumberDesktop">Contact Number * (+63XXXXXXXXXX)</label>
+                    <div class="form-text mt-1">This will be the user's login ID.</div>
+                </div>
+
+                 <hr class="my-4">
+                <h5 class="mb-3 fw-semibold">Account Details</h5>
+
+                 <div class="mb-3 position-relative">
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="passwordDesktop" name="password" placeholder="Password *" required minlength="8" aria-describedby="criteriaListDesktop">
+                        <label for="passwordDesktop">Password *</label>
+                    </div>
+                    <i class="bi bi-eye-slash password-toggle-icon" id="togglePasswordDesktop" style="top: 50%; transform: translateY(-50%); right: 0.75rem; z-index: 3; cursor: pointer;"></i>
+                    <ul class="password-criteria" id="criteriaListDesktop" style="display: none;">
+                        <li id="lengthDesktop"><i class="bi bi-x-circle"></i> Minimum 8 characters</li>
+                        <li id="lowercaseDesktop"><i class="bi bi-x-circle"></i> Lowercase letter</li>
+                        <li id="uppercaseDesktop"><i class="bi bi-x-circle"></i> Uppercase letter</li>
+                        <li id="numberDesktop"><i class="bi bi-x-circle"></i> Number</li>
+                        <li id="specialDesktop"><i class="bi bi-x-circle"></i> Special char (!@#$%^&*)</li>
                     </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            <% } %>
 
-            <div class="card form-card">
-                <div class="card-body">
-                    <form action="/admin/users/add" method="POST">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= locals.input ? input.username : '' %>" required>
-                            <label for="username">Username</label>
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number (+63)" value="<%= locals.input ? input.contactNumber : '+63' %>" required>
-                            <label for="contactNumber">Contact Number (+63)</label>
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <select class="form-select" id="role" name="role" aria-label="User Role">
-                                <option value="Front Liner" <%= (locals.input && input.role === 'Front Liner') ? 'selected' : 'selected' %>>Frontliner</option>
-                                <option value="Cook" <%= (locals.input && input.role === 'Cook') ? 'selected' : '' %>>Cook</option>
+                <div class="row g-3 mb-4">
+                     <div class="col-md-6">
+                        <div class="form-floating">
+                             <select class="form-select" id="roleDesktop" name="role" required>
+                                <option value="" selected disabled hidden>Select Role *</option>
                                 <option value="Admin" <%= (locals.input && input.role === 'Admin') ? 'selected' : '' %>>Admin</option>
+                                <option value="Front Liner" <%= (locals.input && input.role === 'Front Liner') ? 'selected' : 'selected' %>>Frontliner</option> <%# Default select Frontliner %>
+                                <option value="Cook" <%= (locals.input && input.role === 'Cook') ? 'selected' : '' %>>Cook</option>
                             </select>
-                            <label for="role">Role</label>
+                            <label for="roleDesktop">Role *</label>
                         </div>
-                        
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="branch" name="branch" value="<%= branchName %>" readonly disabled>
-                            <label for="branch">Branch</label>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="branchDesktop" name="branchNameDisplay" value="<%= branchName %>" readonly disabled>
+                            <label for="branchDesktop">Branch</label>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                                    <label for="password">Password</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-3">
-                                    <input type="password" class="form-control" id="passwordRepeat" name="passwordRepeat" placeholder="Confirm Password" required>
-                                    <label for="passwordRepeat">Confirm Password</label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 btn-lg">Create User</button>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <hr class="my-4">
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary btn-lg">Create User</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
 <%- include('../partials/adminFooter') %>
+
+<%# Add User Specific Scripts %>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Phone Number Formatting ---
+    const setupPhoneFormat = (id) => { const phoneInput = document.getElementById(id); if (phoneInput) { if (phoneInput.value === '' || !phoneInput.value.startsWith('+63')) { phoneInput.value = '+63'; } phoneInput.addEventListener('input', (e) => { let v = e.target.value; if (!v.startsWith('+63')) { v = '+63'; } v = '+63' + v.substring(3).replace(/[^\d]/g, ''); if (v.length > 13) { v = v.substring(0, 13); } e.target.value = v; }); phoneInput.addEventListener('keydown', (e) => { const s = e.target.selectionStart; const end = e.target.selectionEnd; if ((e.key === 'Backspace' && s <= 3) || (e.key === 'Delete' && s < 3)) { if (s === end || end <= 3) { e.preventDefault(); } } }); } }
+    setupPhoneFormat('contactNumberMobile');
+    setupPhoneFormat('contactNumberDesktop');
+
+    // --- Password Toggle ---
+    const setupPasswordToggle = (inputId, toggleId) => { const pI = document.getElementById(inputId); const tI = document.getElementById(toggleId); if (pI && tI) { tI.addEventListener('click', function () { const type = pI.getAttribute('type') === 'password' ? 'text' : 'password'; pI.setAttribute('type', type); this.classList.toggle('bi-eye'); this.classList.toggle('bi-eye-slash'); }); } }
+    setupPasswordToggle('passwordMobile', 'togglePasswordMobile');
+    setupPasswordToggle('passwordDesktop', 'togglePasswordDesktop');
+
+    // --- Password Criteria Validation (Visual Only) ---
+    const setupPasswordCriteria = (passId, listId, critIds) => { const passwordInput = document.getElementById(passId); const criteriaList = document.getElementById(listId); if(!passwordInput || !criteriaList) return; const criteria = {}; for(const key in critIds) { criteria[key] = document.getElementById(critIds[key]); } const criteriaChecks = { length: (pw) => pw.length >= 8, lowercase: (pw) => /[a-z]/.test(pw), uppercase: (pw) => /[A-Z]/.test(pw), number: (pw) => /\d/.test(pw), special: (pw) => /[@$!%*?&]/.test(pw) }; criteriaList.style.display = 'none'; passwordInput.addEventListener('focus', () => { criteriaList.style.display = 'block'; }); passwordInput.addEventListener('input', () => { const password = passwordInput.value; criteriaList.style.display = 'block'; for (const key in criteria) { if (criteria[key]) { const isValid = criteriaChecks[key](password); criteria[key].classList.toggle('valid', isValid); criteria[key].querySelector('i').className = isValid ? 'bi bi-check-circle-fill' : 'bi bi-x-circle'; } } }); }
+    setupPasswordCriteria('passwordMobile', 'criteriaListMobile', { length: 'lengthMobile', lowercase: 'lowercaseMobile', uppercase: 'uppercaseMobile', number: 'numberMobile', special: 'specialMobile' });
+    setupPasswordCriteria('passwordDesktop', 'criteriaListDesktop', { length: 'lengthDesktop', lowercase: 'lowercaseDesktop', uppercase: 'uppercaseDesktop', number: 'numberDesktop', special: 'specialDesktop' });
+
+     // --- Floating Label Fix for Selects ---
+     document.querySelectorAll('.form-floating .form-select').forEach(select => { function checkSelectValue() { /* Check value */ } select.addEventListener('change', checkSelectValue); checkSelectValue(); });
+
+});
+</script>

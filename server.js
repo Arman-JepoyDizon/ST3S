@@ -9,11 +9,12 @@ const path = require('path');
 const http = require('http');
 const { Server } = require("socket.io");
 
-// Route imports
+// Route imports - Ensure this path is correct relative to server.js
 const adminRoutes = require('./routes/adminRoutes');
 const frontlineRoutes = require('./routes/frontlineRoutes');
 const cookRoutes = require('./routes/cookRoutes');
-const superAdminRoutes = require('./routes/superAdminRoutes'); // Added
+const superAdminRoutes = require('./routes/superAdminRoutes');
+const assistantManagerRoutes = require('./routes/assistantManagerRoutes'); // Make sure this line exists and the path is correct
 
 // App Initialization
 const app = express();
@@ -45,11 +46,12 @@ app.use((req, res, next) => {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// --- App Routes ---
-app.use('/superadmin', superAdminRoutes); // Added
+// --- App Routes --- (Order might matter slightly, ensure assistant is included)
+app.use('/superadmin', superAdminRoutes);
 app.use('/admin', adminRoutes);
+app.use('/assistant', assistantManagerRoutes); // Make sure this line exists and uses the correct variable
 app.use('/cook', cookRoutes);
-app.use('/', frontlineRoutes);
+app.use('/', frontlineRoutes); // Frontline (including login) should generally be last if it has broad paths like '/'
 
 // --- Socket.IO Connection ---
 io.on('connection', (socket) => {
@@ -62,12 +64,12 @@ io.on('connection', (socket) => {
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
     .then(async () => {
-        console.log('Successfully connected to MongoDB.');
-        
+        console.log('✅ Successfully connected to MongoDB.'); // Updated log message
+
         server.listen(PORT, () => {
-            console.log(` Server is running on http://localhost:${PORT}`);
+            console.log(`🚀 Server is running on http://localhost:${PORT}`); // Updated log message
         });
     })
     .catch(err => {
-        console.error('Database connection error:', err);
+        console.error('❌ Database connection error:', err); // Updated log message
     });

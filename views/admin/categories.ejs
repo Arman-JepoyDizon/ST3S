@@ -1,37 +1,38 @@
 <%- include('../partials/adminHeader') %>
-
-<%# This is the main desktop navigation, which is always present at the top. %>
 <%- include('../partials/adminDesktopNav', { activePage: 'categories' }) %>
 
+<%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
-
-    <%# This is your original mobile layout container. %>
     <div class="admin-container">
-        
-        <%# The sidebar include has been REMOVED from here. %>
-
-        <%# The admin-content and mobile navbar are PRESERVED. %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
-
             <main class="p-3">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3">Categories</h2>
+                    <h2 class="h3 mb-0">Categories</h2>
                     <a href="/admin/categories/add" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-2"></i>Add New
+                        <i class="bi bi-plus-lg me-1"></i>Add New
                     </a>
                 </div>
 
-                <div class="product-list">
-                    <% if (categories.length > 0) { %>
+                <%# Added: Display Error Alert if errorMessage exists (for non-modal errors or fallback) %>
+                <% if (locals.errorMessage && !locals.showDeleteErrorModal) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <%- errorMessage %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+
+                <div class="category-list-mobile">
+                    <% if (categories && categories.length > 0) { %>
                         <% categories.forEach(category => { %>
-                            <div class="card product-card mb-3">
+                            <div class="card mb-3">
                                 <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <h5 class="card-title mb-1"><%= category.name %></h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="card-title mb-0 fw-bold"><%= category.name %></h5>
                                         <div class="d-flex gap-2">
                                             <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                            <form action="/admin/categories/delete/<%= category._id %>" method="POST" onsubmit="return confirm('Are you sure?');">
+                                            <form action="/admin/categories/delete/<%= category._id %>" method="POST" class="needs-confirmation d-inline" data-confirm-message="Are you sure you want to delete the category '<%= category.name %>'?">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                                             </form>
                                         </div>
@@ -48,25 +49,32 @@
             </main>
         </div>
     </div>
-
-    <%# Your mobile-only bottom navigation is also preserved. %>
     <%- include('../partials/adminBottomNav', { activePage: 'categories' }) %>
 </div>
 
 
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
     <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Categories</h2>
             <p class="text-muted">Manage your product categories.</p>
         </div>
-        <a href="/admin/categories/add" class="btn btn-primary">
+        <a href="/admin/categories/add" class="btn btn-primary fw-bold">
             <i class="bi bi-plus-lg me-1"></i> Add New Category
         </a>
     </div>
 
-    <% if (categories.length > 0) { %>
-        <div class="list-table-container">
+     <%# Added: Display Error Alert if errorMessage exists (for non-modal errors or fallback) %>
+     <% if (locals.errorMessage && !locals.showDeleteErrorModal) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 1200px; margin: 0 auto 1.5rem auto;">
+            <%- errorMessage %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
+    <div class="list-table-container">
+        <% if (categories && categories.length > 0) { %>
             <div class="list-table-header" style="grid-template-columns: 1fr auto;">
                 <span>CATEGORY</span>
                 <span class="text-end">ACTIONS</span>
@@ -79,25 +87,70 @@
                     </div>
                     <div class="d-flex justify-content-end gap-2">
                         <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                        <form action="/admin/categories/delete/<%= category._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this category?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                        <form action="/admin/categories/delete/<%= category._id %>" method="POST" class="needs-confirmation d-inline" data-confirm-message="Are you sure you want to delete the category '<%= category.name %>'?">
+                             <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                         </form>
                     </div>
                 </div>
             <% }) %>
-        </div>
-    <% } else { %>
-        <div class="card text-center py-5">
-             <div class="card-body">
-                <h5 class="card-title">No Categories Found</h5>
-                <p class="text-muted">Get started by adding your first product category.</p>
-                <a href="/admin/categories/add" class="btn btn-primary mt-2">
-                    <i class="bi bi-plus-lg me-2"></i>Add a Category
-                </a>
+         <% } else { %>
+            <div class="card text-center py-5 border-0 bg-transparent">
+                 <div class="card-body">
+                    <h5 class="card-title">No Categories Found</h5>
+                    <p class="text-muted">Get started by adding your first product category.</p>
+                    <a href="/admin/categories/add" class="btn btn-primary mt-2">
+                         <i class="bi bi-plus-lg me-2"></i>Add a Category
+                    </a>
+                </div>
             </div>
-        </div>
-    <% } %>
+        <% } %>
+    </div>
+</div>
+
+<%# --- Added: Category Delete Error Modal --- %>
+<div class="modal fade" id="categoryDeleteErrorModal" tabindex="-1" aria-labelledby="categoryDeleteErrorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title text-danger" id="categoryDeleteErrorModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Deletion Failed</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="categoryDeleteErrorMessage">Could not delete the category because products are assigned to it.</p> <%# Default message %>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 
 <%- include('../partials/adminFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Confirmation for delete forms
+    document.querySelectorAll('.needs-confirmation').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            const message = this.dataset.confirmMessage || 'Are you sure?';
+            if (!confirm(message)) {
+                event.preventDefault();
+            }
+        });
+    });
+
+    <%# Added: JavaScript to show the modal if the flag is set %>
+    <%# Check if showDeleteErrorModal exists and is true, and errorMessage exists %>
+    <% if (typeof showDeleteErrorModal !== 'undefined' && showDeleteErrorModal && typeof errorMessage !== 'undefined' && errorMessage) { %>
+        const errorModalEl = document.getElementById('categoryDeleteErrorModal');
+        const errorMessageP = document.getElementById('categoryDeleteErrorMessage');
+        if (errorModalEl && errorMessageP) {
+            const errorModal = new bootstrap.Modal(errorModalEl);
+            // Safely set the error message content using JSON stringify to handle special characters
+            errorMessageP.textContent = <%- JSON.stringify(errorMessage) %>;
+            errorModal.show();
+        }
+    <% } %>
+});
+</script>

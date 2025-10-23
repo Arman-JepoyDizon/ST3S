@@ -1,0 +1,280 @@
+<%# Updated to include responsive layout partials %>
+<%- include('../partials/assistantManagerHeader') %>
+
+<%# --- Desktop Navigation --- %>
+<%- include('../partials/assistantManagerDesktopNav', { activePage: 'registrations' }) %>
+
+<%# --- Mobile View Container --- %>
+<div class="d-lg-none">
+    <%# Simple top bar for mobile (optional, could reuse adminNavbar if desired) %>
+    <nav class="admin-navbar p-3"> <%# Reusing adminNavbar style for consistency %>
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <img src="/icons/favicon.png" alt="Mira's ST3S Logo" style="height: 36px; width: 36px; border-radius: 30%;" class="me-2">
+                <span class="fw-bold fs-5">Mira's ST3S</span>
+                 <span class="badge bg-secondary ms-2 small">Asst. Manager</span>
+            </div>
+             <%# Logout trigger for mobile top bar %>
+            <a href="#" class="text-secondary fs-4" data-bs-toggle="modal" data-bs-target="#assistantLogoutConfirmModal">
+                <i class="bi bi-person-circle"></i>
+            </a>
+        </div>
+    </nav>
+
+    <%# Mobile Content Area %>
+    <main class="p-3 admin-content"> <%# Reusing admin-content for padding %>
+        <div class="page-header d-flex justify-content-between align-items-center mb-3">
+             <div>
+                <h2 class="h3 mb-0">Staff Registrations</h2>
+                <% const pendingCountMobile = applications.filter(app => app.status === 'Pending').length; %>
+                <p class="text-muted mb-0"><%= pendingCountMobile %> pending</p>
+            </div>
+             <%# Add refresh/filter button for mobile if needed %>
+        </div>
+
+        <%# Mobile Filter Card %>
+        <div class="card filter-card-mobile mb-4">
+             <div class="card-body">
+                <h5 class="card-title mb-3"><i class="bi bi-funnel me-2"></i>Filters</h5>
+                <form action="/assistant/registrations" method="GET" id="mobile-filter-form">
+                    <div class="form-floating mb-3">
+                        <input type="search" class="form-control" id="searchRegistrationsMobile" name="search" placeholder="Search name/phone..." value="<%= locals.query ? query.search : '' %>">
+                        <label for="searchRegistrationsMobile">Search name/phone...</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <select name="status" id="status-filter-mobile" class="form-select" onchange="this.form.submit()">
+                             <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : (!locals.query || !query.status ? 'selected' : '') %>>Pending Only</option>
+                             <option value="Approved" <%= locals.query && query.status === 'Approved' ? 'selected' : '' %>>Approved</option>
+                             <option value="Rejected" <%= locals.query && query.status === 'Rejected' ? 'selected' : '' %>>Rejected</option>
+                             <option value="" <%= locals.query && query.status === '' ? 'selected' : '' %>>Show All</option>
+                        </select>
+                        <label>Status</label>
+                    </div>
+                     <div class="d-flex gap-2">
+                         <a href="/assistant/registrations" class="btn btn-light w-100">Clear</a>
+                         <%# Submit button can be hidden if onchange covers it %>
+                        <button type="submit" class="btn btn-secondary w-100 d-none">Apply</button>
+                    </div>
+                 </form>
+            </div>
+        </div>
+
+        <%# Mobile Application List %>
+        <div class="registration-list-mobile">
+            <% if (applications && applications.length > 0) { %>
+                <% applications.forEach(app => { %>
+                    <div class="card user-card-revamp mb-3"> <%# Reusing user card style %>
+                        <div class="card-body">
+                             <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title mb-1"><%= app.firstName %> <%= app.lastName %></h5>
+                                    <small class="text-muted d-block"><%= app.contactNumber %></small>
+                                    <small class="text-muted d-block"><%= app.positionApplied %> @ <%= app.preferredBranch ? app.preferredBranch.name : 'N/A' %></small>
+                                     <small class="text-muted d-block mt-1">
+                                         <i class="bi bi-calendar-event"></i> <%= new Date(app.createdAt).toLocaleDateString() %>
+                                     </small>
+                                </div>
+                                <%# Status Badge %>
+                                <% if (app.status === 'Pending') { %><span class="badge badge-status-pending">Pending</span>
+                                <% } else if (app.status === 'Approved') { %><span class="badge badge-status-completed">Approved</span>
+                                <% } else { %><span class="badge badge-status-cancelled">Rejected</span><% } %>
+                            </div>
+                            <hr class="my-2">
+                            <%# Action Buttons for Mobile %>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary view-details-btn"
+                                        data-bs-toggle="modal" data-bs-target="#applicationDetailsModal"
+                                        data-appid="<%= app._id %>">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </button>
+                                <% if (app.status === 'Pending') { %>
+                                    <form action="/assistant/registrations/<%= app._id %>/reject" method="POST" class="d-inline needs-confirmation" data-confirm-message="Reject this application? This cannot be undone.">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg me-1"></i>Reject</button>
+                                    </form>
+                                    <form action="/assistant/registrations/<%= app._id %>/approve" method="POST" class="d-inline needs-confirmation" data-confirm-message="Approve this application and create a user account?">
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Approve</button>
+                                    </form>
+                                <% } else if (app.status === 'Rejected') { %>
+                                    <%# --- START: Added Delete Button (Mobile) --- %>
+                                    <form action="/assistant/registrations/<%= app._id %>/delete" method="POST" class="d-inline needs-confirmation" data-confirm-message="Permanently delete this rejected application? This cannot be undone.">
+                                        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash3 me-1"></i>Delete</button>
+                                    </form>
+                                    <%# --- END: Added Delete Button (Mobile) --- %>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="card text-center py-5">
+                    <i class="bi bi-person-badge fs-1 text-muted mb-3"></i>
+                    <h5 class="mb-1">No Applications Found</h5>
+                    <p class="text-muted">No records match your current filters.</p>
+                     <a href="/assistant/registrations" class="btn btn-light mt-2">Clear Filters</a>
+                </div>
+            <% } %>
+        </div>
+    </main>
+
+    <%# --- Mobile Bottom Navigation --- %>
+    <%- include('../partials/assistantManagerBottomNav', { activePage: 'registrations' }) %>
+</div>
+
+
+<%# --- Desktop View Container --- %>
+<div class="admin-main-container d-none d-lg-block"> <%# Reusing admin container styling %>
+    <div class="admin-page-header">
+        <div>
+            <h2 class="h3 mb-0">Staff Registrations</h2>
+            <% const pendingCountDesktop = applications.filter(app => app.status === 'Pending').length; %>
+            <p class="text-muted"><%= pendingCountDesktop %> pending application<%= pendingCountDesktop !== 1 ? 's' : '' %></p>
+        </div>
+    </div>
+
+    <%# Desktop Filter Bar %>
+    <div class="card filter-bar mb-4">
+        <form action="/assistant/registrations" method="GET" id="desktop-filter-form" class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="flex-grow-1 form-control-icon-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="search" class="form-control" id="searchRegistrationsDesktop" name="search" placeholder="Search by name or phone..." value="<%= locals.query ? query.search : '' %>">
+            </div>
+            <div class="form-control-icon-wrapper" style="min-width: 180px;">
+                <i class="bi bi-filter"></i>
+                <select name="status" id="status-filter-desktop" class="form-select" onchange="this.form.submit()">
+                     <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : (!locals.query || !query.status ? 'selected' : '') %>>Pending Only</option>
+                     <option value="Approved" <%= locals.query && query.status === 'Approved' ? 'selected' : '' %>>Approved</option>
+                     <option value="Rejected" <%= locals.query && query.status === 'Rejected' ? 'selected' : '' %>>Rejected</option>
+                     <option value="" <%= locals.query && query.status === '' ? 'selected' : '' %>>Show All</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary btn-filter-apply">Filter</button> <%# Hidden via CSS usually %>
+            <a href="/assistant/registrations" class="btn btn-light">Clear</a>
+        </form>
+    </div>
+
+    <%# Desktop Applications Table %>
+    <div class="list-table-container">
+        <% if (applications && applications.length > 0) { %>
+            <div class="list-table-header" style="grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr auto;">
+                <span>Applicant</span> <span>Phone</span> <span>Position</span> <span>Branch</span> <span>Applied</span> <span>Status</span> <span class="text-end">Actions</span>
+            </div>
+
+            <div class="registration-list-desktop"> <%# Specific class if needed %>
+                <% applications.forEach(app => { %>
+                    <div class="list-table-row" style="grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1fr auto;">
+                        <div class="fw-bold"><%= app.firstName %> <%= app.lastName %></div>
+                        <div><%= app.contactNumber %></div>
+                        <div><%= app.positionApplied %></div>
+                        <div><%= app.preferredBranch ? app.preferredBranch.name : 'N/A' %></div>
+                        <div class="text-muted"><%= new Date(app.createdAt).toLocaleDateString('en-CA') %></div>
+                        <div>
+                            <% if (app.status === 'Pending') { %><span class="badge badge-status-pending">Pending</span>
+                            <% } else if (app.status === 'Approved') { %><span class="badge badge-status-completed">Approved</span>
+                            <% } else { %><span class="badge badge-status-cancelled">Rejected</span><% } %>
+                        </div>
+                        <div class="text-end d-flex justify-content-end gap-2">
+                             <button type="button" class="btn btn-sm btn-outline-secondary view-details-btn"
+                                    data-bs-toggle="modal" data-bs-target="#applicationDetailsModal" data-appid="<%= app._id %>">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <% if (app.status === 'Pending') { %>
+                                <form action="/assistant/registrations/<%= app._id %>/approve" method="POST" class="d-inline needs-confirmation" data-confirm-message="Approve this application and create a user account?">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Approve"><i class="bi bi-check-lg"></i></button>
+                                </form>
+                                <form action="/assistant/registrations/<%= app._id %>/reject" method="POST" class="d-inline needs-confirmation" data-confirm-message="Reject this application? This cannot be undone.">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Reject"><i class="bi bi-x-lg"></i></button>
+                                </form>
+                            <% } else if (app.status === 'Rejected') { %>
+                                <%# --- START: Added Delete Button (Desktop) --- %>
+                                <form action="/assistant/registrations/<%= app._id %>/delete" method="POST" class="d-inline needs-confirmation" data-confirm-message="Permanently delete this rejected application? This cannot be undone.">
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="bi bi-trash3"></i></button>
+                                </form>
+                                <%# --- END: Added Delete Button (Desktop) --- %>
+                            <% } else { %>
+                                 <span class="text-muted small fst-italic me-2"><%= app.status %></span>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <i class="bi bi-person-badge fs-1 text-muted mb-3"></i>
+                <h5 class="mb-1">No Applications Found</h5>
+                <p class="text-muted">No records match your current filters.</p>
+                 <a href="/assistant/registrations" class="btn btn-light mt-2">Clear Filters</a>
+            </div>
+        <% } %>
+    </div>
+</div> <%# End Desktop Container %>
+
+<%# Application Details Modal %>
+<div class="modal fade" id="applicationDetailsModal" tabindex="-1" aria-labelledby="applicationDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applicationDetailsModalLabel">Application Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-content-loading" class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                </div>
+                <div id="modal-content-details" style="display: none;">
+                    <div class="mb-3"><small class="text-muted d-block">Full Name</small><strong id="modal-fullName"></strong></div>
+                    <div class="mb-3"><small class="text-muted d-block">Phone Number</small><strong id="modal-contactNumber"></strong></div>
+                    <div class="mb-3"><small class="text-muted d-block">Position Applied</small><strong id="modal-positionApplied"></strong></div>
+                    <div class="mb-3"><small class="text-muted d-block">Preferred Branch</small><strong id="modal-preferredBranch"></strong></div>
+                    <div class="mb-3"><small class="text-muted d-block">Date Applied</small><strong id="modal-appliedDate"></strong></div>
+                    <div class="mb-3"><small class="text-muted d-block">Current Status</small><strong id="modal-status"></strong></div>
+                </div>
+                <div id="modal-content-error" class="alert alert-danger" style="display: none;">Could not load application details. Please try again.</div>
+            </div>
+            <div class="modal-footer justify-content-between" id="modal-actions-footer" style="display: none;">
+                 <div><form id="modal-reject-form" action="" method="POST" class="d-inline needs-confirmation" data-confirm-message="Reject this application? This cannot be undone."><button type="submit" class="btn btn-danger">Reject</button></form></div>
+                 <div><button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button><form id="modal-approve-form" action="" method="POST" class="d-inline needs-confirmation" data-confirm-message="Approve this application and create a user account?"><button type="submit" class="btn btn-success">Approve</button></form></div>
+            </div>
+             <div class="modal-footer justify-content-end" id="modal-close-footer" style="display: none;">
+                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<%- include('../partials/assistantManagerFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Auto-submit filter form logic
+    const setupAutoSubmitSearch = (inputId, formId) => {
+         const searchInput = document.getElementById(inputId); const filterForm = document.getElementById(formId); let searchTimeout; if (searchInput && filterForm) { searchInput.addEventListener('input', () => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { filterForm.submit(); }, 500); }); }
+    };
+    setupAutoSubmitSearch('searchRegistrationsMobile', 'mobile-filter-form');
+    setupAutoSubmitSearch('searchRegistrationsDesktop', 'desktop-filter-form');
+
+    // Modal population logic
+    const detailsModal = document.getElementById('applicationDetailsModal');
+    if (detailsModal) {
+        const loadingDiv = detailsModal.querySelector('#modal-content-loading'); const detailsDiv = detailsModal.querySelector('#modal-content-details'); const errorDiv = detailsModal.querySelector('#modal-content-error'); const actionsFooter = detailsModal.querySelector('#modal-actions-footer'); const closeFooter = detailsModal.querySelector('#modal-close-footer'); const approveForm = detailsModal.querySelector('#modal-approve-form'); const rejectForm = detailsModal.querySelector('#modal-reject-form');
+        detailsModal.addEventListener('show.bs.modal', async (event) => {
+            const button = event.relatedTarget; const appId = button.dataset.appid;
+            loadingDiv.style.display = 'block'; detailsDiv.style.display = 'none'; errorDiv.style.display = 'none'; actionsFooter.style.display = 'none'; closeFooter.style.display = 'none';
+            try {
+                const response = await fetch(`/assistant/registrations/${appId}`); if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } const data = await response.json();
+                detailsModal.querySelector('#modal-fullName').textContent = data.fullName || 'N/A'; detailsModal.querySelector('#modal-contactNumber').textContent = data.contactNumber || 'N/A'; detailsModal.querySelector('#modal-positionApplied').textContent = data.positionApplied || 'N/A'; detailsModal.querySelector('#modal-preferredBranch').textContent = data.preferredBranch || 'N/A'; detailsModal.querySelector('#modal-appliedDate').textContent = data.appliedDate ? new Date(data.appliedDate).toLocaleDateString() : 'N/A'; detailsModal.querySelector('#modal-status').textContent = data.status || 'N/A';
+                if (data.status === 'Pending') { approveForm.action = `/assistant/registrations/${appId}/approve`; rejectForm.action = `/assistant/registrations/${appId}/reject`; actionsFooter.style.display = 'flex'; } else { closeFooter.style.display = 'flex'; }
+                detailsDiv.style.display = 'block'; loadingDiv.style.display = 'none';
+            } catch (error) { console.error('Error fetching application details:', error); loadingDiv.style.display = 'none'; errorDiv.style.display = 'block'; closeFooter.style.display = 'flex'; }
+        });
+    }
+
+    // Confirmation for forms
+    document.querySelectorAll('.needs-confirmation').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            const message = this.dataset.confirmMessage || 'Are you sure?';
+            if (!confirm(message)) { event.preventDefault(); }
+        });
+    });
+});
+</script>

@@ -5,22 +5,29 @@
         <img src="/icons/favicon.png" alt="Mira's ST3S Logo" style="height: 60px; width: 60px;" class="mb-3">
         <h1 class="mb-1 h3">Welcome Back!</h1>
         <p class="text-muted mb-4">Sign in to continue to Mira's ST3S</p>
-        
+
         <div id="login-alert" class="alert alert-danger" role="alert" style="display: none;">
             </div>
 
         <form id="login-form">
             <div class="form-floating mb-3">
-                <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
-                <label for="username">Username</label>
+                
+                <input type="text" class="form-control" id="username" name="username" placeholder="Phone Number (+63)" required pattern="^\+63\d{10}$" title="Enter phone number starting with +63 followed by 10 digits">
+                <label for="username">Phone Number (+63)</label>
             </div>
             <div class="form-floating mb-3">
                 <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
                 <label for="password">Password</label>
+            
             </div>
             <button type="submit" class="btn btn-primary w-100 btn-lg">
                 Sign In
             </button>
+
+            <%# Added: Link to the staff application form %>
+            <a href="/apply" class="d-block mt-3 text-center text-muted text-decoration-none">
+                Apply for a position?
+            </a>
         </form>
     </div>
 </div>
@@ -29,12 +36,42 @@
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('login-form');
         const alertDiv = document.getElementById('login-alert');
+        const phoneInput = document.getElementById('username'); // Get phone input
+
+        // Optional: Add phone number formatting helper for login
+        if (phoneInput) {
+            phoneInput.addEventListener('input', (e) => {
+                let value = e.target.value;
+                if (!value.startsWith('+63')) {
+                    value = '+63';
+                }
+                value = '+63' + value.substring(3).replace(/[^\d]/g, '');
+                if (value.length > 13) {
+                    value = value.substring(0, 13);
+                }
+                e.target.value = value;
+            });
+             // Set initial value if empty
+             if(phoneInput.value === '') {
+                 phoneInput.value = '+63';
+             }
+        }
+
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault(); // Stop the default form submission
 
-            const username = document.getElementById('username').value;
+            const username = phoneInput.value; // Use the formatted phone number
             const password = document.getElementById('password').value;
+
+            // Simple client-side validation for phone format
+            const phoneRegex = /^\+63\d{10}$/;
+            if (!phoneRegex.test(username)) {
+                 alertDiv.innerText = 'Please enter a valid phone number starting with +63 followed by 10 digits.';
+                 alertDiv.style.display = 'block';
+                 return; // Stop submission
+            }
+
 
             try {
                 const response = await fetch('/login', {
@@ -42,7 +79,8 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ username, password }),
+                    body: JSON.stringify({ username, // Send phone number as username
+ password }),
                 });
 
                 const data = await response.json();

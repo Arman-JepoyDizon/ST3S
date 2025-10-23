@@ -1,14 +1,20 @@
+// File: controllers/frontlineController.js
+
 const User = require('../models/user');
 const Product = require('../models/product');
 const Transaction = require('../models/transaction');
 const Category = require('../models/category');
 const Size = require('../models/size');
 const Price = require('../models/price');
+const Branch = require('../models/branch');
+const StaffApplication = require('../models/staffApplication');
 
 const getLoginPage = (req, res) => {
     if (req.session.user) {
         if (req.session.user.role === 'Super Admin') return res.redirect('/superadmin/dashboard');
         if (req.session.user.role === 'Admin') return res.redirect('/admin/dashboard');
+        // Added: Redirect for Assistant Manager if already logged in
+        if (req.session.user.role === 'Assistant Manager') return res.redirect('/assistant/registrations'); // Assuming this will be the route
         if (req.session.user.role === 'Cook') return res.redirect('/cook/dashboard');
         return res.redirect('/');
     }
@@ -17,26 +23,32 @@ const getLoginPage = (req, res) => {
 
 const postLogin = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        // Updated: Destructure 'username' from req.body, which now holds the contactNumber from the form
+        const { username: contactNumber, password } = req.body;
 
-        const user = await User.findOne({ username });
+        // Updated: Find user by contactNumber instead of username
+        const user = await User.findOne({ contactNumber: contactNumber });
         if (!user) {
-            return res.status(401).json({ message: "Invalid username or password." });
+            // Updated: Error message refers to phone number
+            return res.status(401).json({ message: "Invalid phone number or password." });
         }
 
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid username or password." });
+            // Updated: Error message refers to phone number
+            return res.status(401).json({ message: "Invalid phone number or password." });
         }
 
+        // Updated: Added contactNumber to the session
         req.session.user = {
             id: user._id,
-            username: user.username,
+            username: user.username, // Keep username for potential display needs
+            contactNumber: user.contactNumber, // Store contact number in session
             role: user.role,
             branch: user.branch // Store branch ID in session
         };
 
-        let redirectUrl = '/';
+        let redirectUrl = '/'; // Default for Front Liner
         if (user.role === 'Super Admin') {
             redirectUrl = '/superadmin/dashboard';
         } else if (user.role === 'Admin') {
@@ -44,6 +56,11 @@ const postLogin = async (req, res) => {
         } else if (user.role === 'Cook') {
             redirectUrl = '/cook/dashboard';
         }
+        // Added: Redirect logic for Assistant Manager
+        else if (user.role === 'Assistant Manager') {
+             redirectUrl = '/assistant/registrations'; // Set the specific route for Assistant Manager
+        }
+
 
         return res.status(200).json({ success: true, redirectUrl: redirectUrl });
 
@@ -52,6 +69,7 @@ const postLogin = async (req, res) => {
         return res.status(500).json({ message: 'An internal server error occurred. Please try again later.' });
     }
 };
+
 
 const logoutUser = (req, res) => {
     req.session.destroy(err => {
@@ -62,6 +80,84 @@ const logoutUser = (req, res) => {
         res.redirect('/login');
     });
 };
+
+const getStaffApplicationPage = async (req, res) => {
+    try {
+        const branches = await Branch.find({ status: 'Active' }).sort({ name: 1 });
+        res.render('frontline/apply', {
+            branches: branches,
+            errors: null,
+            input: {}
+        });
+    } catch (error) {
+        console.error('Error fetching data for application page:', error);
+        res.status(500).send('Server Error');
+    }
+};
+
+const postStaffApplication = async (req, res) => {
+    const {
+        firstName, lastName, middleName, contactNumber,
+        password, confirmPassword, positionApplied, preferredBranch
+    } = req.body;
+
+    if (password !== confirmPassword) {
+        const branches = await Branch.find({ status: 'Active' }).sort({ name: 1 });
+        return res.status(400).render('frontline/apply', {
+            branches: branches,
+            errors: ['Passwords do not match.'],
+            input: req.body
+        });
+    }
+
+    if (password.length < 8) {
+         const branches = await Branch.find({ status: 'Active' }).sort({ name: 1 });
+         return res.status(400).render('frontline/apply', {
+            branches: branches,
+            errors: ['Password must be at least 8 characters long.'],
+            input: req.body
+        });
+    }
+
+    try {
+        const existingUser = await User.findOne({ contactNumber: contactNumber });
+        if (existingUser) {
+            throw { customError: 'This phone number is already registered.' };
+        }
+
+        const newApplication = new StaffApplication({
+            firstName, lastName, middleName, contactNumber,
+            password, positionApplied, preferredBranch
+        });
+        await newApplication.save();
+
+        res.render('frontline/applySuccess', { contactNumber: contactNumber });
+
+    } catch (error) {
+        const branches = await Branch.find({ status: 'Active' }).sort({ name: 1 });
+        let errors = [];
+
+        if (error.customError) {
+             errors.push(error.customError);
+        } else if (error.code === 11000 && error.keyPattern && error.keyPattern.contactNumber) {
+            errors.push('An application with this phone number already exists.');
+        } else if (error.name === 'ValidationError') {
+            for (let field in error.errors) {
+                errors.push(error.errors[field].message);
+            }
+        } else {
+            console.error('Unexpected error submitting application:', error);
+            errors.push('An unexpected error occurred. Please try again.');
+        }
+
+        res.status(400).render('frontline/apply', {
+            branches: branches,
+            errors: errors,
+            input: req.body
+        });
+    }
+};
+
 
 const getOrderScreen = async (req, res) => {
     try {
@@ -79,8 +175,8 @@ const getOrderScreen = async (req, res) => {
 
         const products = await Product.find(productQuery).sort({ name: 1 }).populate('category', 'name');
         const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
-        
-        res.render('frontline/index', { 
+
+        res.render('frontline/index', {
             user: req.session.user,
             products: products,
             categories: allCategories,
@@ -98,7 +194,7 @@ const getProductDetailPage = async (req, res) => {
     try {
         const productId = req.params.id;
         const product = await Product.findById(productId).populate('category', 'name');
-        
+
         if (!product) {
             return res.status(404).send('Product not found');
         }
@@ -171,21 +267,21 @@ const createOrder = async (req, res) => {
         if (!cart || cart.length === 0) {
             return res.status(400).json({ success: false, message: 'Cart is empty.' });
         }
-        
+
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const discountAmount = discountApplied ? subtotal * 0.20 : 0;
         const serverTotalAmount = subtotal - discountAmount;
-        
+
         if (Math.abs(serverTotalAmount - totalAmount) > 0.01) {
             console.warn('Client-side total did not match server-side total. Using server total.');
         }
-        
+
         const orderItems = cart.map(cartItem => {
             return {
                 productId: cartItem.id,
                 quantity: cartItem.quantity,
                 price: cartItem.price,
-                sizeLabel: cartItem.sizeLabel 
+                sizeLabel: cartItem.sizeLabel
             };
         });
 
@@ -197,21 +293,21 @@ const createOrder = async (req, res) => {
             discountApplied: discountApplied,
             discountAmount: discountAmount,
             createdBy: req.session.user.id,
-            branch: req.session.user.branch // Add branch ID to the transaction
+            branch: req.session.user.branch
         });
 
         await newTransaction.save();
 
         const populatedTransaction = await Transaction.findById(newTransaction._id)
             .populate('items.productId', 'name');
-        
+
         req.io.emit('newOrder', populatedTransaction);
         req.io.emit('superAdminNewOrder', { branchId: req.session.user.branch });
 
-        res.status(201).json({ 
-            success: true, 
+        res.status(201).json({
+            success: true,
             message: 'Order placed successfully!',
-            orderId: newTransaction._id 
+            orderId: newTransaction._id
         });
 
     } catch (error) {
@@ -225,16 +321,16 @@ const completeOrder = async (req, res) => {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) return res.status(404).send('Transaction not found.');
-        
+
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Completed' });
 
-        req.io.emit('orderStatusUpdated', { 
-            orderId: transactionId, 
+        req.io.emit('orderStatusUpdated', {
+            orderId: transactionId,
             oldStatus: oldStatus,
-            newStatus: 'Completed' 
+            newStatus: 'Completed'
         });
-        
+
         req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
 
         res.redirect('/sales');
@@ -249,16 +345,16 @@ const cancelOrder = async (req, res) => {
         const transactionId = req.params.id;
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) return res.status(404).send('Transaction not found.');
-        
+
         const oldStatus = transaction.status;
         await Transaction.findByIdAndUpdate(transactionId, { status: 'Cancelled' });
-        
-        req.io.emit('orderStatusUpdated', { 
+
+        req.io.emit('orderStatusUpdated', {
             orderId: transactionId,
             oldStatus: oldStatus,
-            newStatus: 'Cancelled' 
+            newStatus: 'Cancelled'
         });
-        
+
         req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
 
         res.redirect('/sales');
@@ -272,6 +368,8 @@ module.exports = {
     getLoginPage,
     postLogin,
     logoutUser,
+    getStaffApplicationPage,
+    postStaffApplication,
     getOrderScreen,
     getProductDetailPage,
     getCartPage,

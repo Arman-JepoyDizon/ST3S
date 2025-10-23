@@ -1,36 +1,77 @@
 <%- include('../partials/adminHeader') %>
-
 <%- include('../partials/adminDesktopNav', { activePage: 'users' }) %>
 
+<%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
     <div class="admin-container">
-        <%# Sidebar is removed %>
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3">Edit User</h2>
+                    <h2 class="h3 mb-0">Edit User</h2>
                     <a href="/admin/users" class="btn btn-outline-secondary">
                         Cancel
                     </a>
                 </div>
 
+                 <%# Error Display %>
+                 <% if (locals.errors && errors.length > 0) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+                        <ul class="mb-0 small ps-3">
+                            <% errors.forEach(error => { %> <li><%- error %></li> <% }) %>
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
                 <div class="card form-card">
                     <div class="card-body">
                         <form action="/admin/users/edit/<%= user_details._id %>" method="POST">
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="usernameMobile" name="username" placeholder="Username" value="<%= user_details.username %>" required>
-                                <label for="usernameMobile">Username</label>
+
+                             <%# First/Last Name %>
+                             <div class="row g-3 mb-3">
+                                <div class="col-12"> <%# Full width for first name on mobile %>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="firstNameMobile" name="firstName" placeholder="First Name *" value="<%= locals.input ? input.firstName : user_details.firstName %>" required>
+                                        <label for="firstNameMobile">First Name *</label>
+                                    </div>
+                                </div>
+                                <div class="col-12"> <%# Full width for last name on mobile %>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="lastNameMobile" name="lastName" placeholder="Last Name *" value="<%= locals.input ? input.lastName : user_details.lastName %>" required>
+                                        <label for="lastNameMobile">Last Name *</label>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="form-floating mb-3">
-                                <select class="form-select" id="roleMobile" name="role" aria-label="User Role">
-                                    <option value="Front Liner" <%= user_details.role == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
-                                    <option value="Cook" <%= user_details.role == 'Cook' ? 'selected' : '' %>>Cook</option>
-                                    <option value="Admin" <%= user_details.role == 'Admin' ? 'selected' : '' %>>Admin</option>
-                                </select>
-                                <label for="roleMobile">Role</label>
+                             <%# Readonly Contact Number %>
+                             <div class="form-floating mb-3">
+                                <input type="tel" class="form-control" id="contactNumberMobile" name="contactNumberDisplay" value="<%= user_details.contactNumber %>" readonly disabled>
+                                <label for="contactNumberMobile">Contact Number (Login ID)</label>
                             </div>
+
+                            <%# Role Selection %>
+                            <div class="form-floating mb-3">
+                                <% const currentRoleMobile = locals.input ? input.role : user_details.role %>
+                                <select class="form-select" id="roleMobile" name="role" required>
+                                     <option value="" disabled hidden>Select Role *</option>
+                                    <%# Admin can only assign Admin, Front Liner, Cook %>
+                                    <option value="Admin" <%= currentRoleMobile == 'Admin' ? 'selected' : '' %>>Admin</option>
+                                    <option value="Front Liner" <%= currentRoleMobile == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
+                                    <option value="Cook" <%= currentRoleMobile == 'Cook' ? 'selected' : '' %>>Cook</option>
+                                </select>
+                                <label for="roleMobile">Role *</label>
+                            </div>
+
+                             <%# Branch (Readonly Display) %>
+                             <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="branchMobile" value="<%= user_details.branch ? user_details.branch.name : 'N/A' %>" readonly disabled>
+                                <label for="branchMobile">Branch</label>
+                             </div>
+
+                             <div class="form-text mb-3 small">Note: Contact Number, Branch, and Password cannot be changed.</div>
+
 
                             <button type="submit" class="btn btn-primary w-100 btn-lg">Save Changes</button>
                         </form>
@@ -42,40 +83,80 @@
     <%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
 </div>
 
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
     <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Edit User</h2>
-            <p class="text-muted">Update details for <%= user_details.username %>.</p>
+            <p class="text-muted">Update details for <%= user_details.firstName %> <%= user_details.lastName %>.</p>
         </div>
         <a href="/admin/users" class="btn btn-outline-secondary d-flex align-items-center">
             <i class="bi bi-x-lg me-1"></i> Cancel
         </a>
     </div>
 
-    <div class="card form-card">
+     <%# Error Display %>
+     <% if (locals.errors && errors.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 800px; margin: 0 auto 1.5rem auto;">
+             <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+            <ul class="mb-0 small ps-3">
+                 <% errors.forEach(error => { %><li><%- error %></li><% }) %>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
+    <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
         <div class="card-body p-4">
             <form action="/admin/users/edit/<%= user_details._id %>" method="POST">
-                <div class="row">
+                 <h5 class="mb-3 fw-semibold">Personal Information</h5>
+                <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="usernameDesktop" name="username" placeholder="Username" value="<%= user_details.username %>" required>
-                            <label for="usernameDesktop">Username</label>
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="firstNameDesktop" name="firstName" placeholder="First Name *" value="<%= locals.input ? input.firstName : user_details.firstName %>" required>
+                            <label for="firstNameDesktop">First Name *</label>
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-floating mb-3">
-                            <select class="form-select" id="roleDesktop" name="role" aria-label="User Role">
-                                <option value="Front Liner" <%= user_details.role == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
-                                <option value="Cook" <%= user_details.role == 'Cook' ? 'selected' : '' %>>Cook</option>
-                                <option value="Admin" <%= user_details.role == 'Admin' ? 'selected' : '' %>>Admin</option>
+                         <div class="form-floating">
+                            <input type="text" class="form-control" id="lastNameDesktop" name="lastName" placeholder="Last Name *" value="<%= locals.input ? input.lastName : user_details.lastName %>" required>
+                            <label for="lastNameDesktop">Last Name *</label>
+                        </div>
+                    </div>
+                </div>
+                 <div class="form-floating mb-4">
+                    <input type="tel" class="form-control" id="contactNumberDesktop" name="contactNumberDisplay" value="<%= user_details.contactNumber %>" readonly disabled>
+                    <label for="contactNumberDesktop">Contact Number (Login ID)</label>
+                </div>
+
+                 <hr class="my-4">
+                 <h5 class="mb-3 fw-semibold">Account Details</h5>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                             <% const currentRoleDesktop = locals.input ? input.role : user_details.role %>
+                             <select class="form-select" id="roleDesktop" name="role" required>
+                                 <option value="" disabled hidden>Select Role *</option>
+                                <%# Admin can only assign Admin, Front Liner, Cook %>
+                                <option value="Admin" <%= currentRoleDesktop == 'Admin' ? 'selected' : '' %>>Admin</option>
+                                <option value="Front Liner" <%= currentRoleDesktop == 'Front Liner' ? 'selected' : '' %>>Frontliner</option>
+                                <option value="Cook" <%= currentRoleDesktop == 'Cook' ? 'selected' : '' %>>Cook</option>
                             </select>
-                            <label for="roleDesktop">Role</label>
+                            <label for="roleDesktop">Role *</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="branchDesktop" value="<%= user_details.branch ? user_details.branch.name : 'N/A' %>" readonly disabled>
+                             <label for="branchDesktop">Branch</label>
                         </div>
                     </div>
                 </div>
 
-                <hr class="my-3">
+                 <div class="form-text mb-3">Note: Contact Number, Branch, and Password cannot be changed from this screen.</div>
+
+                <hr class="my-4">
 
                 <div class="text-end">
                     <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
@@ -86,3 +167,8 @@
 </div>
 
 <%- include('../partials/adminFooter') %>
+
+<%# Add JS for floating label fixes if needed %>
+<script>
+    // Add JS here if Bootstrap's default floating label behavior for selects isn't perfect
+</script>

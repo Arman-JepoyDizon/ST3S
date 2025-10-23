@@ -2,52 +2,103 @@
 <%- include('../partials/superAdminNav', { activePage: 'users' }) %>
 
 <main class="superadmin-main-container">
-    <div class="page-header">
+    <div class="admin-page-header"> <%# Reusing style %>
         <div>
             <h2 class="h3 mb-0">Edit User</h2>
-            <p class="text-muted">Update details for <%= userToEdit.username %>.</p>
+            <p class="text-muted">Update details for <%= userToEdit.firstName %> <%= userToEdit.lastName %>.</p>
         </div>
         <a href="/superadmin/users" class="btn btn-outline-secondary d-flex align-items-center">
             <i class="bi bi-x-lg me-1"></i> Cancel
         </a>
     </div>
 
-    <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
+     <%# Added: Error display section %>
+     <% if (locals.errors && errors.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 800px; margin: 0 auto 1.5rem auto;">
+            <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+            <ul class="mb-0 small ps-3">
+                <% errors.forEach(error => { %>
+                    <li><%- error %></li>
+                <% }) %>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
+
+    <div class="card form-card" style="max-width: 800px; margin: 0 auto;"> <%# Reusing style %>
         <div class="card-body p-lg-4">
             <form action="/superadmin/users/edit/<%= userToEdit._id %>" method="POST">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= userToEdit.username %>" required>
-                            <label for="username">Username</label>
+
+                <h5 class="mb-3 fw-semibold">Personal Information</h5>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <%# Use value from userToEdit, fallback to submitted input if error %>
+                            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="First Name" value="<%= locals.input ? input.firstName : userToEdit.firstName %>" required>
+                            <label for="firstName">First Name *</label>
                         </div>
                     </div>
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                             <select class="form-select" id="role" name="role">
-                                <option value="Admin" <%= userToEdit.role === 'Admin' ? 'selected' : '' %>>Admin</option>
-                                <option value="Front Liner" <%= userToEdit.role === 'Front Liner' ? 'selected' : '' %>>Front Liner</option>
-                                <option value="Cook" <%= userToEdit.role === 'Cook' ? 'selected' : '' %>>Cook</option>
-                            </select>
-                            <label for="role">Role</label>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                             <%# Use value from userToEdit, fallback to submitted input if error %>
+                            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Last Name" value="<%= locals.input ? input.lastName : userToEdit.lastName %>" required>
+                            <label for="lastName">Last Name *</label>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-floating mb-3" id="branch-selector-wrapper">
-                    <select class="form-select" id="branch" name="branch">
-                        <option value="">-- No Branch Assigned --</option>
-                        <% branches.forEach(branch => { %>
-                            <option value="<%= branch._id %>" <%= userToEdit.branch && String(userToEdit.branch) === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
-                        <% }) %>
-                    </select>
-                    <label for="branch">Branch</label>
+                 <div class="form-floating mb-3">
+                    <input type="tel" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number" value="<%= userToEdit.contactNumber %>" readonly disabled title="Contact number cannot be changed.">
+                    <label for="contactNumber">Contact Number (Login ID)</label>
                 </div>
+
+                 <hr class="my-4">
+                 <h5 class="mb-3 fw-semibold">Account Details</h5>
+
+                 <div class="form-floating mb-3">
+                     <%# Use value from userToEdit, fallback to submitted input if error %>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username (Internal/Display)" value="<%= locals.input ? input.username : userToEdit.username %>" required>
+                    <label for="username">Username (Internal/Display) *</label>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <% const currentRole = locals.input ? input.role : userToEdit.role %>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="Super Admin" <%= currentRole === 'Super Admin' ? 'selected' : '' %>>Super Admin</option>
+                                <option value="Admin" <%= currentRole === 'Admin' ? 'selected' : '' %>>Admin</option>
+                                <option value="Assistant Manager" <%= currentRole === 'Assistant Manager' ? 'selected' : '' %>>Assistant Manager</option>
+                                <option value="Front Liner" <%= currentRole === 'Front Liner' ? 'selected' : '' %>>Front Liner</option>
+                                <option value="Cook" <%= currentRole === 'Cook' ? 'selected' : '' %>>Cook</option>
+                            </select>
+                            <label for="role">Role *</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <% const currentBranch = locals.input ? input.branch : String(userToEdit.branch) %>
+                             <select class="form-select" id="branch" name="branch" <%= currentRole === 'Super Admin' ? 'disabled' : 'required' %>>
+                                <option value="" <%= !currentBranch && currentRole !== 'Super Admin' ? 'selected' : '' %> <%= currentRole !== 'Super Admin' ? 'disabled hidden' : '' %>>
+                                    <%= currentRole === 'Super Admin' ? 'N/A (Super Admin)' : '-- Select Branch * --' %>
+                                </option>
+                                <% branches.forEach(branch => { %>
+                                    <option value="<%= branch._id %>" <%= String(currentBranch) === String(branch._id) ? 'selected' : '' %>>
+                                        <%= branch.name %>
+                                    </option>
+                                <% }) %>
+                            </select>
+                            <label for="branch">Branch <% if(currentRole !== 'Super Admin') { %>*<% } %></label> <%# Conditional asterisk %>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-text mb-3">Note: Password cannot be changed from this screen.</div>
 
                 <hr class="my-4">
 
-                <div class="d-flex justify-content-between align-items-center">
-                     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal">Delete User</button>
+                <div class="text-end">
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="bi bi-check-circle-fill me-2"></i>Save Changes
                     </button>
@@ -57,48 +108,35 @@
     </div>
 </main>
 
-<div class="modal fade" id="deleteUserModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete the user <strong><%= userToEdit.username %></strong>? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="/superadmin/users/delete/<%= userToEdit._id %>" method="POST">
-                    <button type="submit" class="btn btn-danger">Yes, Delete User</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<%# Role/Branch Toggle Script %>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const roleSelect = document.getElementById('role');
+    const branchSelect = document.getElementById('branch');
+    const branchLabel = document.querySelector('label[for="branch"]');
 
-<div class="d-lg-none">
-    <%- include('../partials/superAdminBottomNav', { activePage: 'users' }) %>
-</div>
+    function toggleBranch() {
+        if (!roleSelect || !branchSelect || !branchLabel) return;
+        const isSuperAdmin = roleSelect.value === 'Super Admin';
+        branchSelect.disabled = isSuperAdmin;
+        branchSelect.required = !isSuperAdmin;
+        branchLabel.innerHTML = isSuperAdmin ? 'Branch (N/A for Super Admin)' : 'Branch *';
+        if (isSuperAdmin) {
+             // Optionally clear branch selection when switching to Super Admin
+            // branchSelect.value = '';
+        } else {
+             // Ensure a valid branch is selected if switching away from Super Admin and none is set
+             if(!branchSelect.value) {
+                 // Maybe select the first available branch? Or rely on form validation.
+             }
+        }
+    }
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', toggleBranch);
+        toggleBranch(); // Initial check
+    }
+});
+</script>
 
 <%- include('../partials/superAdminFooter') %>
-
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const roleSelector = document.getElementById('role');
-        const branchWrapper = document.getElementById('branch-selector-wrapper');
-
-        const toggleBranchSelector = () => {
-            if (roleSelector.value === 'Super Admin') {
-                branchWrapper.style.display = 'none';
-                branchWrapper.querySelector('select').removeAttribute('required');
-            } else {
-                branchWrapper.style.display = 'block';
-                branchWrapper.querySelector('select').setAttribute('required', 'required');
-            }
-        };
-
-        roleSelector.addEventListener('change', toggleBranchSelector);
-        toggleBranchSelector(); // Run on page load
-    });
-</script>

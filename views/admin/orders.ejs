@@ -1,5 +1,4 @@
 <%- include('../partials/adminHeader') %>
-
 <%- include('../partials/adminDesktopNav', { activePage: 'orders' }) %>
 
 <%# --- MOBILE VIEW --- %>
@@ -11,7 +10,7 @@
                 <div class="page-header d-flex justify-content-between align-items-center mb-3">
                     <div>
                         <h2 class="h3 mb-0">Transactions</h2>
-                        <p class="text-muted mb-0"><%= transactions.length %> of <%= totalTransactionsCount %> records</p>
+                        <p class="text-muted mb-0"><span id="transaction-count-mobile"><%= transactions.length %></span> of <span id="total-branch-count-mobile"><%= totalTransactionsCount %></span> records</p>
                     </div>
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
                         <i class="bi bi-download"></i>
@@ -21,113 +20,36 @@
                 <div class="card filter-card-mobile mb-4">
                     <div class="card-body">
                         <h5 class="card-title mb-3"><i class="bi bi-funnel me-2"></i>Filters</h5>
-                        <form action="/admin/orders" method="GET" id="mobile-filter-form">
-                            <div class="form-floating mb-3">
-                                <input type="search" class="form-control" id="searchOrdersMobile" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
-                                <label for="searchOrdersMobile">Search order number...</label>
-                            </div>
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="filter-date-range-mobile" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>" readonly>
-                                <label for="filter-date-range-mobile">Select date range</label>
-                            </div>
-                            <div class="form-floating mb-3">
-                                <select name="status" id="status-filter-mobile" class="form-select">
-                                     <option value="">All Statuses</option>
-                                    <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
-                                    <option value="Ready" <%= locals.query && query.status === 'Ready' ? 'selected' : '' %>>Ready</option>
-                                    <option value="Completed" <%= locals.query && query.status === 'Completed' ? 'selected' : '' %>>Completed</option>
-                                    <option value="Cancelled" <%= locals.query && query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
-                                </select>
-                                <label>All Status</label>
-                            </div>
-                             <div class="d-flex gap-2">
-                                <a href="/admin/orders" class="btn btn-light w-100">Clear</a>
-                                <button type="submit" class="btn btn-secondary w-100 d-none">Apply</button>
-                            </div>
-                        </form>
+                        <div class="form-floating mb-3">
+                            <input type="search" class="form-control live-filter-input" id="searchOrdersMobile" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
+                            <label for="searchOrdersMobile">Search order number...</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control live-filter-input flatpickr-range" id="filter-date-range-mobile" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>">
+                            <label for="filter-date-range-mobile">Select date range</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <select name="status" id="status-filter-mobile" class="form-select live-filter-input">
+                                 <option value="">All Statuses</option>
+                                <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="Ready" <%= locals.query && query.status === 'Ready' ? 'selected' : '' %>>Ready</option>
+                                <option value="Completed" <%= locals.query && query.status === 'Completed' ? 'selected' : '' %>>Completed</option>
+                                <option value="Cancelled" <%= locals.query && query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                            </select>
+                            <label for="status-filter-mobile">Status</label>
+                        </div>
+                         <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-light w-100" id="clear-filters-mobile">Clear</button>
+                        </div>
                     </div>
                 </div>
 
-
-                <div class="transaction-list-mobile">
-                    <% if (transactions && transactions.length > 0) { %>
-                        <% transactions.forEach(transaction => { %>
-                            <div class="card transaction-card mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
-                                            <% if (transaction.customerName) { %>
-                                                <p class="text-primary fw-bold mb-0 customer-name-display">
-                                                    <i class="bi bi-person-badge"></i> 
-                                                    <%= transaction.customerName %>
-                                                </p>
-                                            <% } %>
-                                            <small class="text-muted d-block mt-1">
-                                                <i class="bi bi-calendar-event"></i>
-                                                <%= new Date(transaction.createdAt).toLocaleDateString() %>
-                                            </small>
-                                            <small class="text-muted d-block">
-                                                <i class="bi bi-person"></i> 
-                                                <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
-                                            </small>
-                                            <small class="text-muted d-block">
-                                                <i class="bi bi-credit-card"></i> 
-                                                <%= transaction.paymentMethod %>
-                                            </small>
-                                        </div>
-                                        <% if (transaction.status === 'Completed') { %>
-                                            <span class="badge badge-status-completed">Completed</span>
-                                        <% } else if (transaction.status === 'Cancelled') { %>
-                                            <span class="badge badge-status-cancelled">Cancelled</span>
-                                        <% } else if (transaction.status === 'Ready') { %>
-                                            <span class="badge badge-status-ready">Ready</span>
-                                        <% } else { %>
-                                            <span class="badge badge-status-pending">Pending</span>
-                                        <% } %>
-                                    </div>
-                                    <ul class="list-group list-group-flush sales-item-list my-2">
-                                        <% transaction.items.forEach(item => { %>
-                                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
-                                                <div>
-                                                    <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
-                                                    <% if (item.sizeLabel) { %>
-                                                        <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
-                                                    <% } %>
-                                                </div>
-                                                <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
-                                            </li>
-                                        <% }) %>
-                                    </ul>
-                                    <div class="border-top pt-2">
-                                        <% if (transaction.discountApplied) { %>
-                                            <div class="d-flex justify-content-between">
-                                                <p class="text-muted mb-1 small">Subtotal</p>
-                                                <p class="fw-bold text-muted mb-1 small">₱<%= (transaction.totalAmount + transaction.discountAmount).toFixed(2) %></p>
-                                            </div>
-                                            <div class="d-flex justify-content-between">
-                                                <p class="text-muted mb-1 small">Discount (20%)</p>
-                                                <p class="fw-bold text-danger mb-1 small">- ₱<%= transaction.discountAmount.toFixed(2) %></p>
-                                            </div>
-                                            <hr class="my-1">
-                                        <% } %>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <p class="text-muted mb-0 fw-bold">Total</p>
-                                            <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <div class="card text-center py-5">
-                            <i class="bi bi-receipt-cutoff fs-1 text-muted mb-3"></i>
-                            <h5 class="mb-1">No Transactions Found</h5>
-                            <p class="text-muted">No records match your current filters.</p>
-                             <a href="/admin/orders" class="btn btn-light mt-2">Clear Filters</a>
-                        </div>
-                    <% } %>
+                <div id="transaction-list-container-mobile">
+                    <%# Initial list rendered by server %>
+                    <%# Updated: Corrected include path %>
+                    <%- include('_ordersList', { transactions: transactions, target: 'mobile' }) %>
                 </div>
+
             </main>
         </div>
     </div>
@@ -140,7 +62,7 @@
     <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Transactions</h2>
-            <p class="text-muted"><%= transactions.length %> of <%= totalTransactionsCount %> records shown</p>
+            <p class="text-muted"><span id="transaction-count-desktop"><%= transactions.length %></span> of <span id="total-branch-count-desktop"><%= totalTransactionsCount %></span> records shown</p>
         </div>
         <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#exportModal">
             <i class="bi bi-download me-2"></i>Export to CSV
@@ -148,18 +70,18 @@
     </div>
 
     <div class="card filter-bar mb-4">
-        <form action="/admin/orders" method="GET" id="desktop-filter-form" class="d-flex gap-3 align-items-center">
+        <div class="d-flex gap-3 align-items-center" id="desktop-filter-controls">
             <div class="flex-grow-1 form-control-icon-wrapper">
                 <i class="bi bi-search"></i>
-                <input type="search" class="form-control" id="searchOrdersDesktop" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
+                <input type="search" class="form-control live-filter-input" id="searchOrdersDesktop" name="search" placeholder="Search order number..." value="<%= locals.query ? query.search : '' %>">
             </div>
             <div class="form-control-icon-wrapper">
                 <i class="bi bi-calendar-range"></i>
-                <input type="text" class="form-control" id="filter-date-range" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>">
+                <input type="text" class="form-control live-filter-input flatpickr-range" id="filter-date-range-desktop" name="dateRange" placeholder="Select date range" value="<%= locals.query ? query.dateRange : '' %>">
             </div>
             <div class="form-control-icon-wrapper">
                 <i class="bi bi-funnel"></i>
-                <select name="status" id="status-filter-desktop" class="form-select">
+                <select name="status" id="status-filter-desktop" class="form-select live-filter-input">
                     <option value="">All Statuses</option>
                     <option value="Pending" <%= locals.query && query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
                     <option value="Ready" <%= locals.query && query.status === 'Ready' ? 'selected' : '' %>>Ready</option>
@@ -167,65 +89,19 @@
                     <option value="Cancelled" <%= locals.query && query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-secondary btn-filter-apply">Filter</button>
-            <a href="/admin/orders" class="btn btn-light">Clear</a>
-        </form>
+            <button type="button" class="btn btn-light" id="clear-filters-desktop">Clear</button>
+        </div>
     </div>
 
-    <div class="list-table-container">
-        <% if (transactions && transactions.length > 0) { %>
-            <div class="list-table-header orders-grid">
-                <div>Order Number</div>
-                <div>Date & Time</div>
-                <div>Payment</div>
-                <div>Total</div>
-                <div>Status</div>
-                <div class="text-end">Actions</div>
-            </div>
-
-            <div class="transaction-list-desktop">
-                <% transactions.forEach(transaction => { %>
-                    <div class="list-table-row orders-grid">
-                        <div class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></div>
-                        <div><%= new Date(transaction.createdAt).toLocaleString() %></div>
-                        <div><%= transaction.paymentMethod %></div>
-                        <div class="fw-bold text-primary">
-                            <% if (transaction.discountApplied) { %>
-                                <span class="text-decoration-line-through text-muted small">₱<%= (transaction.totalAmount + transaction.discountAmount).toFixed(2) %></span><br>
-                            <% } %>
-                            ₱<%= transaction.totalAmount.toFixed(2) %>
-                        </div>
-                        <div>
-                            <% if (transaction.status === 'Completed') { %>
-                                <span class="badge badge-status-completed">Completed</span>
-                            <% } else if (transaction.status === 'Cancelled') { %>
-                                <span class="badge badge-status-cancelled">Cancelled</span>
-                            <% } else if (transaction.status === 'Ready') { %>
-                                <span class="badge badge-status-ready">Ready</span>
-                            <% } else { %>
-                                <span class="badge badge-status-pending">Pending</span>
-                            <% } %>
-                        </div>
-                        <div class="text-end">
-                            <button type="button" class="btn btn-outline-secondary btn-sm view-order-btn" 
-                                data-transaction='<%- JSON.stringify(transaction) %>'>
-                                View
-                            </button>
-                        </div>
-                    </div>
-                <% }) %>
-            </div>
-        <% } else { %>
-            <div class="text-center py-5">
-                <i class="bi bi-receipt-cutoff fs-1 text-muted mb-3"></i>
-                <h5 class="mb-1">No Transactions Found</h5>
-                <p class="text-muted">No records match your current filters. Try clearing them to see all transactions.</p>
-                 <a href="/admin/orders" class="btn btn-light mt-2">Clear Filters</a>
-            </div>
-        <% } %>
+    <div id="transaction-list-container-desktop">
+         <%# Initial list rendered by server %>
+         <%# Updated: Corrected include path %>
+         <%- include('_ordersList', { transactions: transactions, target: 'desktop' }) %>
     </div>
+
 </div>
 
+<%# Export Modal (Structure remains unchanged) %>
 <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -234,6 +110,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <%# Date Range Selection %>
                 <div class="mb-4">
                     <label class="form-label fw-bold">Date Range</label>
                     <div class="d-flex flex-wrap gap-2 mb-2">
@@ -245,7 +122,7 @@
                     <input type="text" id="export-date-range" class="form-control" placeholder="Select custom date range (optional)">
                     <small class="text-muted">Leave empty to export all transactions within the status filter.</small>
                 </div>
-
+                <%# Status Filter %>
                 <div class="mb-4">
                     <label for="export-status-filter" class="form-label fw-bold">Status Filter</label>
                     <select id="export-status-filter" class="form-select">
@@ -256,67 +133,30 @@
                         <option value="Cancelled">Cancelled</option>
                     </select>
                 </div>
-
+                <%# Fields Selection %>
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label fw-bold mb-0">Fields to Export</label>
-                        <div>
-                            <a href="#" class="select-all-fields me-2">Select All</a>
-                            <a href="#" class="deselect-all-fields">Deselect All</a>
-                        </div>
+                        <div><a href="#" class="select-all-fields me-2">Select All</a><a href="#" class="deselect-all-fields">Deselect All</a></div>
                     </div>
                     <div class="export-fields-grid">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="orderId" id="field-orderId" checked>
-                            <label class="form-check-label" for="field-orderId">Order Number</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="date" id="field-date" checked>
-                            <label class="form-check-label" for="field-date">Date</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="time" id="field-time" checked>
-                            <label class="form-check-label" for="field-time">Time</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="status" id="field-status" checked>
-                            <label class="form-check-label" for="field-status">Status</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="items" id="field-items" checked>
-                            <label class="form-check-label" for="field-items">Item Details</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="totalAmount" id="field-totalAmount" checked>
-                            <label class="form-check-label" for="field-totalAmount">Total Amount</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="createdBy" id="field-createdBy" checked>
-                            <label class="form-check-label" for="field-createdBy">Created By</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="paymentMethod" id="field-paymentMethod">
-                            <label class="form-check-label" for="field-paymentMethod">Payment Method</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="customerName" id="field-customerName">
-                            <label class="form-check-label" for="field-customerName">Customer Name</label>
-                        </div>
-                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="exportFields" value="discount" id="field-discount">
-                            <label class="form-check-label" for="field-discount">Discount Details</label>
-                        </div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="orderId" id="field-orderId" checked><label class="form-check-label" for="field-orderId">Order Number</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="date" id="field-date" checked><label class="form-check-label" for="field-date">Date</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="time" id="field-time" checked><label class="form-check-label" for="field-time">Time</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="status" id="field-status" checked><label class="form-check-label" for="field-status">Status</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="items" id="field-items" checked><label class="form-check-label" for="field-items">Item Details</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="totalAmount" id="field-totalAmount" checked><label class="form-check-label" for="field-totalAmount">Total Amount</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="createdBy" id="field-createdBy" checked><label class="form-check-label" for="field-createdBy">Created By</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="paymentMethod" id="field-paymentMethod"><label class="form-check-label" for="field-paymentMethod">Payment Method</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="customerName" id="field-customerName"><label class="form-check-label" for="field-customerName">Customer Name</label></div>
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="exportFields" value="discount" id="field-discount"><label class="form-check-label" for="field-discount">Discount Details</label></div>
                     </div>
                 </div>
-
+                <%# Export Summary %>
                 <div class="alert alert-success export-summary">
                     <i class="bi bi-info-circle-fill me-2"></i>
-                    <div>
-                        <span class="fw-bold">Export Summary</span><br>
-                        This will export <strong id="export-count">...</strong> transactions with <strong id="export-columns-count">...</strong> columns.
-                    </div>
+                    <div><span class="fw-bold">Export Summary</span><br>This will export <strong id="export-count">...</strong> transactions with <strong id="export-columns-count">...</strong> columns.</div>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -326,48 +166,124 @@
     </div>
 </div>
 
+<%# Order Details Modal %>
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header d-block text-center border-0 pt-4 pb-0">
+                <div class="receipt-icon-wrapper mx-auto mb-2"><i class="bi bi-receipt fs-3 text-white"></i></div>
+                <h5 class="modal-title fw-bold fs-5 mb-0" id="orderDetailsModalLabel">Order Receipt</h5>
+                <p class="text-muted mb-0" id="modal-order-timestamp"></p>
+                <button type="button" class="btn-close position-absolute top-0 end-0 mt-3 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div class="bg-light p-3 rounded-3 mb-3"><small class="text-muted d-block">Order Number</small><strong class="fs-6" id="modal-order-id">ORD-XXXXXXXXXX</strong></div>
+                <h6 class="fw-bold mb-3">Items</h6>
+                <div id="modal-items-list" class="mb-4"></div>
+                <div id="modal-pricing-details" class="mb-4"></div>
+                <div class="d-grid gap-2 mb-3"><button type="button" class="btn btn-primary fw-bold btn-lg" id="modal-change-status-btn"></button></div>
+                <div class="d-grid"><button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Close</button></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <%- include('../partials/adminFooter') %>
 
+<%# --- JavaScript for Live Filtering, Flatpickr, Modals --- %>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const setupAutoSubmit = (formId, inputIds) => { /* ... No changes here ... */ };
-
-        setupAutoSubmit('desktop-filter-form', {
-            search: 'searchOrdersDesktop',
-            date: 'filter-date-range',
-            status: 'status-filter-desktop'
-        });
-
-        setupAutoSubmit('mobile-filter-form', {
-            search: 'searchOrdersMobile',
-            date: 'filter-date-range-mobile',
-            status: 'status-filter-mobile'
-        });
-        
-        // --- Fixed: Added "Select All" / "Deselect All" Logic ---
-        const exportModal = document.getElementById('exportModal');
-        if (exportModal) {
-            const selectAllBtn = exportModal.querySelector('.select-all-fields');
-            const deselectAllBtn = exportModal.querySelector('.deselect-all-fields');
-            const fieldCheckboxes = exportModal.querySelectorAll('input[name="exportFields"]');
-
-            const triggerChange = () => {
-                if (fieldCheckboxes.length > 0) {
-                    fieldCheckboxes[0].dispatchEvent(new Event('change'));
-                }
-            };
-
-            selectAllBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                fieldCheckboxes.forEach(cb => cb.checked = true);
-                triggerChange();
-            });
-
-            deselectAllBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                fieldCheckboxes.forEach(cb => cb.checked = false);
-                triggerChange();
-            });
-        }
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Flatpickr Initialization ---
+    flatpickr(".flatpickr-range", {
+        mode: "range", dateFormat: "Y-m-d", altInput: true, altFormat: "M j, Y", allowInput: true,
+        onClose: function(selectedDates, dateStr, instance) { if (typeof instance._initialValue === 'undefined') { instance._initialValue = instance.input.value; } if (instance.input.value !== instance._initialValue) { fetchAndUpdateOrders(); instance._initialValue = instance.input.value; } },
+        onOpen: function(selectedDates, dateStr, instance) { instance._initialValue = instance.input.value; }
     });
+
+    // --- Filter Input Elements ---
+    const searchInputMobile = document.getElementById('searchOrdersMobile');
+    const dateInputMobile = document.getElementById('filter-date-range-mobile');
+    const statusInputMobile = document.getElementById('status-filter-mobile');
+    const clearMobileBtn = document.getElementById('clear-filters-mobile');
+    const listContainerMobile = document.getElementById('transaction-list-container-mobile');
+    const countMobileEl = document.getElementById('transaction-count-mobile');
+    const totalMobileEl = document.getElementById('total-branch-count-mobile');
+    const searchInputDesktop = document.getElementById('searchOrdersDesktop');
+    const dateInputDesktop = document.getElementById('filter-date-range-desktop');
+    const statusInputDesktop = document.getElementById('status-filter-desktop');
+    const clearDesktopBtn = document.getElementById('clear-filters-desktop');
+    const listContainerDesktop = document.getElementById('transaction-list-container-desktop');
+    const countDesktopEl = document.getElementById('transaction-count-desktop');
+    const totalDesktopEl = document.getElementById('total-branch-count-desktop');
+    let fetchTimeout;
+
+    // --- Function to Fetch and Update Orders ---
+    async function fetchAndUpdateOrders() {
+        const searchVal = searchInputDesktop ? searchInputDesktop.value : (searchInputMobile ? searchInputMobile.value : '');
+        const dateVal = dateInputDesktop ? dateInputDesktop.value : (dateInputMobile ? dateInputMobile.value : '');
+        const statusVal = statusInputDesktop ? statusInputDesktop.value : (statusInputMobile ? statusInputMobile.value : '');
+        const params = new URLSearchParams();
+        if (searchVal) params.append('search', searchVal);
+        if (dateVal) params.append('dateRange', dateVal);
+        if (statusVal) params.append('status', statusVal);
+        const queryString = params.toString();
+        const newUrl = `${window.location.pathname}${queryString ? '?' + queryString : ''}`;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+        try {
+            const loadingHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            if(listContainerMobile) listContainerMobile.innerHTML = loadingHTML;
+            if(listContainerDesktop) listContainerDesktop.innerHTML = loadingHTML;
+            const [mobileHtmlResponse, desktopHtmlResponse, dataResponse] = await Promise.all([
+                 fetch(`/admin/orders/renderList?${queryString}&target=mobile`),
+                 fetch(`/admin/orders/renderList?${queryString}&target=desktop`),
+                 fetch(`/admin/orders/data?${queryString}`)
+            ]);
+            if (!mobileHtmlResponse.ok || !desktopHtmlResponse.ok || !dataResponse.ok) { throw new Error(`HTTP error! Status: ${mobileHtmlResponse.status}, ${desktopHtmlResponse.status}, ${dataResponse.status}`); }
+            const mobileHtml = await mobileHtmlResponse.text();
+            const desktopHtml = await desktopHtmlResponse.text();
+            const data = await dataResponse.json();
+            if(listContainerMobile) listContainerMobile.innerHTML = mobileHtml;
+            if(listContainerDesktop) listContainerDesktop.innerHTML = desktopHtml;
+            if(countMobileEl) countMobileEl.textContent = data.totalFilteredCount;
+            if(totalMobileEl) totalMobileEl.textContent = data.totalBranchCount;
+            if(countDesktopEl) countDesktopEl.textContent = data.totalFilteredCount;
+            if(totalDesktopEl) totalDesktopEl.textContent = data.totalBranchCount;
+            attachModalListeners();
+        } catch (error) {
+            console.error("Error fetching or rendering orders:", error);
+            const errorHTML = '<div class="alert alert-danger">Failed to load orders. Please try refreshing.</div>';
+            if(listContainerMobile) listContainerMobile.innerHTML = errorHTML;
+            if(listContainerDesktop) listContainerDesktop.innerHTML = errorHTML;
+        }
+    }
+
+    // --- Event Listeners for Filters ---
+    function addFilterListeners(searchInput, dateInput, statusInput) { if (searchInput) { searchInput.addEventListener('input', () => { clearTimeout(fetchTimeout); fetchTimeout = setTimeout(fetchAndUpdateOrders, 400); }); } if (statusInput) { statusInput.addEventListener('change', fetchAndUpdateOrders); } }
+    addFilterListeners(searchInputMobile, dateInputMobile, statusInputMobile);
+    addFilterListeners(searchInputDesktop, dateInputDesktop, statusInputDesktop);
+
+    // --- Clear Filters ---
+    function clearFilters() { if(searchInputMobile) searchInputMobile.value = ''; const fpMobile = dateInputMobile ? flatpickr(dateInputMobile) : null; if(fpMobile) fpMobile.clear(); if(statusInputMobile) statusInputMobile.value = ''; if(searchInputDesktop) searchInputDesktop.value = ''; const fpDesktop = dateInputDesktop ? flatpickr(dateInputDesktop) : null; if(fpDesktop) fpDesktop.clear(); if(statusInputDesktop) statusInputDesktop.value = ''; fetchAndUpdateOrders(); }
+    if(clearMobileBtn) clearMobileBtn.addEventListener('click', clearFilters);
+    if(clearDesktopBtn) clearDesktopBtn.addEventListener('click', clearFilters);
+
+    // --- Order Details Modal Logic ---
+    function attachModalListeners() {
+        const orderDetailsModalElement = document.getElementById('orderDetailsModal');
+        if (!orderDetailsModalElement) return;
+        const orderDetailsModal = bootstrap.Modal.getOrCreateInstance(orderDetailsModalElement);
+        const handleViewClick = (event) => { const button = event.target.closest('.view-order-btn'); if (button) { event.preventDefault(); const transactionJson = button.dataset.transaction; if (!transactionJson) { console.error("Missing data-transaction attribute on button:", button); return; } try { const transaction = JSON.parse(transactionJson); populateModal(transaction, orderDetailsModal); } catch (e) { console.error("Error parsing transaction JSON:", e, "JSON:", transactionJson); } } };
+        if (listContainerMobile) { listContainerMobile.removeEventListener('click', handleViewClick); listContainerMobile.addEventListener('click', handleViewClick); }
+        if (listContainerDesktop) { listContainerDesktop.removeEventListener('click', handleViewClick); listContainerDesktop.addEventListener('click', handleViewClick); }
+        const populateModal = (transaction, modalInstance) => { const modalOrderTimestamp = document.getElementById('modal-order-timestamp'); const modalOrderId = document.getElementById('modal-order-id'); const modalItemsList = document.getElementById('modal-items-list'); const modalPricingDetails = document.getElementById('modal-pricing-details'); const modalChangeStatusBtn = document.getElementById('modal-change-status-btn'); const createdAtDate = new Date(transaction.createdAt); modalOrderTimestamp.textContent = createdAtDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + createdAtDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); modalOrderId.textContent = `ORD-${transaction._id.toString().slice(-10).toUpperCase()}`; modalItemsList.innerHTML = ''; transaction.items.forEach(item => { const itemRow = document.createElement('div'); itemRow.className = 'modal-item-row'; let itemNameDisplay = item.productId ? item.productId.name : 'Product Not Found'; if (item.sizeLabel) { itemNameDisplay += ` <small class="text-muted">(${item.sizeLabel})</small>`; } itemRow.innerHTML = `<span class="modal-item-name"><span class="fw-bold me-2">${item.quantity}x</span> ${itemNameDisplay}</span><span class="modal-item-price">₱${(item.price * item.quantity).toFixed(2)}</span>`; modalItemsList.appendChild(itemRow); }); if (transaction.discountApplied) { const subtotal = transaction.totalAmount + transaction.discountAmount; modalPricingDetails.innerHTML = `<div class="d-flex justify-content-between text-muted small"><span>Subtotal</span><span>₱${subtotal.toFixed(2)}</span></div><div class="d-flex justify-content-between text-danger small"><span>Discount (20%)</span><span>- ₱${transaction.discountAmount.toFixed(2)}</span></div><hr class="my-2"><div class="d-flex justify-content-between align-items-center"><h5 class="fw-bold mb-0">Total</h5><h5 class="fw-bold text-primary mb-0 fs-4">₱${transaction.totalAmount.toFixed(2)}</h5></div>`; } else { modalPricingDetails.innerHTML = `<div class="d-flex justify-content-between align-items-center"><h5 class="fw-bold mb-0">Total</h5><h5 class="fw-bold text-primary mb-0 fs-4">₱${transaction.totalAmount.toFixed(2)}</h5></div>`; } const newStatusBtn = modalChangeStatusBtn.cloneNode(true); modalChangeStatusBtn.parentNode.replaceChild(newStatusBtn, modalChangeStatusBtn); if (transaction.status === 'Pending' || transaction.status === 'Ready') { newStatusBtn.style.display = 'block'; newStatusBtn.dataset.nextStatus = transaction.status === 'Pending' ? 'Ready' : 'Completed'; newStatusBtn.textContent = transaction.status === 'Pending' ? 'Mark as Ready' : 'Mark as Completed'; newStatusBtn.className = `btn fw-bold btn-lg ${transaction.status === 'Pending' ? 'btn-primary' : 'btn-success'}`; newStatusBtn.addEventListener('click', async () => { const nextStatus = newStatusBtn.dataset.nextStatus; if (!nextStatus) return; try { const response = await fetch(`/admin/orders/${transaction._id}/status`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: nextStatus }) }); if (response.ok) { fetchAndUpdateOrders(); modalInstance.hide(); } else { alert('Failed to update order status'); } } catch (error) { console.error('Error:', error); alert('An error occurred.'); } }, { once: true }); } else { newStatusBtn.style.display = 'none'; } modalInstance.show(); };
+    } // end if(orderDetailsModalElement)
+
+
+    // --- Export Modal Logic ---
+    const exportModalElement = document.getElementById('exportModal');
+    if (exportModalElement) { const exportDateRangePicker = flatpickr("#export-date-range", { mode: "range", dateFormat: "Y-m-d", onChange: function() { document.querySelectorAll('.date-preset-btn').forEach(btn => btn.classList.remove('active')); updateExportSummary(); } }); const presetButtons = exportModalElement.querySelectorAll('.date-preset-btn'); const statusFilter = exportModalElement.querySelector('#export-status-filter'); const fieldCheckboxes = exportModalElement.querySelectorAll('input[name="exportFields"]'); const finalExportBtn = exportModalElement.querySelector('#final-export-btn'); const updateExportSummary = async () => { const dateRange = exportDateRangePicker.input.value; const status = statusFilter.value; let query = new URLSearchParams(); if (dateRange) query.append('dateRange', dateRange); if (status) query.append('status', status); try { const response = await fetch(`/admin/orders/count?${query.toString()}`); const data = await response.json(); document.getElementById('export-count').innerText = data.count || 0; } catch (error) { console.error("Error fetching export count:", error); document.getElementById('export-count').innerText = 'N/A'; } const selectedCols = Array.from(fieldCheckboxes).filter(cb => cb.checked).length; document.getElementById('export-columns-count').innerText = selectedCols; }; presetButtons.forEach(button => { button.addEventListener('click', () => { presetButtons.forEach(btn => btn.classList.remove('active')); button.classList.add('active'); const today = new Date(); let startDate, endDate = new Date(); switch (button.dataset.range) { case 'today': startDate = today; break; case 'week': startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()); break; case 'month': startDate = new Date(today.getFullYear(), today.getMonth(), 1); break; case '3months': startDate = new Date(today.getFullYear(), today.getMonth() - 2, 1); break; default: startDate = today; } exportDateRangePicker.setDate([startDate, endDate], true); }); }); if (finalExportBtn) { finalExportBtn.addEventListener('click', () => { const dateRange = exportDateRangePicker.input.value; const status = statusFilter.value; const selectedFields = Array.from(fieldCheckboxes).filter(cb => cb.checked).map(cb => cb.value); if (selectedFields.length === 0) { alert('Please select at least one field to export.'); return; } const query = new URLSearchParams(); if (dateRange) query.append('dateRange', dateRange); if (status) query.append('status', status); selectedFields.forEach(field => query.append('fields', field)); window.location.href = `/admin/orders/export?${query.toString()}`; }); } exportModalElement.addEventListener('show.bs.modal', updateExportSummary); if(statusFilter) statusFilter.addEventListener('change', updateExportSummary); if(fieldCheckboxes) fieldCheckboxes.forEach(cb => cb.addEventListener('change', updateExportSummary)); /* Select/Deselect All Logic */ const selectAllBtn = exportModalElement.querySelector('.select-all-fields'); const deselectAllBtn = exportModalElement.querySelector('.deselect-all-fields'); if(selectAllBtn && deselectAllBtn && fieldCheckboxes) { const triggerChange = () => { if (fieldCheckboxes.length > 0) { fieldCheckboxes[0].dispatchEvent(new Event('change')); } }; selectAllBtn.addEventListener('click', (e) => { e.preventDefault(); fieldCheckboxes.forEach(cb => cb.checked = true); triggerChange(); }); deselectAllBtn.addEventListener('click', (e) => { e.preventDefault(); fieldCheckboxes.forEach(cb => cb.checked = false); triggerChange(); }); } }
+
+    // Initial setup
+    attachModalListeners(); // Attach listeners on initial load
+});
 </script>

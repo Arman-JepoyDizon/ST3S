@@ -1,0 +1,23 @@
+<%# File: views/partials/assistantManagerDesktopNav.ejs %>
+<%# Added: Desktop navigation bar for Assistant Manager %>
+
+<header class="admin-desktop-nav d-none d-lg-block"> <%# Reusing admin style %>
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="/assistant/registrations" class="d-flex align-items-center text-dark text-decoration-none">
+                <img src="/icons/favicon.png" alt="Mira's ST3S Logo" style="height: 36px; width: 36px;" class="me-2">
+                <span class="fw-bold fs-5">Mira's ST3S</span>
+                 <span class="badge bg-secondary ms-2">Asst. Manager</span> <%# Role indicator %>
+            </a>
+            <nav class="d-flex align-items-center">
+                <a href="/assistant/registrations" class="nav-item-desktop <%= activePage === 'registrations' ? 'active' : '' %>">
+                    <i class="bi bi-person-check me-1"></i> Registrations
+                </a>
+                <%# Add more links here if the role expands %>
+                <a href="#" class="nav-item-desktop" data-bs-toggle="modal" data-bs-target="#assistantLogoutConfirmModal"> <%# Ensure unique modal ID %>
+                    <i class="bi bi-box-arrow-right me-1"></i> Logout
+                </a>
+            </nav>
+        </div>
+    </div>
+</header>

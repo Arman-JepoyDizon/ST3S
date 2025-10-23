@@ -2,100 +2,115 @@
 <%- include('../partials/superAdminNav', { activePage: 'users' }) %>
 
 <main class="superadmin-main-container">
-    <div class="page-header">
+    <div class="admin-page-header">
         <div>
             <h2 class="h3 mb-0">Add New User</h2>
-            <p class="text-muted">Create a new staff member and assign them a role and branch.</p>
+            <p class="text-muted d-none d-lg-block mb-0">Create a new user account directly.</p>
         </div>
         <a href="/superadmin/users" class="btn btn-outline-secondary d-flex align-items-center">
             <i class="bi bi-x-lg me-1"></i> Cancel
         </a>
     </div>
 
+     <% if (locals.errors && errors.length > 0) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 800px; margin: 0 auto 1.5rem auto;">
+            <h5 class="alert-heading fw-bold">Please fix the following errors:</h5>
+            <ul class="mb-0 small ps-3">
+                <% errors.forEach(error => { %>
+                    <li><%- error %></li>
+                <% }) %>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
     <div class="card form-card" style="max-width: 800px; margin: 0 auto;">
         <div class="card-body p-lg-4">
-            <% if (errors && errors.length > 0) { %>
-                <div class="alert alert-danger" role="alert">
-                    <h5 class="alert-heading">Error!</h5>
-                    <ul class="mb-0">
-                        <% errors.forEach(error => { %>
-                            <li><%= error %></li>
-                        <% }) %>
+            <form action="/superadmin/users/add" method="POST" id="add-user-form">
+
+                <h5 class="mb-3 fw-semibold">Personal Information</h5>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="First Name *" value="<%= locals.input ? input.firstName : '' %>" required>
+                            <label for="firstName">First Name *</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Last Name *" value="<%= locals.input ? input.lastName : '' %>" required>
+                            <label for="lastName">Last Name *</label>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="form-floating mb-3">
+                    <input type="tel" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number *" pattern="^\+63\d{10}$" value="<%= locals.input ? input.contactNumber : '+63' %>" required>
+                    <label for="contactNumber">Contact Number * (+63XXXXXXXXXX)</label>
+                    <div class="form-text mt-1">This will be the user's login ID.</div>
+                </div>
+
+                <hr class="my-4">
+                <h5 class="mb-3 fw-semibold">Account Details</h5>
+
+                 <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Username (Internal/Display) *" value="<%= locals.input ? input.username : '' %>" required>
+                    <label for="username">Username (Internal/Display) *</label>
+                     <div class="form-text mt-1">Used for internal reference or display name.</div>
+                </div>
+
+                 <%# Updated: Wrap form-floating and icon together %>
+                 <div class="mb-3 position-relative">
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Password *" required minlength="8" aria-describedby="criteriaList">
+                        <label for="password">Password *</label>
+                    </div>
+                     <i class="bi bi-eye-slash password-toggle-icon" id="togglePassword" style="top: 50%; transform: translateY(-50%); right: 0.75rem; z-index: 3; cursor: pointer;"></i> <%# Inline style for positioning %>
+                     <ul class="password-criteria" id="criteriaList" style="display: none;">
+                        <li id="length"><i class="bi bi-x-circle"></i> Minimum 8 characters</li>
+                        <li id="lowercase"><i class="bi bi-x-circle"></i> At least one lowercase letter</li>
+                        <li id="uppercase"><i class="bi bi-x-circle"></i> At least one uppercase letter</li>
+                        <li id="number"><i class="bi bi-x-circle"></i> At least one number</li>
+                        <li id="special"><i class="bi bi-x-circle"></i> At least one special character (!@#$%^&*)</li>
                     </ul>
                 </div>
-            <% } %>
 
-            <form action="/superadmin/users/add" method="POST">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="username" name="username" placeholder="Username" value="<%= input.username || '' %>" required>
-                            <label for="username">Username</label>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="contactNumber" name="contactNumber" placeholder="Contact Number" value="<%= input.contactNumber || '' %>">
-                            <label for="contactNumber">Contact Info (Optional)</label>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
-                            <label for="password">Password</label>
-                        </div>
-                    </div>
-                     <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <input type="password" class="form-control" id="passwordRepeat" name="passwordRepeat" placeholder="Confirm Password" required>
-                            <label for="passwordRepeat">Confirm Password</label>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-2 mb-3">
-                    <div id="passwordHelpBlock" class="form-text">
-                        Your password must be at least 8 characters long and include:
-                        <ul>
-                            <li>One uppercase and one lowercase letter</li>
-                            <li>At least one number</li>
-                            <li>At least one special character (e.g., !, @, #, $, %)</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3">
-                            <select class="form-select" id="role" name="role">
-                                <option value="Admin" <%= input.role === 'Admin' ? 'selected' : '' %>>Admin</option>
-                                <option value="Front Liner" <%= (!input.role || input.role === 'Front Liner') ? 'selected' : '' %>>Front Liner</option>
-                                <option value="Cook" <%= input.role === 'Cook' ? 'selected' : '' %>>Cook</option>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                             <select class="form-select" id="role" name="role" required>
+                                <option value="" selected disabled hidden>Select Role *</option>
+                                <%# Removed: Super Admin option %>
+                                <option value="Admin" <%= (locals.input && input.role === 'Admin') ? 'selected' : '' %>>Admin</option>
+                                <option value="Assistant Manager" <%= (locals.input && input.role === 'Assistant Manager') ? 'selected' : '' %>>Assistant Manager</option>
+                                <option value="Front Liner" <%= (locals.input && input.role === 'Front Liner') ? 'selected' : '' %>>Front Liner</option>
+                                <option value="Cook" <%= (locals.input && input.role === 'Cook') ? 'selected' : '' %>>Cook</option>
                             </select>
-                            <label for="role">Role</label>
+                            <label for="role">Role *</label>
                         </div>
                     </div>
-                    <div class="col-lg-6">
-                        <div class="form-floating mb-3" id="branch-selector-wrapper">
-                            <select class="form-select" id="branch" name="branch" required>
-                                <option value="" hidden>Select a Branch</option>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                             <select class="form-select" id="branch" name="branch" <%= (locals.input && input.role === 'Super Admin') ? 'disabled' : '' %>> <%# Logic remains, though Super Admin isn't selectable now %>
+                                <option value="" selected disabled hidden>-- Select Branch --</option>
                                 <% branches.forEach(branch => { %>
-                                    <option value="<%= branch._id %>" <%= String(input.branch) === String(branch._id) ? 'selected' : '' %>><%= branch.name %></option>
+                                    <option value="<%= branch._id %>" <%= (locals.input && input.branch == branch._id) ? 'selected' : '' %>>
+                                        <%= branch.name %>
+                                    </option>
                                 <% }) %>
                             </select>
                             <label for="branch">Branch</label>
+                            <div class="form-text mt-1">Required unless role is Super Admin.</div>
                         </div>
                     </div>
                 </div>
-                
+
                 <hr class="my-4">
 
                 <div class="text-end">
                     <button type="submit" class="btn btn-primary btn-lg">
-                        <i class="bi bi-person-plus-fill me-2"></i>Create User
+                        <i class="bi bi-plus-circle-fill me-2"></i>Create User
                     </button>
                 </div>
             </form>
@@ -108,3 +123,64 @@
 </div>
 
 <%- include('../partials/superAdminFooter') %>
+
+<%# --- Add User Specific Scripts --- %>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Role/Branch Toggle ---
+    const roleSelect = document.getElementById('role');
+    const branchSelect = document.getElementById('branch');
+    const branchLabel = document.querySelector('label[for="branch"]');
+
+    function toggleBranchRequired() {
+        if (!roleSelect || !branchSelect) return;
+        // Since Super Admin isn't selectable, branch is always required now
+        // But keep the logic in case you re-add Super Admin later
+        if (roleSelect.value === 'Super Admin') { // This condition likely won't be met anymore
+            branchSelect.disabled = true;
+            branchSelect.required = false;
+            if(branchLabel) branchLabel.innerHTML = 'Branch (N/A for Super Admin)';
+        } else {
+            branchSelect.disabled = false;
+            branchSelect.required = true; // Make branch required for all other roles
+             if(branchLabel) branchLabel.innerHTML = 'Branch *'; // Add asterisk
+        }
+    }
+    if (roleSelect) roleSelect.addEventListener('change', toggleBranchRequired);
+    toggleBranchRequired(); // Initial check
+
+    // --- Phone Number Formatting ---
+    const phoneInput = document.getElementById('contactNumber');
+    if (phoneInput) { /* ... phone formatting logic ... */ if (phoneInput.value === '' || !phoneInput.value.startsWith('+63')) { phoneInput.value = '+63'; } phoneInput.addEventListener('input', (e) => { let v = e.target.value; if (!v.startsWith('+63')) { v = '+63'; } v = '+63' + v.substring(3).replace(/[^\d]/g, ''); if (v.length > 13) { v = v.substring(0, 13); } e.target.value = v; }); phoneInput.addEventListener('keydown', (e) => { const s = e.target.selectionStart; const end = e.target.selectionEnd; if ((e.key === 'Backspace' && s <= 3) || (e.key === 'Delete' && s < 3)) { if (s === end || end <= 3) { e.preventDefault(); } } }); }
+
+
+    // --- Password Toggle ---
+    function setupPasswordToggle(inputId, toggleId) { const pI = document.getElementById(inputId); const tI = document.getElementById(toggleId); if (pI && tI) { tI.addEventListener('click', function () { const type = pI.getAttribute('type') === 'password' ? 'text' : 'password'; pI.setAttribute('type', type); this.classList.toggle('bi-eye'); this.classList.toggle('bi-eye-slash'); }); } }
+    setupPasswordToggle('password', 'togglePassword');
+
+    // --- Password Criteria Validation (Visual Only) ---
+    const passwordInput = document.getElementById('password');
+    const criteria = { length: document.getElementById('length'), lowercase: document.getElementById('lowercase'), uppercase: document.getElementById('uppercase'), number: document.getElementById('number'), special: document.getElementById('special') };
+    const criteriaList = document.getElementById('criteriaList');
+    const criteriaChecks = { length: (pw) => pw.length >= 8, lowercase: (pw) => /[a-z]/.test(pw), uppercase: (pw) => /[A-Z]/.test(pw), number: (pw) => /\d/.test(pw), special: (pw) => /[@$!%*?&]/.test(pw) };
+
+    if (passwordInput && criteriaList) {
+        passwordInput.addEventListener('focus', () => { criteriaList.style.display = 'block'; });
+        passwordInput.addEventListener('input', () => {
+             const password = passwordInput.value;
+             criteriaList.style.display = 'block';
+             for (const key in criteria) {
+                 if (criteria[key]) {
+                     const isValid = criteriaChecks[key](password);
+                     criteria[key].classList.toggle('valid', isValid);
+                     criteria[key].querySelector('i').className = isValid ? 'bi bi-check-circle-fill' : 'bi bi-x-circle';
+                 }
+             }
+        });
+    }
+
+     // --- Floating Label Fix for Selects ---
+     document.querySelectorAll('.form-floating .form-select').forEach(select => { /* ... select fix logic ... */ function checkSelectValue() { /* Check value */ } select.addEventListener('change', checkSelectValue); checkSelectValue(); });
+
+});
+</script>

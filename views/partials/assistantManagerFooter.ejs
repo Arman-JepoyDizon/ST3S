@@ -1,0 +1,69 @@
+<%# File: views/partials/assistantManagerFooter.ejs %>
+<%# Added: Footer partial for Assistant Manager, including logout modal %>
+
+<%# Logout Confirmation Modal (Unique ID) %>
+<div class="modal fade" id="assistantLogoutConfirmModal" tabindex="-1" aria-labelledby="assistantLogoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <h5 class="mb-3" id="assistantLogoutModalLabel">Do you wish to logout?</h5>
+                <p class="text-muted small">You will be logged out automatically.</p>
+
+                <div class="progress" role="progressbar" aria-label="Logout countdown" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="height: 10px">
+                    <div class="progress-bar bg-primary" id="assistant-logout-progress-bar" style="width: 100%"></div> <%# Unique progress bar ID %>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <a href="/logout" class="btn btn-primary">Logout Now</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# Common Scripts %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/vport.js"></script> <%# Include if using dynamic viewport height %>
+<script src="/socket.io/socket.io.js"></script> <%# Include if real-time updates are needed %>
+<script src="/js/main.js"></script> <%# Include main JS file %>
+
+<%# Initialize logout modal timer for this specific modal %>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Re-use or adapt the logout modal timer initialization from main.js if needed
+    // Ensure it targets the unique IDs: 'assistantLogoutConfirmModal' and 'assistant-logout-progress-bar'
+     const initializeLogoutModal = (modalId, progressBarId) => {
+        const logoutModalEl = document.getElementById(modalId);
+        if (logoutModalEl) {
+            let logoutTimer, countdownInterval;
+            const countdownDuration = 10000; // 10 seconds
+            logoutModalEl.addEventListener('show.bs.modal', () => {
+                const progressBar = document.getElementById(progressBarId);
+                let timeLeft = countdownDuration;
+                progressBar.style.width = '100%';
+                progressBar.classList.remove('bg-danger'); // Reset color
+                progressBar.classList.add('bg-primary');
+                // Start countdown timer
+                logoutTimer = setTimeout(() => { window.location.href = '/logout'; }, countdownDuration);
+                // Update progress bar visuals
+                countdownInterval = setInterval(() => {
+                    timeLeft -= 100;
+                    progressBar.style.width = `${Math.max(0, (timeLeft / countdownDuration) * 100)}%`;
+                     // Change color in last few seconds
+                    if (timeLeft <= 3000) { progressBar.classList.remove('bg-primary'); progressBar.classList.add('bg-danger'); }
+                }, 100);
+            });
+            logoutModalEl.addEventListener('hide.bs.modal', () => {
+                // Clear timers when modal is closed manually
+                clearTimeout(logoutTimer);
+                clearInterval(countdownInterval);
+            });
+        }
+    };
+    initializeLogoutModal('assistantLogoutConfirmModal', 'assistant-logout-progress-bar');
+});
+</script>
+
+</body>
+</html>

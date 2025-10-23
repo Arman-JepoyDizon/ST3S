@@ -110,6 +110,36 @@ const postDeleteBranch = async (req, res) => {
     }
 };
 
+const postDeleteCategorySuper = async (req, res) => { // Use a distinct name or ensure it's the correct function
+    const categoryId = req.params.id;
+    try {
+        // Added: Check if ANY products use this category (no branch filter)
+        const productCount = await Product.countDocuments({ category: categoryId });
+
+        if (productCount > 0) {
+            console.warn(`Super Admin ${req.session.user.id} attempted to delete category ${categoryId} which has ${productCount} products assigned.`);
+            // Redirect back with an error (using flash messages is recommended)
+            // You'll need a way to display this error on the Super Admin categories page
+            // req.flash('error', `Cannot delete category: ${productCount} product(s) are assigned to it.`); // Example using flash
+            return res.redirect('/superadmin/categories'); // Redirect back to the list page
+        }
+
+        // Proceed with deletion if no products are found
+        const deletedCategory = await Category.findByIdAndDelete(categoryId);
+        if (!deletedCategory) {
+             // req.flash('error', 'Category not found.'); // Example using flash
+             return res.status(404).redirect('/superadmin/categories');
+        }
+         // req.flash('success', 'Category deleted successfully.'); // Example using flash
+        res.redirect('/superadmin/categories');
+
+    } catch (error) {
+        console.error("Error Deleting Category (Super Admin):", error);
+         // req.flash('error', 'Server error while deleting category.'); // Example using flash
+         res.status(500).redirect('/superadmin/categories');
+    }
+};
+
 const getProductsPage = async (req, res) => {
     try {
         const { search, branch } = req.query;
@@ -236,19 +266,22 @@ const getAddUserPage = async (req, res) => {
 };
 
 const postAddUser = async (req, res) => {
-    const { username, contactNumber, password, passwordRepeat, role, branch } = req.body;
+    const { firstName, lastName, username, contactNumber, password, role, branch } = req.body;
     try {
-        if (password !== passwordRepeat) {
-            throw { customError: 'Passwords do not match.' };
+        // Added: Explicitly prevent creating Super Admin role via this form
+        if (role === 'Super Admin') {
+             throw new Error('Cannot create Super Admin users via this form.');
         }
 
-        // ADDED: Password complexity validation
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            throw { customError: 'Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*).' };
-        }
-
-        const newUser = new User({ username, contactNumber, password, role, branch });
+        const newUser = new User({
+            firstName,
+            lastName,
+            username,
+            contactNumber,
+            password, // Plain text, pre-save hook handles it
+            role,
+            branch: role === 'Super Admin' ? null : branch // Logic remains, though should always have branch now
+        });
         await newUser.save();
 
         res.redirect('/superadmin/users');
@@ -256,20 +289,11 @@ const postAddUser = async (req, res) => {
     } catch (error) {
         const branches = await Branch.find({ status: 'Active' });
         let errors = [];
-        if (error.customError) {
-            errors.push(error.customError);
-        } else if (error.code === 11000) {
-            errors.push('Username already exists. Please choose a different one.');
-        } else if (error.name === 'ValidationError') {
-            for (let field in error.errors) {
-                errors.push(error.errors[field].message);
-            }
-        } else {
-            console.error('Unexpected error creating user:', error);
-            errors.push('An unexpected error occurred. Please try again.');
-        }
+        if (error.code === 11000) { /* ... duplicate key handling ... */ if (error.keyPattern && error.keyPattern.contactNumber) { errors.push('Contact number already exists.'); } else { errors.push('A unique field already exists.'); } }
+        else if (error.name === 'ValidationError') { for (let field in error.errors) { errors.push(error.errors[field].message); } }
+        else { console.error('Unexpected error creating user:', error); errors.push(error.message || 'An unexpected error occurred.'); }
 
-        res.render('superadmin/addUser', {
+        res.status(400).render('superadmin/addUser', {
             user: req.session.user,
             activePage: 'users',
             branches,
@@ -281,25 +305,96 @@ const postAddUser = async (req, res) => {
 
 const getEditUserPage = async (req, res) => {
     try {
-        const userToEdit = await User.findById(req.params.id);
+        const userToEdit = await User.findById(req.params.id); // Don't populate branch here, let the view handle String comparison
         if (!userToEdit) return res.status(404).send('User not found.');
-        const branches = await Branch.find({ status: 'Active' });
-        res.render('superadmin/editUser', { user: req.session.user, userToEdit, branches, activePage: 'users' });
+
+        const branches = await Branch.find({ status: 'Active' }); // Fetch branches for the dropdown
+
+        res.render('superadmin/editUser', {
+            user: req.session.user, // Current logged-in user
+            userToEdit: userToEdit, // The user being edited
+            branches: branches,     // List of branches for dropdown
+            activePage: 'users',
+            errors: null,       // Pass null for errors initially
+            input: null         // Pass null for input initially
+        });
     } catch (error) {
         console.error('Error fetching user for edit (super admin):', error);
         res.status(500).send('Server Error');
     }
 };
 
+
 const postUpdateUser = async (req, res) => {
+    const userId = req.params.id;
     try {
-        const { username, role, branch } = req.body;
-        const updateData = { username, role, branch: role === 'Super Admin' ? null : branch };
-        await User.findByIdAndUpdate(req.params.id, updateData);
-        res.redirect('/superadmin/users');
+        const { firstName, lastName, username, role, branch } = req.body;
+
+        if (!firstName || !lastName || !username || !role) {
+             // Re-render with specific error
+             throw new Error('Missing required fields (First Name, Last Name, Username, Role).');
+        }
+        if (role !== 'Super Admin' && !branch) {
+             // Re-render with specific error
+              throw new Error('Branch is required for this role.');
+        }
+
+        const updateData = {
+            firstName,
+            lastName,
+            username,
+            role,
+            branch: role === 'Super Admin' ? null : branch
+        };
+
+        // Find user, update, run validators, and return the NEW document
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+             new: true, // Return the modified document rather than the original
+             runValidators: true // Force schema validation on update
+        });
+
+        if (!updatedUser) { // Should not happen if ID is valid, but good check
+            return res.status(404).send('User not found during update.');
+        }
+
+        res.redirect('/superadmin/users'); // Success -> redirect to list
+
     } catch (error) {
         console.error('Error updating user (super admin):', error);
-        res.status(500).send('Server Error');
+        // --- Error Handling: Re-render the edit page ---
+        try {
+            // Fetch necessary data again to re-render the page
+            const userToEdit = await User.findById(userId); // Get original data to display
+             if (!userToEdit) {
+                 // Handle case where user was deleted between GET and POST, though unlikely
+                return res.status(404).send('User not found.');
+            }
+            const branches = await Branch.find({ status: 'Active' });
+            let errors = [];
+
+            if (error.name === 'ValidationError') {
+                for (let field in error.errors) {
+                    errors.push(error.errors[field].message);
+                }
+            } else {
+                 // Use the generic error message for other errors
+                errors.push(error.message || 'An unexpected error occurred during update.');
+            }
+
+            // Re-render the edit page, passing errors and the submitted input data
+            return res.status(400).render('superadmin/editUser', {
+                user: req.session.user,
+                userToEdit: userToEdit, // Pass original user data
+                branches: branches,
+                activePage: 'users',
+                errors: errors,         // Pass the collected errors
+                input: req.body         // Pass the submitted form data for repopulation
+            });
+        } catch (renderError) {
+             // Handle errors during the error re-rendering itself
+             console.error('Error trying to re-render edit user page after update failure:', renderError);
+             return res.status(500).send('Server Error during user update and failed to reload edit page.');
+        }
     }
 };
 
