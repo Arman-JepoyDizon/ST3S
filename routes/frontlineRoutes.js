@@ -32,4 +32,8 @@ router.post('/orders', isAuthenticated, frontlineController.createOrder);
 router.post('/orders/:id/complete', isAuthenticated, frontlineController.completeOrder);
 router.post('/orders/:id/cancel', isAuthenticated, frontlineController.cancelOrder);
 
+router.get('/profile/:id', frontlineController.getProfilePage)
+router.post('/profile/update', frontlineController.postProfileUpdate)
+router.get('/password/reset', frontlineController.getResetPasswordPage)
+router.post('/password/reset', frontlineController.postResetPassword)
 module.exports = router;

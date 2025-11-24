@@ -1,5 +1,4 @@
 <%- include('../partials/adminHeader') %>
-
 <%- include('../partials/adminDesktopNav', { activePage: 'products' }) %>
 
 <%# --- MOBILE VIEW --- %>
@@ -8,119 +7,107 @@
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
-                <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3">Edit Product</h2>
-                    <a href="/admin/products" class="btn btn-outline-secondary">Cancel</a>
+                <div class="page-header mb-4">
+                    <h2 class="h3 mb-0 fw-bold">Edit Product</h2>
+                    <p class="text-muted small">Editing: <%= product.name %></p>
                 </div>
 
-                <div class="card form-card">
+                <% if (locals.errors && errors.length > 0) { %>
+                    <div class="alert alert-danger">
+                        <ul class="mb-0 ps-3">
+                            <% errors.forEach(error => { %><li><%= error %></li><% }) %>
+                        </ul>
+                    </div>
+                <% } %>
+
+                <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <form action="/admin/products/update/<%= product._id %>" method="POST">
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="nameMobile" name="name" placeholder="Product Name" value="<%= product.name %>" required>
-                                <label for="nameMobile">Product Name</label>
-                            </div>
                             
+                            <h6 class="fw-bold text-primary mb-3">Basic Info</h6>
                             <div class="form-floating mb-3">
-                                <select name="category" id="categoryMobile" class="form-select" required>
+                                <input type="text" class="form-control" name="name" placeholder="Product Name" value="<%= product.name %>" required>
+                                <label>Product Name *</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <select name="category" class="form-select" required>
+                                    <option value="" disabled>Select Category</option>
                                     <% categories.forEach(cat => { %>
-                                        <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
+                                        <option value="<%= cat._id %>" <%= String(product.category) === String(cat._id) ? 'selected' : '' %>><%= cat.name %></option>
                                     <% }) %>
                                 </select>
-                                <label for="categoryMobile">Category</label>
+                                <label>Category *</label>
+                            </div>
+
+                            <div class="form-floating mb-3">
+                                <select name="status" class="form-select" required>
+                                    <option value="Active" <%= product.status === 'Active' ? 'selected' : '' %>>Active</option>
+                                    <option value="Inactive" <%= product.status === 'Inactive' ? 'selected' : '' %>>Inactive</option>
+                                </select>
+                                <label>Status *</label>
+                            </div>
+
+                            <div class="form-floating mb-4">
+                                <input type="text" class="form-control" name="imageUrl" placeholder="Image URL" value="<%= product.imageUrl %>">
+                                <label>Image URL</label>
                             </div>
 
                             <hr>
-
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0">Pricing & Variants</h5>
-                                <button class="btn btn-primary" type="button" id="add-size-btn-mobile">
-                                    <i class="bi bi-plus-lg"></i> Add Variant
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold text-primary mb-0">Prices & Variants</h6>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-variant-mobile">
+                                    <i class="bi bi-plus-lg"></i> Add
                                 </button>
                             </div>
 
-                            <div id="price-container-mobile" class="mb-3">
-                                <% if(sizes.length === 0) { %>
-                                    <div class="price-history-group">
-                                        <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
-                                            <div class="dropdown">
-                                                <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
-                                                    <i class="bi bi-clock-history"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <% pastSinglePrices.forEach(price => { %>
-                                                        <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
-                                                            <span>₱<%= price.price.toFixed(2) %></span>
-                                                            <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
-                                                        </a></li>
-                                                    <% }) %>
-                                                </ul>
-                                            </div>
-                                        <% } %>
-                                        <div class="form-floating flex-grow-1">
-                                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                                            <label>Price</label>
-                                        </div>
-                                    </div>
-                                <% } %>
-                            </div>
-
-                            <div id="size-price-container-mobile">
-                                <% if (sizes.length > 0) { %>
-                                    <% sizes.forEach(size => { %>
-                                    <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                                    <%# Added: Filter past prices for the current size %>
-                                    <% const variantPastPrices = pastSizePrices.filter(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                                    <div class="row g-2 mb-2 align-items-center size-price-row">
-                                        <div class="col-5">
-                                            <div class="form-floating">
-                                                <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required>
-                                                <label>Size</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-5">
-                                            <div class="price-history-group">
-                                                <%# Updated: Check the new filtered array %>
-                                                 <% if (variantPastPrices && variantPastPrices.length > 0) { %>
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
-                                                            <i class="bi bi-clock-history"></i>
-                                                        </button>
-                                                        <ul class="dropdown-menu">
-                                                            <%# Updated: Loop through the new filtered array %>
-                                                            <% variantPastPrices.forEach(price => { %>
-                                                                <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
-                                                                    <span>₱<%= price.price.toFixed(2) %></span>
-                                                                    <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
-                                                                </a></li>
-                                                            <% }) %>
-                                                        </ul>
+                            <div id="size-container-mobile">
+                                <% if(product.price && product.price.length > 0) { %>
+                                    <% product.price.forEach((p, index) => { %>
+                                        <div class="card bg-light border-0 mb-2 variant-row">
+                                            <div class="card-body p-2">
+                                                <div class="row g-2">
+                                                    <div class="col-5">
+                                                        <input type="text" class="form-control form-control-sm" name="size[]" placeholder="Size (e.g. Large)" value="<%= p.size || '' %>">
                                                     </div>
-                                                <% } %>
-                                                <div class="form-floating flex-grow-1">
-                                                    <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required>
-                                                    <label>Price</label>
+                                                    <div class="col-5">
+                                                        <input type="number" class="form-control form-control-sm" name="price[]" step="0.01" placeholder="Price" value="<%= p.price %>" required>
+                                                    </div>
+                                                    <div class="col-2 text-end">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-variant">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                    <input type="hidden" name="priceStatus[]" value="<%= p.status || 'Active' %>">
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-2 text-center">
-                                            <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                    <% }) %>
+                                <% } else { %>
+                                    <%# Default empty row if no prices exist %>
+                                    <div class="card bg-light border-0 mb-2 variant-row">
+                                        <div class="card-body p-2">
+                                            <div class="row g-2">
+                                                <div class="col-5">
+                                                    <input type="text" class="form-control form-control-sm" name="size[]" placeholder="Size">
+                                                </div>
+                                                <div class="col-5">
+                                                    <input type="number" class="form-control form-control-sm" name="price[]" step="0.01" placeholder="Price" required>
+                                                </div>
+                                                <div class="col-2 text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-variant"><i class="bi bi-trash"></i></button>
+                                                </div>
+                                                <input type="hidden" name="priceStatus[]" value="Active">
+                                            </div>
                                         </div>
                                     </div>
-                                    <% }) %>
                                 <% } %>
                             </div>
 
-                            <hr>
-
-                            <div class="form-floating mb-3">
-                                <input type="text" class="form-control" id="imageUrlMobile" name="imageUrl" placeholder="Image URL (Optional)" value="<%= product.imageUrl || '' %>">
-                                <label for="imageUrlMobile">Image URL (Optional)</label>
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary fw-bold">Save Changes</button>
+                                <a href="/admin/products" class="btn btn-light">Cancel</a>
                             </div>
-
-                            <button type="submit" class="btn btn-primary w-100 btn-lg">Save Changes</button>
                         </form>
                     </div>
                 </div>
@@ -133,127 +120,132 @@
 
 <%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
-    <div class="admin-page-header">
+    <div class="admin-page-header mb-4">
         <div>
-            <h2 class="h3 mb-0">Edit Product</h2>
-            <p class="text-muted">Update the details for <%= product.name %>.</p>
+            <h2 class="h3 mb-0 fw-bold">Edit Product</h2>
+            <p class="text-muted">Update details for <%= product.name %></p>
         </div>
-        <a href="/admin/products" class="btn btn-outline-secondary d-flex align-items-center">
-            <i class="bi bi-x-lg me-1"></i> Cancel
+        <a href="/admin/products" class="btn btn-outline-secondary d-flex align-items-center shadow-sm">
+            <i class="bi bi-x-lg me-2"></i> Cancel
         </a>
     </div>
 
-    <div class="card form-card">
+    <% if (locals.errors && errors.length > 0) { %>
+        <div class="alert alert-danger shadow-sm">
+            <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following errors:</h6>
+            <ul class="mb-0 small ps-3">
+                <% errors.forEach(error => { %><li><%= error %></li><% }) %>
+            </ul>
+        </div>
+    <% } %>
+
+    <div class="card form-card border-0 shadow-sm">
         <div class="card-body p-4">
             <form action="/admin/products/update/<%= product._id %>" method="POST">
-                 <div class="row">
-                    <div class="col-md-6">
+                <div class="row g-4">
+                    
+                    <%# Left Column: Details %>
+                    <div class="col-md-6 border-end">
+                        <h5 class="fw-bold text-dark mb-3">Product Details</h5>
+                        
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="nameDesktop" name="name" placeholder="Product Name" value="<%= product.name %>" required>
-                            <label for="nameDesktop">Product Name</label>
+                            <input type="text" class="form-control" name="name" placeholder="Product Name" value="<%= product.name %>" required>
+                            <label>Product Name *</label>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                         <div class="form-floating mb-3">
-                            <select name="category" id="categoryDesktop" class="form-select" required>
-                                <% categories.forEach(cat => { %>
-                                    <option value="<%= cat._id %>" <%= String(cat._id) === String(product.category) ? 'selected' : '' %>><%= cat.name %></option>
-                                <% }) %>
-                            </select>
-                            <label for="categoryDesktop">Category</label>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="form-floating mb-4">
-                    <input type="text" class="form-control" id="imageUrlDesktop" name="imageUrl" placeholder="Image URL (Optional)" value="<%= product.imageUrl || '' %>">
-                    <label for="imageUrlDesktop">Image URL (Optional)</label>
-                </div>
-
-                <hr>
-                
-                <div class="d-flex justify-content-between align-items-center my-3">
-                    <h5 class="mb-0">Pricing & Variants</h5>
-                    <button class="btn btn-primary" type="button" id="add-size-btn-desktop">
-                        <i class="bi bi-plus-lg"></i> Add Variant
-                    </button>
-                </div>
-
-                <div id="price-container-desktop" class="mb-3">
-                    <% if (sizes.length === 0) { %>
-                        <div class="price-history-group">
-                            <% if (pastSinglePrices && pastSinglePrices.length > 0) { %>
-                                <div class="dropdown">
-                                    <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
-                                        <i class="bi bi-clock-history"></i>
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <% pastSinglePrices.forEach(price => { %>
-                                            <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
-                                                <span>₱<%= price.price.toFixed(2) %></span>
-                                                <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
-                                            </a></li>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select name="category" class="form-select" required>
+                                        <option value="" disabled>Select Category</option>
+                                        <% categories.forEach(cat => { %>
+                                            <option value="<%= cat._id %>" <%= String(product.category) === String(cat._id) ? 'selected' : '' %>><%= cat.name %></option>
                                         <% }) %>
-                                    </ul>
+                                    </select>
+                                    <label>Category *</label>
                                 </div>
-                            <% } %>
-                             <div class="form-floating flex-grow-1">
-                                <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= product.price %>" required>
-                                <label>Price</label>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select name="status" class="form-select" required>
+                                        <option value="Active" <%= product.status === 'Active' ? 'selected' : '' %>>Active</option>
+                                        <option value="Inactive" <%= product.status === 'Inactive' ? 'selected' : '' %>>Inactive</option>
+                                    </select>
+                                    <label>Status *</label>
+                                </div>
                             </div>
                         </div>
-                    <% } %>
-                </div>
 
-                <div id="size-price-container-desktop">
-                    <% if (sizes.length > 0) { %>
-                        <% sizes.forEach(size => { %>
-                            <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                            <%# Added: Filter past prices for the current size %>
-                            <% const variantPastPrices = pastSizePrices.filter(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                            <div class="row g-2 mb-2 align-items-center size-price-row">
-                                <div class="col-5">
-                                    <input type="hidden" name = sizeId[] value="<%= size._id %>">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= size.label %>" required>
-                                        <label>Size</label>
-                                    </div>
-                                </div>
-                                <div class="col-5">
-                                    <div class="price-history-group">
-                                        <%# Updated: Check the new filtered array %>
-                                        <% if (variantPastPrices && variantPastPrices.length > 0) { %>
-                                            <div class="dropdown">
-                                                <button class="btn btn-price-history" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Price History">
-                                                    <i class="bi bi-clock-history"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <%# Updated: Loop through the new filtered array %>
-                                                     <% variantPastPrices.forEach(price => { %>
-                                                        <li><a class="dropdown-item price-history-item" href="#" data-price="<%= price.price %>">
-                                                            <span>₱<%= price.price.toFixed(2) %></span>
-                                                            <small><%= new Date(price.effectiveDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) %></small>
-                                                        </a></li>
-                                                    <% }) %>
-                                                </ul>
+                        <div class="form-floating">
+                            <input type="text" class="form-control" name="imageUrl" placeholder="Image URL" value="<%= product.imageUrl %>">
+                            <label>Image URL (Optional)</label>
+                        </div>
+                    </div>
+
+                    <%# Right Column: Variants %>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">Prices & Variants</h5>
+                            <button type="button" class="btn btn-sm btn-primary fw-bold" id="add-variant-desktop">
+                                <i class="bi bi-plus-lg me-1"></i>Add Variant
+                            </button>
+                        </div>
+
+                        <div id="size-container-desktop" class="variant-list">
+                            <% if(product.price && product.price.length > 0) { %>
+                                <% product.price.forEach((p, index) => { %>
+                                    <div class="row g-2 mb-2 align-items-center variant-row">
+                                        <div class="col-5">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control" name="size[]" placeholder="Size" value="<%= p.size || '' %>">
+                                                <label>Size (Optional)</label>
                                             </div>
-                                        <% } %>
-                                        <div class="form-floating flex-grow-1">
-                                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" value="<%= correspondingPrice ? correspondingPrice.price : '' %>" required>
-                                            <label>Price</label>
+                                        </div>
+                                        <div class="col-5">
+                                            <div class="form-floating">
+                                                <input type="number" class="form-control" name="price[]" step="0.01" placeholder="Price" value="<%= p.price %>" required>
+                                                <label>Price *</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-2 text-center">
+                                            <button type="button" class="btn btn-outline-danger btn-remove-variant p-2">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        <input type="hidden" name="priceStatus[]" value="<%= p.status || 'Active' %>">
+                                    </div>
+                                <% }) %>
+                            <% } else { %>
+                                <%# Default empty row %>
+                                <div class="row g-2 mb-2 align-items-center variant-row">
+                                    <div class="col-5">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" name="size[]" placeholder="Size">
+                                            <label>Size (Optional)</label>
                                         </div>
                                     </div>
+                                    <div class="col-5">
+                                        <div class="form-floating">
+                                            <input type="number" class="form-control" name="price[]" step="0.01" placeholder="Price" required>
+                                            <label>Price *</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-2 text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-remove-variant p-2"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                    <input type="hidden" name="priceStatus[]" value="Active">
                                 </div>
-                                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button></div>
-                            </div>
-                        <% }) %>
-                    <% } %>
+                            <% } %>
+                        </div>
+                    </div>
                 </div>
-                
-                <hr class="mt-4">
+
+                <hr class="mt-4 mb-4">
 
                 <div class="text-end">
-                    <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+                    <button type="submit" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
+                        <i class="bi bi-check-circle-fill me-2"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>
@@ -264,74 +256,67 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const setupForm = (formElement) => {
-        if (!formElement) return;
+    // Function to create a new variant row (Responsive HTML)
+    const createVariantRow = (isMobile) => {
+        const div = document.createElement('div');
+        
+        if (isMobile) {
+            div.className = 'card bg-light border-0 mb-2 variant-row';
+            div.innerHTML = `
+                <div class="card-body p-2">
+                    <div class="row g-2">
+                        <div class="col-5"><input type="text" class="form-control form-control-sm" name="size[]" placeholder="Size"></div>
+                        <div class="col-5"><input type="number" class="form-control form-control-sm" name="price[]" step="0.01" placeholder="Price" required></div>
+                        <div class="col-2 text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-variant"><i class="bi bi-trash"></i></button></div>
+                        <input type="hidden" name="priceStatus[]" value="Active">
+                    </div>
+                </div>`;
+        } else {
+            div.className = 'row g-2 mb-2 align-items-center variant-row';
+            div.innerHTML = `
+                <div class="col-5"><div class="form-floating"><input type="text" class="form-control" name="size[]" placeholder="Size"><label>Size (Optional)</label></div></div>
+                <div class="col-5"><div class="form-floating"><input type="number" class="form-control" name="price[]" step="0.01" placeholder="Price" required><label>Price *</label></div></div>
+                <div class="col-2 text-center"><button type="button" class="btn btn-outline-danger btn-remove-variant p-2"><i class="bi bi-trash"></i></button></div>
+                <input type="hidden" name="priceStatus[]" value="Active">`;
+        }
+        return div;
+    };
 
-        const addSizeBtn = formElement.querySelector('.btn-primary[id^="add-size-btn"]');
-        const priceContainer = formElement.querySelector('[id^="price-container"]');
-        const sizePriceContainer = formElement.querySelector('[id^="size-price-container"]');
-
-        const attachRemoveEvent = (button) => {
-            button.addEventListener('click', () => {
-                button.closest('.size-price-row').remove();
-                if (sizePriceContainer.querySelectorAll('.size-price-row').length === 0) {
-                    priceContainer.style.display = 'block';
-                    priceContainer.innerHTML = `<div class="price-history-group"><div class="form-floating flex-grow-1"><input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required><label>Price</label></div></div>`;
+    // Function to attach remove listener to container
+    const attachRemoveListener = (container) => {
+        container.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-remove-variant');
+            if (btn) {
+                // Only remove if there's more than one row, or clear values if it's the last one
+                const rows = container.querySelectorAll('.variant-row');
+                if (rows.length > 1) {
+                    btn.closest('.variant-row').remove();
+                } else {
+                    const inputs = btn.closest('.variant-row').querySelectorAll('input');
+                    inputs.forEach(input => input.value = '');
                 }
-            });
-        };
-
-        formElement.querySelectorAll('.btn-remove-size').forEach(attachRemoveEvent);
-
-        addSizeBtn.addEventListener('click', () => {
-            if (priceContainer) {
-                priceContainer.innerHTML = '';
-                priceContainer.style.display = 'none';
             }
-            
-            const newRow = document.createElement('div');
-            newRow.classList.add('row', 'g-2', 'mb-2', 'align-items-center', 'size-price-row');
-            newRow.innerHTML = `
-                <div class="col-5">
-                    <div class="form-floating">
-                        <input type="text" class="form-control" name="size[]" placeholder="Size" required>
-                        <label>Size</label>
-                    </div>
-                </div>
-                <div class="col-5">
-                     <div class="price-history-group">
-                        <div class="form-floating flex-grow-1">
-                            <input type="number" class="form-control" name="price[]" step="0.01" min="0" placeholder="Price" required>
-                            <label>Price</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-2 text-center">
-                    <button type="button" class="btn btn-outline-danger btn-remove-size" title="Remove"><i class="bi bi-trash"></i></button>
-                </div>
-            `;
-            sizePriceContainer.appendChild(newRow);
-            attachRemoveEvent(newRow.querySelector('.btn-remove-size'));
         });
     };
 
-    setupForm(document.querySelector('.d-lg-none form'));
-    setupForm(document.querySelector('.d-none.d-lg-block form'));
+    // Mobile Setup
+    const mobileContainer = document.getElementById('size-container-mobile');
+    const mobileAddBtn = document.getElementById('add-variant-mobile');
+    if (mobileContainer && mobileAddBtn) {
+        mobileAddBtn.addEventListener('click', () => {
+            mobileContainer.appendChild(createVariantRow(true));
+        });
+        attachRemoveListener(mobileContainer);
+    }
 
-    // --- Price History Dropdown Logic ---
-    document.body.addEventListener('click', function(event) {
-        const historyItem = event.target.closest('.price-history-item');
-        if (historyItem) {
-            event.preventDefault();
-            const price = historyItem.dataset.price;
-            const priceGroup = historyItem.closest('.price-history-group');
-            if (priceGroup) {
-                const input = priceGroup.querySelector('input[type="number"]');
-                if (input) {
-                    input.value = price;
-                }
-            }
-        }
-    });
+    // Desktop Setup
+    const desktopContainer = document.getElementById('size-container-desktop');
+    const desktopAddBtn = document.getElementById('add-variant-desktop');
+    if (desktopContainer && desktopAddBtn) {
+        desktopAddBtn.addEventListener('click', () => {
+            desktopContainer.appendChild(createVariantRow(false));
+        });
+        attachRemoveListener(desktopContainer);
+    }
 });
 </script>

@@ -1,71 +1,149 @@
 <%- include('../partials/adminHeader') %>
 <%- include('../partials/adminDesktopNav', { activePage: 'users' }) %>
 
+<%# --- CUSTOM STYLES --- %>
+<style>
+    /* Desktop Grid - 6 Columns with fixed Action width */
+    .users-grid-custom {
+        display: grid;
+        /* Avatar | Name | Contact | Branch | Role | Joined | Actions */
+        grid-template-columns: 70px 2fr 1.5fr 1fr 1fr 1fr 240px; 
+        gap: 1rem;
+        align-items: center;
+    }
+
+    /* Action Button Styling */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        height: 38px;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+
+    .user-avatar-lg {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+</style>
+
 <%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
     <div class="admin-container">
         <div class="admin-content">
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
-                <div class="page-header mb-3">
-                    <h2 class="h3 mb-0">Users</h2>
-                    <%# Filter out Super Admins for the count (though controller already does) %>
+                <div class="page-header mb-4">
+                    <h2 class="h3 mb-0 fw-bold">Users</h2>
                     <% const nonSuperAdminUsersMobile = users.filter(user => user.role !== 'Super Admin'); %>
-                    <% if (users && users.length > 0) { %>
-                        <p class="text-muted"><%= nonSuperAdminUsersMobile.length %> team members</p>
-                    <% } %>
+                    <p class="text-muted small mb-0"><%= nonSuperAdminUsersMobile.length %> team members</p>
                 </div>
-                <a href="/admin/users/add" class="btn btn-primary btn-lg w-100 mb-3 fw-bold">
-                    <i class="bi bi-plus-lg me-1"></i>Add User
+
+                <a href="/admin/users/applications" class="btn btn-primary fw-bold mb-4 w-100 shadow-sm">
+                    <i class="bi bi-file-earmark-person me-2"></i>View Applications
                 </a>
-                <div class="form-floating mb-4">
-                    <input type="search" class="form-control" id="searchUsersMobile" placeholder="Search users...">
-                    <label for="searchUsersMobile"><i class="bi bi-search me-2"></i>Search users...</label>
+
+                <% if(message){ %>
+                    <div class="alert alert-<%= messageType == 'success'? 'success' : 'danger' %> shadow-sm border-0" role="alert">
+                        <p class="mb-0 fw-bold"><i class="bi bi-info-circle me-2"></i><%= message %></p>
+                    </div>
+                <% } %>
+
+                <%# Mobile Filter Card %>
+                <div class="card filter-card-mobile mb-4 bg-white border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3 text-muted small text-uppercase fw-bold"><i class="bi bi-search me-2"></i>Search</h5>
+                        <div class="position-relative">
+                            <input type="search" class="form-control" id="searchUsersMobile" placeholder="Search users...">
+                        </div>
+                    </div>
                 </div>
+
                 <div class="user-list-mobile">
                     <% if (users && users.length > 0) { %>
-                        <% let displayedUsersMobile = 0; %> <%# Counter for displayed users %>
+                        <% let displayedUsersMobile = 0; %>
                         <% users.forEach(user => { %>
-                            <%# Added: Explicit check to skip Super Admin role %>
                             <% if (user.role !== 'Super Admin') { %>
                                 <% displayedUsersMobile++; %>
-                                <a href="/admin/users/edit/<%= user._id %>" class="user-card-link">
-                                    <div class="card user-card-revamp mb-3">
-                                        <div class="card-body d-flex align-items-center">
-                                            <div class="user-avatar-initial me-3">
+                                <div class="card user-card-revamp mb-3 shadow-sm border-0 user-card-item">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-start mb-3">
+                                            <div class="user-avatar-initial me-3 shadow-sm mt-1">
                                                 <span><%= user.firstName ? user.firstName.charAt(0).toUpperCase() : '?' %></span>
                                             </div>
                                             <div class="flex-grow-1">
-                                                <h5 class="card-title mb-0"><%= user.firstName %> <%= user.lastName %></h5>
-                                                <small class="text-muted"><%= user.contactNumber %></small>
+                                                <h5 class="card-title mb-1 fw-bold text-dark user-name"><%= user.firstName %> <%= user.lastName %></h5>
+                                                <small class="text-muted d-block user-contact mb-2">
+                                                    <i class="bi bi-telephone me-1"></i><%= user.contactNumber %>
+                                                </small>
+                                                
+                                            
                                             </div>
-                                            <div class="text-end">
-                                                <span class="badge badge-<%= user.role.toLowerCase().replace(' ', '-') %>"><%= user.role %></span>
-                                                <div class="text-muted small mt-1">
-                                                    <i class="bi bi-calendar-event"></i>
-                                                    <%= user.createdAt.toLocaleDateString() %>
-                                                </div>
+                                            <div class="text-end d-flex flex-column align-items-end">
+                                                <%# UPDATED: Conditional Rendering for Role %>
+                                                <span class="badge badge-<%= user.role.toLowerCase().replace(' ', '-') %> mb-1">
+                                                    <%= user.role === 'Front Liner' ? 'Cashier' : user.role %>
+                                                </span>
+                                                <div class="text-muted small"><%= new Date(user.createdAt).toLocaleDateString('en-CA') %></div>
+                                            </div>
+                                        </div>
+           
+                                        <hr class="my-3">
+
+                                        <%# Action Buttons (Grid Layout) %>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <a href="/admin/users/edit/<%= user._id %>" class="btn btn-primary w-100 fw-bold py-2 shadow-sm btn-action">
+                                                    <i class="bi bi-pencil-square"></i> Edit
+                                                </a>
+                                            </div>
+                                            <div class="col-6">
+                                                <form action="/admin/users/reset" method="POST" class="reset-password-form w-100">
+                                                    <input type="hidden" name="id" value="<%= user._id %>">
+                                                    <button type="button" class="btn btn-warning w-100 fw-bold py-2 shadow-sm btn-action btn-reset-password text-dark" 
+                                                        data-user-id="<%= user._id %>"
+                                                        data-user-name="<%= user.firstName %> <%= user.lastName %>"
+                                                        data-user-contact="<%= user.contactNumber %>"
+                                                        data-user-role="<%= user.role === 'Front Liner' ? 'Cashier' : user.role %>">
+                                                        <i class="bi bi-arrow-clockwise"></i> Reset
+                                                    </button>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>
-                                </a>
-                            <% } %> <%# End if user.role !== 'Super Admin' %>
+                                </div>
+                            <% } %>
                         <% }) %>
-                        <%# Check if any non-Super Admin users were actually displayed %>
+                        
                         <% if (displayedUsersMobile === 0) { %>
-                            <div class="card text-center py-5">
-                                <div class="card-body">
-                                   <p class="text-muted">No users found for your branch.</p>
-                                   <a href="/admin/users/add" class="btn btn-primary mt-2">Add User</a>
-                               </div>
-                           </div>
+                            <div class="card text-center py-5 border-0 bg-transparent">
+                                <p class="text-muted">No users found for your branch.</p>
+                                <a href="/admin/users/applications" class="btn btn-outline-primary mt-2">Check Applications</a>
+                            </div>
                         <% } %>
                     <% } else { %>
-                        <div class="card text-center py-5">
-                            <div class="card-body">
-                               <p class="text-muted">No users found. Click "Add User" to get started.</p>
-                           </div>
-                       </div>
+                        <div class="card text-center py-5 border-0 bg-transparent">
+                            <p class="text-muted">No users found.</p>
+                            <p class="small text-muted">Wait for staff applications to populate this list.</p>
+                        </div>
                     <% } %>
                 </div>
             </main>
@@ -76,77 +154,152 @@
 
 <%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
-    <div class="admin-page-header">
+    <div class="admin-page-header mb-4">
         <div>
-            <h2 class="h3 mb-0">Users</h2>
-             <%# Filter out Super Admins for the count (though controller already does) %>
-             <% const nonSuperAdminUsersDesktop = users.filter(user => user.role !== 'Super Admin'); %>
-            <p class="text-muted"><%= nonSuperAdminUsersDesktop.length %> team members</p>
+            <h2 class="h3 mb-0 fw-bold">Users</h2>
+            <% const nonSuperAdminUsersDesktop = users.filter(user => user.role !== 'Super Admin'); %>
+            <p class="text-muted">Manage <%= nonSuperAdminUsersDesktop.length %> team members</p>
         </div>
-        <a href="/admin/users/add" class="btn btn-primary fw-bold">
-            <i class="bi bi-plus-lg me-1"></i> Add User
-        </a>
+        <div class="d-flex gap-2">
+            <a href="/admin/users/applications" class="btn btn-primary fw-bold shadow-sm">
+                <i class="bi bi-file-earmark-person me-2"></i>View Applications
+            </a>
+        </div>
     </div>
-    <div class="list-table-container">
-        <div class="p-3">
-             <div class="form-floating">
-                <input type="search" class="form-control" id="searchUsersDesktop" placeholder="Search users...">
-                <label for="searchUsersDesktop"><i class="bi bi-search me-2"></i>Search users...</label>
-             </div>
+
+    <% if(message){ %>
+        <div class="alert alert-<%= messageType == 'success'? 'success' : 'danger' %> shadow-sm border-0 mb-4" role="alert">
+            <p class="mb-0 fw-bold"><i class="bi bi-info-circle me-2"></i><%= message %></p>
         </div>
+    <% } %>
+
+    <%# Desktop Filter Bar %>
+    <div class="card filter-bar mb-4 border-0 shadow-sm">
+        <div class="card-body p-3">
+            <div class="d-flex gap-3 align-items-center">
+                <div class="flex-grow-1 form-control-icon-wrapper">
+                    <i class="bi bi-search"></i>
+                    <input type="search" class="form-control border-0 bg-light" id="searchUsersDesktop" placeholder="Search by name or contact...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="list-table-container bg-white rounded shadow-sm">
         <% if (users && users.length > 0) { %>
-            <div class="list-table-header" style="grid-template-columns: 70px 2fr 1.5fr 1fr 1fr auto;">
-                 <span></span> <%# Avatar column header %>
-                 <span>Full Name</span>
-                 <span>Contact Number</span>
-                 <span>Role</span>
-                 <span>Joined</span>
-                 <span class="text-end">Actions</span>
+            <div class="list-table-header users-grid-custom p-3 bg-light border-bottom">
+                 <span class="text-uppercase small fw-bold text-muted">Avatar</span>
+                 <span class="text-uppercase small fw-bold text-muted">Full Name</span>
+                 <span class="text-uppercase small fw-bold text-muted">Contact</span>
+                 <span class="text-uppercase small fw-bold text-muted"></span>
+                 <span class="text-uppercase small fw-bold text-muted">Role</span>
+                 <span class="text-uppercase small fw-bold text-muted">Joined</span>
+                 <span class="text-uppercase small fw-bold text-muted text-center">Actions</span>
              </div>
+
             <div class="user-list-desktop">
-                 <% let displayedUsersDesktop = 0; %> <%# Counter for displayed users %>
+                 <% let displayedUsersDesktop = 0; %>
                  <% users.forEach(user => { %>
-                    <%# Added: Explicit check to skip Super Admin role %>
                     <% if (user.role !== 'Super Admin') { %>
                         <% displayedUsersDesktop++; %>
-                        <div class="list-table-row" style="grid-template-columns: 70px 2fr 1.5fr 1fr 1fr auto;">
+                        <div class="list-table-row users-grid-custom p-3 border-bottom hover-bg-light user-item">
                             <div>
-                                <div class="user-avatar-initial">
+                                <div class="user-avatar-lg shadow-sm">
                                     <span><%= user.firstName ? user.firstName.charAt(0).toUpperCase() : '?' %></span>
                                 </div>
                             </div>
-                            <div class="fw-bold"><%= user.firstName %> <%= user.lastName %></div>
-                            <div><%= user.contactNumber %></div>
+                            <div class="fw-bold text-dark fs-6 user-name"><%= user.firstName %> <%= user.lastName %></div>
+                            <div class="user-contact text-muted"><%= user.contactNumber %></div>
                             <div>
-                                <span class="badge badge-<%= user.role.toLowerCase().replace(' ', '-') %>"><%= user.role %></span>
+                                <span class="badge bg-light text-dark border"><%= user.branch ? user.branch.name : 'N/A' %></span>
                             </div>
-                            <div class="text-muted"><%= user.createdAt.toLocaleDateString('en-CA') %></div>
-                            <div class="text-end">
-                                <a href="/admin/users/edit/<%= user._id %>" class="btn btn-sm btn-outline-secondary">
-                                     Edit
+                            <div>
+                                <%# UPDATED: Conditional Rendering for Role %>
+                                <span class="badge badge-<%= user.role.toLowerCase().replace(' ', '-') %> px-3 py-2">
+                                    <%= user.role === 'Front Liner' ? 'Cashier' : user.role %>
+                                </span>
+                            </div>
+                            <div class="text-muted small"><%= new Date(user.createdAt).toLocaleDateString('en-CA') %></div>
+  
+                            <%# Standardized Action Buttons %>
+                            <div class="text-center d-flex justify-content-center gap-2">
+                                <a href="/admin/users/edit/<%= user._id %>" class="btn btn-primary btn-sm btn-action fw-bold px-3 shadow-sm">
+                                    <i class="bi bi-pencil-square"></i> Edit
                                 </a>
-                                <%# Delete button intentionally removed for Admin role %>
+                                <form action="/admin/users/reset" method="POST" class="reset-password-form d-inline">
+                                    <input type="hidden" name="id" value="<%= user._id %>">
+                                    <button type="button" class="btn btn-warning btn-sm btn-action fw-bold px-3 shadow-sm btn-reset-password text-dark" 
+                                        data-user-id="<%= user._id %>"
+                                        data-user-name="<%= user.firstName %> <%= user.lastName %>"
+                                        data-user-contact="<%= user.contactNumber %>"
+                                        data-user-role="<%= user.role === 'Front Liner' ? 'Cashier' : user.role %>">
+                                        <i class="bi bi-arrow-clockwise"></i> Reset
+                                    </button>
+                                </form>
                             </div>
                         </div>
-                    <% } %> <%# End if user.role !== 'Super Admin' %>
+                    <% } %>
                 <% }) %>
-                 <%# Check if any non-Super Admin users were actually displayed %>
+
                  <% if (displayedUsersDesktop === 0) { %>
                     <div class="text-center py-5">
                         <p class="text-muted">No users found for your branch (excluding Super Admins).</p>
-                         <a href="/admin/users/add" class="btn btn-primary mt-2">Add User</a>
                     </div>
                  <% } %>
             </div>
         <% } else { %>
             <div class="text-center py-5">
-                <p class="text-muted">No users found. Click "Add User" to get started.</p>
+                <p class="text-muted">No users found.</p>
+                <p class="small text-muted">Users are added via Staff Applications.</p>
             </div>
         <% } %>
     </div>
 </div>
 
-<%# Add unique badge styles if not already present in style.css %>
+<%# Reset Password Confirmation Modal %>
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold" id="resetPasswordModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Reset Password
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3 fs-5 text-center">Are you sure you want to reset the password for this user?</p>
+                
+                <div class="bg-light p-3 rounded mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small text-uppercase fw-bold">Name</span>
+                        <span class="fw-bold" id="resetUserName">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small text-uppercase fw-bold">Contact</span>
+                        <span class="fw-bold" id="resetUserContact">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small text-uppercase fw-bold">Role</span>
+                        <span class="fw-bold" id="resetUserRole">-</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mb-0 d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                    <small>The password will be reset to a default value. The user must update it upon next login.</small>
+                </div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0 pb-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning fw-bold px-4 text-dark" id="confirmResetBtn">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Confirm Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# Badges CSS (Preserved) %>
 <style>
     .badge-admin { background-color: var(--admin-bg); color: var(--admin-text); }
     .badge-front-liner { background-color: var(--frontliner-bg); color: var(--frontliner-text); }
@@ -154,12 +307,11 @@
     .badge-assistant-manager { background-color: #6E6E6E; color: white; }
 </style>
 
-
 <%- include('../partials/adminFooter') %>
 
 <script>
-// Basic search functionality
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Client-Side Search ---
     const createSearchFilter = (inputId, listSelector, itemSelector, nameSelector, contactSelector) => {
         const searchInput = document.getElementById(inputId);
         if (searchInput) {
@@ -167,9 +319,6 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.addEventListener('input', (e) => {
                 const searchTerm = e.target.value.toLowerCase().trim();
                 items.forEach(item => {
-                    // Skip filtering if item is already hidden by EJS role check (check if style.display is 'none')
-                    if (item.style.display === 'none' && !nameSelector) return; // Basic check, might need refinement
-
                     const nameElement = item.querySelector(nameSelector);
                     const contactElement = item.querySelector(contactSelector);
                     const name = nameElement ? nameElement.innerText.toLowerCase() : '';
@@ -177,20 +326,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     let matchesSearch = name.includes(searchTerm) || contact.includes(searchTerm);
 
-                    // Only modify display if it wasn't already hidden by EJS
-                     if (item.getAttribute('data-initial-display') !== 'none') { // Use a data attribute if needed
-                        if (matchesSearch) {
-                            item.style.display = listSelector.includes('desktop') ? 'grid' : 'block';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                     }
+                    if (matchesSearch) {
+                        item.style.display = listSelector.includes('desktop') ? 'grid' : 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
                 });
             });
         }
     };
 
-    createSearchFilter('searchUsersMobile', '.user-list-mobile', '.user-card-link', '.card-title', '.text-muted');
+    createSearchFilter('searchUsersMobile', '.user-list-mobile', '.user-card-item', '.user-name', '.user-contact');
     createSearchFilter('searchUsersDesktop', '.user-list-desktop', '.list-table-row', '.fw-bold', 'div:nth-child(3)');
+
+    // --- Reset Password Modal Logic ---
+    const resetPasswordModalEl = document.getElementById('resetPasswordModal');
+    const resetPasswordModal = resetPasswordModalEl ? new bootstrap.Modal(resetPasswordModalEl) : null;
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    
+    let currentForm = null;
+
+    document.querySelectorAll('.btn-reset-password').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const userName = button.getAttribute('data-user-name');
+            const userContact = button.getAttribute('data-user-contact');
+            const userRole = button.getAttribute('data-user-role');
+            currentForm = button.closest('form');
+            
+            document.getElementById('resetUserName').textContent = userName;
+            document.getElementById('resetUserContact').textContent = userContact;
+            document.getElementById('resetUserRole').textContent = userRole;
+            
+            if (resetPasswordModal) resetPasswordModal.show();
+        });
+    });
+
+    if (confirmResetBtn) {
+        confirmResetBtn.addEventListener('click', () => {
+            if (resetPasswordModal) resetPasswordModal.hide();
+            if (currentForm) currentForm.submit();
+        });
+    }
 });
 </script>

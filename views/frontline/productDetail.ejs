@@ -1,90 +1,358 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= product.name %> - Mira's ST3S</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= product.name %> - Mira's Menu</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<%# Import Poppins Font %>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+
+<style>
+    /* --- Fonts & Global --- */
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #fff;
+    }
+
+    /* --- Layout --- */
+    .detail-body {
+        padding-bottom: 160px; /* Space for footer + nav */
+    }
+
+    .product-hero-image {
+        width: 100%;
+        height: 350px;
+        object-fit: cover;
+        background-color: #f8f9fa;
+    }
+
+    .back-btn-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.8); /* Slightly lighter overlay */
+        color: #333;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        z-index: 10;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .back-btn-overlay:active {
+        transform: scale(0.9);
+    }
+
+    .info-container {
+        padding: 1.5rem;
+    }
+
+    .category-badge {
+        background-color: var(--secondary-color);
+        color: var(--primary-color);
+        padding: 0.4em 0.8em;
+        border-radius: 6px; /* Original border radius */
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* --- Original Variant Buttons --- */
+    .variant-selector {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .btn-variant {
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        color: #333;
+        padding: 0.6rem 1.2rem;
+        border-radius: 12px; /* Matches original look */
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        flex-grow: 1;
+        text-align: center;
+    }
+    .btn-variant.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 10px rgba(255, 0, 102, 0.2);
+    }
+
+    /* --- Quantity Buttons: Restored Original Colors --- */
+    .qty-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 1rem; 
+        margin-bottom: 1.5rem;
+        /* No background wrapper, just floating buttons like original */
+    }
     
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <meta name="theme-color" content="#FF0066">
+    .btn-quantity {
+        width: 55px; /* Big touch target */
+        height: 55px;
+        border-radius: 12px; /* Rounded corners */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        border: none;
+        transition: transform 0.1s;
+    }
+    
+    /* Minus = Gray */
+    .btn-qty-minus {
+        background-color: #e9ecef; 
+        color: #333;
+    }
+    
+    /* Plus = Pink (Primary) */
+    .btn-qty-plus {
+        background-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 0, 102, 0.3);
+    }
+
+    .btn-quantity:active {
+        transform: scale(0.95);
+    }
+
+    .qty-display {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-color);
+        width: 70px;
+        text-align: center;
+        border: none;
+        background: transparent;
+    }
+
+    /* --- Sticky Footer --- */
+    .action-footer {
+        position: fixed;
+        bottom: 70px; /* Above nav */
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 1rem 1.5rem;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        border-radius: 20px 20px 0 0;
+        z-index: 1020;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .total-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 0;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+    
+    .total-price {
+        font-size: 2rem; /* Huge Font */
+        font-weight: 900; /* Black weight */
+        color: #212529; /* Dark */
+        line-height: 1;
+        letter-spacing: -0.5px;
+    }
+
+    /* Add to Cart Button - Original Style but Bigger */
+    .btn-add-cart {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(255, 0, 102, 0.3);
+    }
+    .btn-add-cart:active {
+        background-color: var(--primary-darker);
+        transform: scale(0.98);
+    }
+</style>
 </head>
-<body class="frontline-body detail-page-active">
+<body class="bg-white">
 
-    <div class="product-detail-page">
-        <div class="product-detail-image-header">
-            <img src="<%= product.imageUrl || '/icons/favicon.png' %>" alt="<%= product.name %>">
-            <a href="/" class="btn-close-detail">
-                <i class="bi bi-x-lg"></i>
-            </a>
-        </div>
-
-        <div class="product-detail-body">
-            <div>
-                <span class="badge badge-category"><%= product.category.name %></span>
-                <h2 class="my-2" id="product-name"><%= product.name %></h2>
-                <h1 class="fw-bold text-primary mb-4" id="product-price">
-                    <% if (prices.length > 1) { %>
-                        ₱<%= product.price.toFixed(2) %>
-                    <% } else { %>
-                        ₱<%= prices[0] ? prices[0].price.toFixed(2) : 'N/A' %>
-                    <% } %>
-                </h1>
-
-                <% if (sizes && sizes.length > 0) { %>
-                    <p class="text-muted fw-bold">Variants</p>
-                    <div class="variant-buttons mb-3">
-                        <% sizes.forEach((size, index) => { %>
-                            <% const correspondingPrice = prices.find(p => p.sizeId && p.sizeId.toString() === size._id.toString()); %>
-                            <button class="btn btn-variant" 
-                                data-price="<%= correspondingPrice ? correspondingPrice.price : '' %>"
-                                data-size-id="<%= size._id %>"
-                                data-size-label="<%= size.label %>">
-                                <%= size.label %>
-                            </button>
-                        <% }) %>
-                    </div>
-                <% } %>
-
-
-                <p class="text-muted fw-bold">Quantity</p>
-                <div class="d-flex align-items-center justify-content-between my-3">
-                    <button class="btn btn-secondary btn-quantity" id="quantity-minus">-</button>
-                    <input type="number" id="quantity-input" class="form-control text-center mx-3 fs-3 fw-bold border-0" value="1" min="1" readonly>
-                    <button class="btn btn-secondary btn-quantity btn-primary" id="quantity-plus">+</button>
-                </div>
-                
-                <hr>
-
-                <div class="d-flex justify-content-between align-items-center">
-                    <p class="text-muted mb-0">Total Price</p>
-                    <h3 class="fw-bold mb-0" id="total-price">
-                        <% if (prices.length > 1) { %>
-                            ₱<%= product.price.toFixed(2) %>
-                        <% } else { %>
-                            ₱<%= prices[0] ? prices[0].price.toFixed(2) : 'N/A' %>
-                        <% } %>
-                    </h3>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <button type="button" class="btn btn-primary w-100 btn-lg" id="add-to-cart-btn" data-product-id="<%= product._id %>">
-                    <i class="bi bi-bag-check-fill me-2"></i>Add to Cart
-                </button>
-            </div>
-        </div>
+    <div class="position-relative">
+        <a href="/" class="back-btn-overlay">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <img src="<%= product.imageUrl || '/icons/favicon.png' %>" 
+             alt="<%= product.name %>" 
+             class="product-hero-image"
+             onerror="this.onerror=null; this.src='/icons/favicon.png';">
     </div>
 
-    <%- include('../partials/frontlineBottomNav') %>
-    <%- include('../partials/frontlineFooter') %>
+    <main class="detail-body">
+        <div class="info-container">
+            <% if(product.category) { %>
+                <span class="category-badge"><%= product.category.name %></span>
+            <% } %>
+            
+            <h1 class="mt-3 fw-bold mb-1 text-dark" id="product-name" style="font-size: 2rem;"><%= product.name %></h1>
+            
+            <div class="d-flex align-items-baseline mb-4">
+                <h2 class="fw-bold text-primary mb-0 me-2" id="display-price">
+                    <% if (product.price.length > 0) { %>
+                        ₱<%= product.price[0].price.toFixed(2) %>
+                    <% } else { %>
+                        ₱0.00
+                    <% } %>
+                </h2>
+                <% if (product.price.length > 1) { %>
+                    <small class="text-muted">starts from</small>
+                <% } %>
+            </div>
+
+            <%# Variants %>
+            <% if (product.price.length > 1) { %>
+                <p class="text-muted fw-bold mb-2 text-uppercase small">Select Option</p>
+                <div class="variant-selector">
+                    <% product.price.forEach((variant, index) => { %>
+                        <button class="btn-variant <%= index === 0 ? 'active' : '' %>"
+                                data-price="<%= variant.price %>"
+                                data-size-label="<%= variant.size %>">
+                            <%= variant.size %>
+                        </button>
+                    <% }) %>
+                </div>
+            <% } %>
+
+            <%# Quantity - Restored Original Colors %>
+            <p class="text-muted fw-bold mb-2 mt-4 text-uppercase small">Quantity</p>
+            <div class="qty-wrapper">
+                <button class="btn-quantity btn-qty-minus" id="qty-minus"><i class="bi bi-dash"></i></button>
+                <input type="number" id="qty-input" class="qty-display" value="1" readonly>
+                <button class="btn-quantity btn-qty-plus" id="qty-plus"><i class="bi bi-plus"></i></button>
+            </div>
+
+        </div>
+    </main>
+
+    <%# Sticky Action Footer %>
+    <div class="action-footer">
+        <div>
+            <p class="total-label">Total</p>
+            <div class="total-price" id="total-price">
+                <% if (product.price.length > 0) { %>
+                    ₱<%= product.price[0].price.toFixed(2) %>
+                <% } else { %>
+                    ₱0.00
+                <% } %>
+            </div>
+        </div>
+        <button class="btn-add-cart" id="add-to-cart-btn" data-product-id="<%= product._id %>">
+            Add to Cart <i class="bi bi-bag-check-fill"></i>
+        </button>
+    </div>
+
+<script>
+    const priceEl = document.getElementById("display-price");
+    const totalPriceEl = document.getElementById("total-price");
+    const quantityInput = document.getElementById("qty-input");
+    const variantButtons = document.querySelectorAll('.btn-variant');
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+
+    let currentPrice = 0;
+    let selectedSizeLabel = null;
+
+    if (variantButtons.length > 0) {
+        const firstBtn = variantButtons[0];
+        currentPrice = parseFloat(firstBtn.dataset.price);
+        selectedSizeLabel = firstBtn.dataset.sizeLabel;
+    } else {
+        const rawText = priceEl.innerText.replace("₱", "").trim();
+        currentPrice = parseFloat(rawText) || 0;
+        selectedSizeLabel = null;
+    }
+
+    const updateTotal = () => {
+        const qty = parseInt(quantityInput.value) || 1;
+        const total = currentPrice * qty;
+        priceEl.innerText = "₱" + currentPrice.toFixed(2); 
+        totalPriceEl.innerText = "₱" + total.toFixed(2);
+    };
+
+    if (variantButtons.length > 0) {
+        variantButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                variantButtons.forEach(x => x.classList.remove("active"));
+                btn.classList.add("active");
+                currentPrice = parseFloat(btn.dataset.price);
+                selectedSizeLabel = btn.dataset.sizeLabel;
+                updateTotal();
+            });
+        });
+    }
+
+    document.getElementById("qty-minus").addEventListener("click", () => {
+        let current = parseInt(quantityInput.value);
+        if (current > 1) {
+            quantityInput.value = current - 1;
+            updateTotal();
+        }
+    });
+
+    document.getElementById("qty-plus").addEventListener("click", () => {
+        let current = parseInt(quantityInput.value);
+        quantityInput.value = current + 1;
+        updateTotal();
+    });
+
+    addToCartBtn.addEventListener("click", () => {
+        const id = addToCartBtn.dataset.productId;
+        const name = document.getElementById("product-name").innerText;
+        const price = currentPrice;
+        const quantity = parseInt(quantityInput.value);
+
+        const cart = JSON.parse(localStorage.getItem('miraCart')) || [];
+        const cartItemId = selectedSizeLabel ? `${id}-${selectedSizeLabel}` : id;
+        
+        const existingItem = cart.find(item => item.cartItemId === cartItemId);
+        if (existingItem) {
+            existingItem.quantity += quantity;
+        } else {
+            cart.push({ cartItemId, id, name, price, quantity, sizeLabel: selectedSizeLabel });
+        }
+        localStorage.setItem('miraCart', JSON.stringify(cart));
+        window.location.href = "/";
+    });
+
+    updateTotal();
+</script>
+
+<%- include('../partials/frontlineBottomNav') %>
+<%- include('../partials/frontlineFooter') %>
+
 </body>
 </html>

@@ -1,0 +1,339 @@
+<%- include('../partials/adminHeader') %>
+<%- include('../partials/adminDesktopNav', { activePage: 'users' }) %>
+
+<%# --- CUSTOM STYLES --- %>
+<style>
+    /* Desktop Grid - 7 Columns */
+    .applications-grid-custom {
+        display: grid;
+        /* Avatar | Name | Contact | Role | Branch | Date | Actions */
+        grid-template-columns: 70px 2fr 1.5fr 1fr 1fr 1fr 240px; 
+        gap: 1rem;
+        align-items: center;
+    }
+
+    /* Action Button Styling */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        height: 38px;
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+
+    .user-avatar-lg {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+</style>
+
+<%# --- MOBILE VIEW --- %>
+<div class="d-lg-none">
+    <div class="admin-container">
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
+            <main class="p-3">
+                <div class="page-header mb-4">
+                    <h2 class="h3 mb-0 fw-bold">Staff Applications</h2>
+                    <% const pendingCount = users ? users.length : 0; %>
+                    <p class="text-muted small mb-0"><%= pendingCount %> pending review</p>
+                </div>
+
+                <a href="/admin/users" class="btn btn-outline-secondary fw-bold mb-4 w-100 shadow-sm">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Active Users
+                </a>
+
+                <%# Mobile Filter Card %>
+                <div class="card filter-card-mobile mb-4 bg-white border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3 text-muted small text-uppercase fw-bold"><i class="bi bi-search me-2"></i>Search</h5>
+                        <div class="position-relative">
+                            <input type="search" class="form-control" id="searchAppsMobile" placeholder="Search applicants...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="app-list-mobile">
+                    <% if (users && users.length > 0) { %>
+                        <% users.forEach(app => { %>
+                            <div class="card user-card-revamp mb-3 shadow-sm border-0 app-item">
+                                <div class="card-body p-3">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="user-avatar-initial me-3 shadow-sm mt-1">
+                                            <span><%= app.firstName ? app.firstName.charAt(0).toUpperCase() : '?' %></span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title mb-1 fw-bold text-dark app-name"><%= app.firstName %> <%= app.lastName %></h5>
+                                            <small class="text-muted d-block app-contact mb-2">
+                                                <i class="bi bi-telephone me-1"></i><%= app.contactNumber %>
+                                            </small>
+                                            <div class="mb-1">
+                                                <span class="badge badge-<%= app.positionApplied.toLowerCase().replace(' ', '-') %>"><%= app.positionApplied %></span>
+                                            </div>
+                                        </div>
+                                        <div class="text-end text-muted small">
+                                            <%= new Date(app.createdAt).toLocaleDateString('en-CA') %>
+                                        </div>
+                                    </div>
+           
+                                    <hr class="my-3">
+
+                                    <%# Action Buttons (Grid Layout) %>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-success w-100 fw-bold py-2 shadow-sm btn-action" onclick="confirmAction('approve', '<%= app._id %>', '<%= app.firstName %> <%= app.lastName %>')">
+                                                <i class="bi bi-check-lg"></i> Approve
+                                            </button>
+                                        </div>
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm btn-action" onclick="confirmAction('deny', '<%= app._id %>', '<%= app.firstName %> <%= app.lastName %>')">
+                                                <i class="bi bi-x-lg"></i> Deny
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="card text-center py-5 border-0 bg-transparent">
+                            <i class="bi bi-inbox fs-1 text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted">No pending applications found.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </main>
+        </div>
+    </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'users' }) %>
+</div>
+
+<%# --- DESKTOP VIEW --- %>
+<div class="admin-main-container d-none d-lg-block">
+    <div class="admin-page-header mb-4">
+        <div>
+            <h2 class="h3 mb-0 fw-bold">Staff Applications</h2>
+            <p class="text-muted">Review and manage <%= users ? users.length : 0 %> pending applications.</p>
+        </div>
+        <a href="/admin/users" class="btn btn-outline-secondary fw-bold shadow-sm">
+            <i class="bi bi-arrow-left me-2"></i>Back to Active Users
+        </a>
+    </div>
+
+    <%# Desktop Filter Bar %>
+    <div class="card filter-bar mb-4 border-0 shadow-sm">
+        <div class="card-body p-3">
+            <div class="d-flex gap-3 align-items-center">
+                <div class="flex-grow-1 form-control-icon-wrapper">
+                    <i class="bi bi-search"></i>
+                    <input type="search" class="form-control border-0 bg-light" id="searchAppsDesktop" placeholder="Search by name or contact...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="list-table-container bg-white rounded shadow-sm">
+        <% if (users && users.length > 0) { %>
+            <div class="list-table-header applications-grid-custom p-3 bg-light border-bottom">
+                 <span class="text-uppercase small fw-bold text-muted">Avatar</span>
+                 <span class="text-uppercase small fw-bold text-muted">Full Name</span>
+                 <span class="text-uppercase small fw-bold text-muted">Contact</span>
+                 <span class="text-uppercase small fw-bold text-muted">Role</span>
+                 <span class="text-uppercase small fw-bold text-muted">Branch</span>
+                 <span class="text-uppercase small fw-bold text-muted">Date Applied</span>
+                 <span class="text-uppercase small fw-bold text-muted text-center">Actions</span>
+             </div>
+
+            <div class="app-list-desktop">
+                 <% users.forEach(app => { %>
+                    <div class="list-table-row applications-grid-custom p-3 border-bottom hover-bg-light app-item">
+                        <div>
+                            <div class="user-avatar-lg shadow-sm">
+                                <span><%= app.firstName ? app.firstName.charAt(0).toUpperCase() : '?' %></span>
+                            </div>
+                        </div>
+                        <div class="fw-bold text-dark fs-6 app-name"><%= app.firstName %> <%= app.lastName %></div>
+                        <div class="text-muted app-contact"><%= app.contactNumber %></div>
+                        <div>
+                            <span class="badge badge-<%= app.positionApplied.toLowerCase().replace(' ', '-') %> px-3 py-2">
+                                <%= app.positionApplied %>
+                            </span>
+                        </div>
+                        <div>
+                            <%# Branch is usually implied by the admin viewing it, but good for context %>
+                            <span class="badge bg-light text-dark border">This Branch</span>
+                        </div>
+                        <div class="text-muted small"><%= new Date(app.createdAt).toLocaleDateString('en-CA') %></div>
+                        
+                        <%# Action Buttons %>
+                        <div class="text-center d-flex justify-content-center gap-2">
+                            <button type="button" class="btn btn-success btn-sm btn-action fw-bold px-3 shadow-sm" onclick="confirmAction('approve', '<%= app._id %>', '<%= app.firstName %> <%= app.lastName %>')">
+                                <i class="bi bi-check-lg"></i> Approve
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-action fw-bold px-3 shadow-sm" onclick="confirmAction('deny', '<%= app._id %>', '<%= app.firstName %> <%= app.lastName %>')">
+                                <i class="bi bi-x-lg"></i> Deny
+                            </button>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="card text-center py-5 border-0">
+                <div class="card-body">
+                    <i class="bi bi-inbox fs-1 text-muted mb-3 opacity-50"></i>
+                    <h5 class="card-title fw-bold">No Applications</h5>
+                    <p class="text-muted">There are no pending staff applications at this time.</p>
+                </div>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%# --- Confirmation Modal (Reusable for Approve/Deny) --- %>
+<div class="modal fade" id="actionConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0" id="modalHeader">
+                <h5 class="modal-title fw-bold" id="modalTitle">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div class="mb-3" id="modalIconWrapper">
+                    <%# Icon injected by JS %>
+                </div>
+                <p class="fs-5 mb-1">Are you sure you want to <span id="actionText" class="fw-bold">process</span> the application for:</p>
+                <p class="fw-bold text-primary fs-4 mb-3" id="applicantName">-</p>
+                <p class="text-muted small" id="modalSubtext">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2 pb-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                <form id="actionForm" action="" method="POST">
+                    <input type="hidden" name="id" id="applicantId">
+                    <button type="submit" class="btn fw-bold px-4" id="confirmBtn">Yes, Proceed</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# --- Toast Notification Container --- %>
+<div class="toast-container position-fixed end-0 p-3" style="z-index: 1100; top: 80px;">
+    <div id="liveToast" class="toast align-items-center text-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold" id="toast-message"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<%# Badges CSS %>
+<style>
+    .badge-admin { background-color: var(--admin-bg); color: var(--admin-text); }
+    .badge-front-liner { background-color: var(--frontliner-bg); color: var(--frontliner-text); }
+    .badge-cook { background-color: var(--cook-bg); color: var(--cook-text); }
+</style>
+
+<%- include('../partials/adminFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. Toast Logic ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    // Infer type if needed, or pass it. Typically success for actions.
+    const type = message && message.toLowerCase().includes('denied') ? 'danger' : 'success';
+
+    if (message) {
+        const toastEl = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-message');
+        
+        if(toastEl && toastBody) {
+            toastBody.textContent = decodeURIComponent(message.replace(/\+/g, ' '));
+            toastEl.style.backgroundColor = (type === 'success') ? '#0d6efd' : '#dc3545';
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+            // Clean URL
+            const url = new URL(window.location);
+            url.searchParams.delete('message');
+            window.history.replaceState({}, '', url);
+        }
+    }
+
+    // --- 2. Confirmation Modal Logic ---
+    window.confirmAction = (actionType, appId, appName) => {
+        const modal = new bootstrap.Modal(document.getElementById('actionConfirmModal'));
+        const form = document.getElementById('actionForm');
+        const title = document.getElementById('modalTitle');
+        const actionText = document.getElementById('actionText');
+        const nameSpan = document.getElementById('applicantName');
+        const inputId = document.getElementById('applicantId');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const iconWrapper = document.getElementById('modalIconWrapper');
+        const subtext = document.getElementById('modalSubtext');
+
+        inputId.value = appId;
+        nameSpan.textContent = appName;
+
+        if (actionType === 'approve') {
+            form.action = '/admin/users/application/approve';
+            title.className = 'modal-title fw-bold text-success';
+            title.innerText = 'Approve Application';
+            actionText.innerText = 'approve';
+            iconWrapper.innerHTML = '<i class="bi bi-check-circle-fill text-success display-1"></i>';
+            subtext.innerText = 'A new user account will be created automatically.';
+            confirmBtn.className = 'btn btn-success fw-bold px-4';
+            confirmBtn.innerText = 'Yes, Approve';
+        } else {
+            form.action = '/admin/users/application/deny';
+            title.className = 'modal-title fw-bold text-danger';
+            title.innerText = 'Deny Application';
+            actionText.innerText = 'deny';
+            iconWrapper.innerHTML = '<i class="bi bi-x-circle-fill text-danger display-1"></i>';
+            subtext.innerText = 'The application will be permanently rejected.';
+            confirmBtn.className = 'btn btn-danger fw-bold px-4';
+            confirmBtn.innerText = 'Yes, Deny';
+        }
+
+        modal.show();
+    };
+
+    // --- 3. Client-Side Search ---
+    const setupSearch = (inputId, listSelector, itemSelector) => {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const items = document.querySelectorAll(`${listSelector} ${itemSelector}`);
+            items.forEach(item => {
+                const name = item.querySelector('.app-name')?.innerText.toLowerCase() || '';
+                const contact = item.querySelector('.app-contact')?.innerText.toLowerCase() || '';
+                if (name.includes(term) || contact.includes(term)) {
+                    item.style.display = listSelector.includes('desktop') ? 'grid' : 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    };
+
+    setupSearch('searchAppsMobile', '.app-list-mobile', '.app-item');
+    setupSearch('searchAppsDesktop', '.app-list-desktop', '.app-item');
+});
+</script>

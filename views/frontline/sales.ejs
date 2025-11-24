@@ -3,147 +3,538 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Today's Sales - Mira's ST-3S</title>
+    <title>Today's Sales - Mira's Menu</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <link rel="stylesheet" href="/css/style.css">
+
+    <style>
+        /* --- GLOBAL UTILS --- */
+        body { height: 100vh; overflow: hidden; background-color: #f5f7f9; }
+        .text-xs { font-size: 0.75rem; }
+        .font-monospace { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* --- DESKTOP TOPBAR --- */
+        .desktop-topbar {
+            height: 65px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: 1030;
+        }
+        .nav-icon-btn {
+            width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            color: var(--text-color); background-color: white; border: 1px solid #e2e8f0; transition: all 0.2s; text-decoration: none;
+        }
+        .nav-icon-btn:hover { background-color: var(--primary-light); color: var(--primary-color); border-color: var(--primary-light); }
+
+        /* --- SPLIT VIEW LAYOUT --- */
+        .split-container {
+            display: flex;
+            height: calc(100vh - 65px); /* Full height minus header */
+            align-items: stretch;
+        }
+
+        /* --- LEFT SIDEBAR (List) --- */
+        .sales-sidebar {
+            width: 400px;
+            min-width: 400px;
+            background-color: white;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: white;
+        }
+
+        /* Search & Filter */
+        .search-wrapper { position: relative; margin-bottom: 0.75rem; }
+        .search-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+        .sidebar-search { padding-left: 36px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .sidebar-search:focus { background-color: white; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(255, 0, 102, 0.1); }
+
+        .filter-tabs { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .filter-tab { 
+            padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #e2e8f0; 
+            background: white; color: #64748b; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+        }
+        .filter-tab.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .filter-tab:hover:not(.active) { background-color: #f1f5f9; }
+
+        /* Order List */
+        .order-list-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0.75rem;
+            background-color: #f8fafc;
+        }
+
+        .order-item {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .order-item:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.04); border-color: #cbd5e1; }
+        
+        /* Active State - Left Border Indicator */
+        .order-item.active {
+            background-color: white;
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(255, 0, 102, 0.15);
+        }
+        .order-item.active::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: var(--primary-color);
+        }
+
+        .order-id { font-family: 'Courier New', monospace; font-weight: 700; color: #1e293b; letter-spacing: -0.5px; }
+        .order-time { font-size: 0.75rem; color: #64748b; }
+        .item-count-badge { font-size: 0.7rem; background-color: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+
+        /* --- RIGHT PANEL (Detail) --- */
+        .sales-detail-panel {
+            flex-grow: 1;
+            background-color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Empty State */
+        #empty-state { text-align: center; color: #94a3b8; }
+        #empty-state i { font-size: 4rem; opacity: 0.5; margin-bottom: 1rem; display: block; }
+
+        /* Full Height Receipt Card Container */
+        #detail-view-container {
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            max-width: 900px; /* Constrain width for readability */
+            margin: 0 auto;
+            display: none; /* Hidden by default */
+        }
+
+        /* The Receipt Card Structure */
+        .receipt-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            height: 100%;
+            display: flex;
+            flex-direction: column; /* Flex column for sticky header/footer */
+            overflow: hidden;
+        }
+
+        .rc-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
+            background-color: white;
+            flex-shrink: 0; /* Don't shrink */
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .rc-body {
+            padding: 0;
+            flex-grow: 1; /* Takes remaining space */
+            overflow-y: auto; /* Scrollable content */
+            background-color: white;
+        }
+
+        .rc-table th {
+            position: sticky; top: 0; background: #f8fafc; z-index: 1;
+            padding: 0.75rem 2rem;
+            font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .rc-table td { padding: 1rem 2rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .rc-table tr:last-child td { border-bottom: none; }
+
+        .rc-footer {
+            padding: 1.5rem 2rem;
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            flex-shrink: 0; /* Don't shrink */
+        }
+
+        .status-pill { padding: 0.4em 1em; border-radius: 50px; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-pill.completed { background-color: #dcfce7; color: #166534; }
+        .status-pill.pending { background-color: #fef9c3; color: #854d0e; }
+        .status-pill.ready { background-color: #dbeafe; color: #1e40af; }
+        .status-pill.cancelled { background-color: #fee2e2; color: #991b1b; }
+
+        /* --- MOBILE OVERRIDES (Preserved) --- */
+        @media (max-width: 991.98px) {
+            body { overflow: auto; height: auto; background-color: #f5f5f5; }
+            .desktop-only-view { display: none !important; }
+            .mobile-only-view { display: block !important; }
+            
+            /* ... (Keeping previous mobile styles mostly intact) ... */
+            .mobile-header { background-color: var(--primary-color); color: white; padding: 1.5rem 1rem; position: sticky; top: 0; z-index: 1040; display: flex; align-items: center; gap: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .mobile-summary-card { background: linear-gradient(135deg, #ff0066, #d60056); color: white; border-radius: 20px; padding: 1.5rem; margin: 1.5rem 1rem; box-shadow: 0 8px 20px rgba(255, 0, 102, 0.25); border: none; text-align: center; }
+            .mobile-transaction-card { background: white; border-radius: 20px; border: none; box-shadow: 0 2px 15px rgba(0,0,0,0.05); margin: 0 1rem 1rem 1rem; }
+            .mobile-item-list { background-color: #f8f9fa; border-radius: 12px; padding: 1rem; margin: 1rem 0; }
+        }
+        @media (min-width: 992px) { .mobile-only-view { display: none !important; } }
+    </style>
 </head>
-<body class="frontline-body" style="padding-top: 0;">
+<body>
 
-    <header class="cart-header">
-        <a href="/" class="back-button"><i class="bi bi-arrow-left"></i></a>
-        <div>
-            <h1 class="h4 mb-0 fw-bold">Today's Sales</h1>
-            <p class="text-white-50 mb-0"><%= new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></p>
-        </div>
-    </header>
-
-    <main class="container-fluid sales-main-content">
-        <div class="card sales-summary-card mb-4">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-12 mb-3">
-                        <p class="text-muted mb-0">Total Sales (Completed)</p>
-                        <h2 class="fw-bold ">₱<%= totalSales.toFixed(2) %></h2>
-                    </div>
-                    <div class="col-4">
-                        <p class="text-muted mb-0 small">Orders</p>
-                        <h4 class="fw-bold"><%= totalOrders %></h4>
-                    </div>
-                    <div class="col-4">
-                        <p class="text-muted mb-0 small">Completed</p>
-                        <h4 class="fw-bold"><%= totalCompletedOrders %></h4>
-                    </div>
-                    <div class="col-4">
-                        <p class="text-muted mb-0 small">Average</p>
-                        <h4 class="fw-bold">₱<%= (totalCompletedOrders > 0 ? (totalSales / totalCompletedOrders).toFixed(2) : '0.00') %></h4>
-                    </div>
-                </div>
+    <%# ================= MOBILE LAYOUT (Unchanged visuals) ================= %>
+    <div class="mobile-only-view pb-5">
+        <div class="mobile-header">
+            <a href="/" class="text-white fs-4"><i class="bi bi-arrow-left"></i></a>
+            <div>
+                <h1 class="h5 mb-0 fw-bold">Today's Sales</h1>
+                <small style="opacity: 0.9; font-weight: 500;"><%= new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) %></small>
             </div>
         </div>
 
-        <% if (transactions && transactions.length > 0) { %>
-            <% transactions.forEach(transaction => { %>
-                <div class="card transaction-card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <h6 class="fw-bold">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
-                                <% if (transaction.customerName) { %>
-                                    <p class="text-primary fw-bold mb-0 customer-name-display">
-                                        <i class="bi bi-person-badge"></i> 
-                                        <%= transaction.customerName %>
-                                    </p>
-                                <% } %>
-                                <small class="text-muted d-block mt-1">
-                                    <i class="bi bi-clock"></i> 
-                                    <%= new Date(transaction.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %>
-                                </small>
-                                <small class="text-muted d-block">
-                                    <i class="bi bi-person"></i> 
-                                    <%= transaction.createdBy ? transaction.createdBy.username : 'N/A' %>
-                                </small>
-                                <small class="text-muted d-block">
-                                    <i class="bi bi-credit-card"></i> 
-                                    <%= transaction.paymentMethod %>
-                                </small>
+        <div class="card mobile-summary-card">
+            <div class="text-uppercase small fw-bold mb-1" style="opacity: 0.8; font-size: 0.7rem;">Total Sales (Completed)</div>
+            <h1 class="fw-bold display-3 mb-4">₱<%= totalSales.toFixed(2) %></h1>
+            <div class="row border-top border-white-50 pt-3">
+                <div class="col-4 border-end border-white-50"><small class="text-uppercase" style="font-size: 0.65rem; opacity: 0.8;">Orders</small><h4 class="fw-bold mb-0"><%= totalOrders %></h4></div>
+                <div class="col-4 border-end border-white-50"><small class="text-uppercase" style="font-size: 0.65rem; opacity: 0.8;">Completed</small><h4 class="fw-bold mb-0"><%= totalCompletedOrders %></h4></div>
+                <div class="col-4"><small class="text-uppercase" style="font-size: 0.65rem; opacity: 0.8;">Average</small><h4 class="fw-bold mb-0">₱<%= (totalCompletedOrders > 0 ? (totalSales / totalCompletedOrders).toFixed(0) : '0') %></h4></div>
+            </div>
+        </div>
+
+        <div class="mobile-transactions">
+            <% if (transactions && transactions.length > 0) { %>
+                <% transactions.forEach(transaction => { %>
+                    <div class="card mobile-transaction-card">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-1">ORD-<%= transaction._id.toString().slice(-6).toUpperCase() %></h6>
+                                    <div class="text-muted small"><i class="bi bi-clock me-1"></i><%= new Date(transaction.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %></div>
+                                </div>
+                                <span class="badge rounded-pill <%= transaction.status === 'Completed' ? 'bg-success-subtle text-success' : (transaction.status === 'Cancelled' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning-emphasis') %>"><%= transaction.status %></span>
                             </div>
-                            <% if (transaction.status === 'Completed') { %>
-                                <span class="badge badge-status-completed">Completed</span>
-                            <% } else if (transaction.status === 'Cancelled') { %>
-                                <span class="badge badge-status-cancelled">Cancelled</span>
-                            <% } else if (transaction.status === 'Ready') { %>
-                                <span class="badge badge-status-ready">Ready</span>
-                            <% } else { %>
-                                <span class="badge badge-status-pending">Pending</span>
-                            <% } %>
-                        </div>
-                        
-                        <ul class="list-group list-group-flush sales-item-list my-3">
-                            <% transaction.items.forEach(item => { %>
-                                <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-                                    <div>
-                                        <span class="fw-bold"><%= item.quantity %>x</span> <%= item.productId ? item.productId.name : 'Product not found' %>
-                                        <% if (item.sizeLabel) { %>
-                                            <small class="d-block text-muted ps-4"><%= item.sizeLabel %></small>
-                                        <% } %>
+                            <div class="mobile-item-list">
+                                <% transaction.items.forEach(item => { %>
+                                    <div class="d-flex justify-content-between align-items-start mb-2 last-mb-0">
+                                        <div><span class="fw-bold text-dark me-2"><%= item.quantity %>x</span><span class="text-secondary"><%= item.productId ? item.productId.name : 'Item' %></span><% if(item.sizeLabel) { %><small class="text-muted d-block ps-4"><%= item.sizeLabel %></small><% } %></div>
+                                        <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
                                     </div>
-                                    <span class="fw-bold text-muted">₱<%= (item.price * item.quantity).toFixed(2) %></span>
-                                </li>
-                            <% }) %>
-                        </ul>
-                        
-                        <div class="border-top pt-3">
-                            <% if (transaction.discountApplied) { %>
-                                <div class="d-flex justify-content-between">
-                                    <p class="text-muted mb-1">Subtotal</p>
-                                    <p class="fw-bold text-muted mb-1">₱<%= (transaction.totalAmount + transaction.discountAmount).toFixed(2) %></p>
+                                <% }) %>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="text-uppercase fw-bold text-secondary small">Total Amount</span>
+                                <span class="fw-bold fs-4 text-primary">₱<%= transaction.totalAmount.toFixed(2) %></span>
+                            </div>
+                            <% if (transaction.status === 'Pending' || transaction.status === 'Ready') { %>
+                                <hr class="my-3">
+                                <div class="d-flex gap-2">
+                                    <% if (transaction.status === 'Pending') { %>
+                                        <form action="/orders/<%= transaction._id %>/cancel" method="POST" class="flex-grow-1"><button class="btn btn-outline-danger btn-sm w-100 rounded-pill fw-bold">Cancel</button></form>
+                                    <% } %>
+                                    <form action="/orders/<%= transaction._id %>/complete" method="POST" class="flex-grow-1"><button class="btn btn-success btn-sm w-100 rounded-pill fw-bold text-white">Complete</button></form>
                                 </div>
-                                <div class="d-flex justify-content-between">
-                                    <p class="text-muted mb-1">Discount (20%)</p>
-                                    <p class="fw-bold text-danger mb-1">- ₱<%= transaction.discountAmount.toFixed(2) %></p>
-                                </div>
-                                <hr class="my-2">
                             <% } %>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <p class="text-muted mb-0 fw-bold">Total</p>
-                                <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="text-center text-muted py-5"><p>No orders found.</p></div>
+            <% } %>
+        </div>
+        <%- include('../partials/frontlineBottomNav') %>
+    </div>
+
+
+    <%# ================= DESKTOP LAYOUT (Enhanced Split View) ================= %>
+    <div class="desktop-only-view flex-column h-100">
+        <div class="desktop-topbar">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/" class="text-dark fs-4 me-2"><i class="bi bi-arrow-left"></i></a>
+                <div><h5 class="mb-0 fw-bold">Sales Management</h5><small class="text-muted"><%= new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></small></div>
+            </div>
+            <div class="d-flex gap-2"><a href="/" class="nav-icon-btn" title="Menu"><i class="bi bi-grid-fill fs-5"></i></a></div>
+        </div>
+
+        <div class="split-container">
+            <%# LEFT SIDEBAR: List %>
+            <div class="sales-sidebar">
+                <div class="sidebar-header">
+                    <div class="search-wrapper">
+                        <i class="bi bi-search"></i>
+                        <input type="search" class="form-control sidebar-search" id="order-search" placeholder="Search ID, Customer...">
+                    </div>
+                    <div class="filter-tabs">
+                        <div class="filter-tab active" onclick="filterOrders('All')">All</div>
+                        <div class="filter-tab" onclick="filterOrders('Pending')">Pending</div>
+                        <div class="filter-tab" onclick="filterOrders('Ready')">Ready</div>
+                        <div class="filter-tab" onclick="filterOrders('Completed')">Completed</div>
+                    </div>
+                </div>
+
+                <div class="order-list-container" id="order-list">
+                    <% if (transactions && transactions.length > 0) { %>
+                        <% transactions.forEach((transaction, index) => { %>
+                            <% 
+                                let statusColor = '#64748b';
+                                if(transaction.status === 'Completed') statusColor = '#16a34a';
+                                else if(transaction.status === 'Pending') statusColor = '#ca8a04';
+                                else if(transaction.status === 'Cancelled') statusColor = '#dc2626';
+                                else if(transaction.status === 'Ready') statusColor = '#2563eb';
+                            %>
+                            <div class="order-item <%= index === 0 ? 'active' : '' %>" 
+                                 onclick="selectOrder(this)"
+                                 data-status="<%= transaction.status %>"
+                                 data-transaction='<%- JSON.stringify(transaction) %>'>
+                                
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="order-id">#<%= transaction._id.toString().slice(-4).toUpperCase() %></span>
+                                    <span class="item-count-badge"><%= transaction.items.length %> items</span>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: <%= statusColor %>;"></span>
+                                        <span class="small text-muted fw-bold"><%= transaction.status %></span>
+                                    </div>
+                                    <span class="fw-bold text-dark">₱<%= transaction.totalAmount.toFixed(2) %></span>
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    <i class="bi bi-clock me-1"></i><%= new Date(transaction.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) %>
+                                    <% if(transaction.customerName) { %> • <%= transaction.customerName %><% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="text-center p-5 text-muted"><p>No orders yet.</p></div>
+                    <% } %>
+                </div>
+                <%# Sidebar Footer Total %>
+                <div class="p-3 border-top bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted fw-bold">TOTAL REVENUE</small>
+                        <span class="fw-bold text-primary fs-5">₱<%= totalSales.toLocaleString() %></span>
+                    </div>
+                </div>
+            </div>
+
+            <%# RIGHT PANEL: Detail (Sticky Header/Footer) %>
+            <div class="sales-detail-panel">
+                <div id="empty-state" class="<%= (transactions && transactions.length > 0) ? 'd-none' : 'd-flex' %> flex-column align-items-center justify-content-center text-muted h-100">
+                    <i class="bi bi-receipt display-1 opacity-25 mb-3"></i>
+                    <h4>Select an order</h4>
+                </div>
+
+                <div id="detail-view-container" class="<%= (transactions && transactions.length > 0) ? 'd-block' : 'd-none' %>">
+                    <div class="receipt-card">
+                        <%# Fixed Header %>
+                        <div class="rc-header">
+                            <div>
+                                <div class="d-flex align-items-center gap-3 mb-1">
+                                    <h3 class="fw-bold mb-0 text-dark" id="detail-id">ORD-XXXX</h3>
+                                    <span class="status-pill" id="detail-status">Status</span>
+                                </div>
+                                <div class="text-muted small">
+                                    <span id="detail-date">Date</span> • <span id="detail-time">Time</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted text-uppercase fw-bold">Customer</div>
+                                <div class="fw-bold text-dark fs-5" id="detail-customer">Walk-in</div>
+                                <div class="small text-muted mt-1"><i class="bi bi-credit-card me-1"></i><span id="detail-payment">Cash</span></div>
                             </div>
                         </div>
 
-                        <% if (transaction.status === 'Pending' || transaction.status === 'Ready') { %>
-                            <hr>
-                            <div class="d-flex justify-content-end gap-2">
-                                <% if (transaction.status === 'Pending') { %>
-                                    <form action="/orders/<%= transaction._id %>/cancel" method="POST" class="flex-grow-1">
-                                        <button type="submit" class="btn btn-outline-danger btn-transaction-action w-100">Cancel</button>
-                                    </form>
-                                <% } %>
-                                <form action="/orders/<%= transaction._id %>/complete" method="POST" class="flex-grow-1">
-                                    <button type="submit" class="btn btn-outline-success btn-transaction-action w-100">Mark as Completed</button>
-                                </form>
+                        <%# Scrollable Body %>
+                        <div class="rc-body">
+                            <table class="table table-borderless rc-table w-100">
+                                <thead>
+                                    <tr><th style="width: 50%;">Item</th><th class="text-center">Qty</th><th class="text-end">Price</th><th class="text-end">Total</th></tr>
+                                </thead>
+                                <tbody id="detail-items">
+                                    </tbody>
+                            </table>
+                        </div>
+
+                        <%# Fixed Footer %>
+                        <div class="rc-footer">
+                            <div class="row mb-3">
+                                <div class="col-6"></div>
+                                <div class="col-6">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="text-muted">Subtotal</span>
+                                        <span class="fw-bold" id="detail-subtotal">₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2 text-danger" id="detail-discount-row">
+                                        <span>Discount</span>
+                                        <span id="detail-discount">-₱0.00</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                                        <span class="fs-5 fw-bold text-dark">Total</span>
+                                        <span class="fs-2 fw-bold text-primary" id="detail-total">₱0.00</span>
+                                    </div>
+                                </div>
                             </div>
-                        <% } %>
+                            <div id="detail-actions" class="d-flex justify-content-end gap-2">
+                                </div>
+                        </div>
                     </div>
                 </div>
-            <% }) %>
-        <% } else { %>
-            <div class="text-center text-muted mt-5">
-                <div class="empty-cart-icon mb-3">
-                    <i class="bi bi-receipt"></i>
-                </div>
-                <p>No sales recorded yet for today.</p>
             </div>
-        <% } %>
-    </main>
+        </div>
+    </div>
 
-    <%- include('../partials/frontlineBottomNav') %>
-    <%- include('../partials/frontlineFooter') %>
+<script>
+    // --- DESKTOP LOGIC ---
+    
+    // 1. Filter Logic
+    function filterOrders(status) {
+        document.querySelectorAll('.filter-tab').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        const items = document.querySelectorAll('.order-item');
+        items.forEach(item => {
+            const itemStatus = item.getAttribute('data-status');
+            if (status === 'All' || itemStatus === status) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // 2. Search Logic
+    document.getElementById('order-search').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        document.querySelectorAll('.order-item').forEach(item => {
+            const data = JSON.parse(item.getAttribute('data-transaction'));
+            const id = data._id.slice(-6).toLowerCase();
+            const customer = (data.customerName || '').toLowerCase();
+            
+            if (id.includes(term) || customer.includes(term)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // 3. Selection Logic
+    function selectOrder(element) {
+        document.querySelectorAll('.order-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+        
+        const data = JSON.parse(element.getAttribute('data-transaction'));
+        
+        document.getElementById('empty-state').classList.add('d-none');
+        document.getElementById('empty-state').classList.remove('d-flex');
+        document.getElementById('detail-view-container').classList.add('d-block');
+        document.getElementById('detail-view-container').classList.remove('d-none');
+
+        // Header Info
+        document.getElementById('detail-id').innerText = `ORD-${data._id.slice(-6).toUpperCase()}`;
+        const dateObj = new Date(data.createdAt);
+        document.getElementById('detail-date').innerText = dateObj.toLocaleDateString();
+        document.getElementById('detail-time').innerText = dateObj.toLocaleTimeString();
+        document.getElementById('detail-customer').innerText = data.customerName || 'Walk-in';
+        document.getElementById('detail-payment').innerText = data.paymentMethod;
+
+        // Status Pill
+        const statusEl = document.getElementById('detail-status');
+        statusEl.innerText = data.status;
+        statusEl.className = 'status-pill ' + data.status.toLowerCase();
+
+        // Items Table
+        const itemsContainer = document.getElementById('detail-items');
+        itemsContainer.innerHTML = '';
+        data.items.forEach(item => {
+            const total = item.price * item.quantity;
+            const row = `<tr><td><div class="fw-bold text-dark">${item.name || (item.productId ? item.productId.name : 'Item')}</div>${item.sizeLabel ? `<small class="text-muted">${item.sizeLabel}</small>` : ''}</td><td class="text-center text-muted">x${item.quantity}</td><td class="text-end text-muted">₱${item.price.toFixed(2)}</td><td class="text-end fw-bold">₱${total.toFixed(2)}</td></tr>`;
+            itemsContainer.innerHTML += row;
+        });
+
+        // Totals
+        const subtotal = data.discountApplied ? data.totalAmount + data.discountAmount : data.totalAmount;
+        document.getElementById('detail-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
+        
+        const discountRow = document.getElementById('detail-discount-row');
+        if(data.discountApplied) {
+            discountRow.style.display = 'flex';
+            document.getElementById('detail-discount').innerText = `-₱${data.discountAmount.toFixed(2)}`;
+        } else {
+            discountRow.style.display = 'none';
+        }
+        document.getElementById('detail-total').innerText = `₱${data.totalAmount.toFixed(2)}`;
+
+        // Actions
+        const actionsContainer = document.getElementById('detail-actions');
+        actionsContainer.innerHTML = '';
+        if (data.status === 'Pending') {
+            actionsContainer.innerHTML = `<form action="/orders/${data._id}/cancel" method="POST"><button class="btn btn-outline-danger fw-bold px-4 py-2 rounded-3 me-2">Cancel Order</button></form><form action="/orders/${data._id}/complete" method="POST"><button class="btn btn-success fw-bold px-5 py-2 rounded-3 text-white shadow-sm">Mark Completed</button></form>`;
+        } else if (data.status === 'Ready') {
+            actionsContainer.innerHTML = `<form action="/orders/${data._id}/complete" method="POST"><button class="btn btn-success fw-bold px-5 py-2 rounded-3 text-white shadow-sm">Mark Completed</button></form>`;
+        }
+    }
+
+    // Keyboard Navigation Support
+    document.addEventListener('keydown', (e) => {
+        if(window.innerWidth < 992) return;
+        
+        const active = document.querySelector('.order-item.active');
+        if(!active) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const next = active.nextElementSibling;
+            if(next && next.classList.contains('order-item') && next.style.display !== 'none') {
+                selectOrder(next);
+                next.scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prev = active.previousElementSibling;
+            if(prev && prev.classList.contains('order-item') && prev.style.display !== 'none') {
+                selectOrder(prev);
+                prev.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    });
+
+    // Select first item on load (Desktop)
+    document.addEventListener('DOMContentLoaded', () => {
+        if(window.innerWidth >= 992) {
+            const firstItem = document.querySelector('.order-item');
+            if(firstItem) selectOrder(firstItem);
+        }
+    });
+</script>
+
 </body>
 </html>

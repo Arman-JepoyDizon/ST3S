@@ -2,108 +2,200 @@
 // Contains all Admin controller functions with updates for user fields, role restrictions, category lock, and live order filtering.
 
 const Product = require('../models/product');
-const Price = require('../models/price');
 const User = require('../models/user');
 const Category = require('../models/category');
 const Transaction = require('../models/transaction');
-const Size = require('../models/size');
 const Branch = require('../models/branch');
 const mongoose = require('mongoose');
+const StaffApplication = require('../models/staffApplication');
+const bcrypt = require('bcryptjs')
 
-// --- Analytics ---
 const getAnalyticsPage = async (req, res) => {
-    try {
-        const { filter, dateRange } = req.query;
-        let startDate = new Date();
-        let endDate = new Date();
-        let currentFilter = filter || 'today';
-        let customDateRange = null;
+  try {
+    const { filter, dateRange } = req.query;
 
-        endDate.setHours(23, 59, 59, 999);
+    let startDate = new Date();
+    let endDate = new Date();
+    let currentFilter = filter || 'today';
+    let customDateRange = null;
 
-        if (dateRange) {
-            const [startDateStr, endDateStr] = dateRange.split(' to ');
-            startDate = new Date(startDateStr);
-            startDate.setHours(0, 0, 0, 0);
-            endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
-            endDate.setHours(23, 59, 59, 999);
-            currentFilter = 'custom';
-            customDateRange = {
-                start: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                end: endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            };
-        } else {
-            switch (currentFilter) {
-                case 'week': startDate.setDate(startDate.getDate() - 6); startDate.setHours(0, 0, 0, 0); break;
-                case 'month': startDate.setMonth(startDate.getMonth() - 1); startDate.setHours(0, 0, 0, 0); break;
-                case 'year': startDate.setFullYear(startDate.getFullYear() - 1); startDate.setHours(0, 0, 0, 0); break;
-                case 'today': default: startDate.setHours(0, 0, 0, 0); currentFilter = 'today'; break;
-            }
-        }
+    endDate.setHours(23, 59, 59, 999);
 
-        const branchObjectId = new mongoose.Types.ObjectId(req.session.user.branch);
-        const dateQuery = { createdAt: { $gte: startDate, $lte: endDate } };
-        const branchQuery = { branch: branchObjectId };
-        const matchQuery = { ...dateQuery, ...branchQuery };
-
-        const totalOrders = await Transaction.countDocuments(matchQuery);
-        const salesData = await Transaction.aggregate([
-            { $match: { status: 'Completed', ...matchQuery } },
-            { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
-        ]);
-        const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
-
-        const bestSellers = await Transaction.aggregate([
-            { $match: { status: 'Completed', ...matchQuery } }, { $unwind: '$items' },
-            { $group: { _id: { productId: '$items.productId', sizeLabel: '$items.sizeLabel' }, totalQuantity: { $sum: '$items.quantity' }, totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } } } },
-            { $sort: { totalRevenue: -1 } }, { $limit: 5 },
-            { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
-            { $unwind: '$productDetails' }
-        ]);
-
-        let salesTrendData;
-        if (currentFilter === 'year' || (currentFilter === 'custom' && (endDate - startDate) / (1000 * 60 * 60 * 24) > 60)) {
-            const monthlySales = await Transaction.aggregate([ { $match: { status: 'Completed', ...matchQuery } }, { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Manila" } }, monthlyTotal: { $sum: "$totalAmount" } } }, { $sort: { _id: 1 } } ]);
-            const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
-            const labels = []; const data = []; let dateIterator = new Date(startDate);
-            while (dateIterator <= endDate) { const year = dateIterator.getFullYear(); const month = String(dateIterator.getMonth() + 1).padStart(2, '0'); const monthString = `${year}-${month}`; const currentLabel = dateIterator.toLocaleString('en-US', { month: 'short', year: 'numeric' }); if (!labels.includes(currentLabel)) { labels.push(currentLabel); data.push(salesMap.get(monthString) || 0); } dateIterator.setMonth(dateIterator.getMonth() + 1); }
-            salesTrendData = { labels, data, title: 'Sales Trend (Monthly)' };
-        } else {
-            if (currentFilter === 'today') {
-                const hourlySales = await Transaction.aggregate([ { $match: { status: 'Completed', ...matchQuery } }, { $group: { _id: { $floor: { $divide: [{ $hour: { date: "$createdAt", timezone: "Asia/Manila" } }, 2] } }, hourlyTotal: { $sum: "$totalAmount" } } } ]);
-                const salesMap = new Map(hourlySales.map(d => [d._id, d.hourlyTotal]));
-                const labels = [ '12-2am', '2-4am', '4-6am', '6-8am', '8-10am', '10-12pm', '12-2pm', '2-4pm', '4-6pm', '6-8pm', '8-10pm', '10-12am' ]; const data = [];
-                for (let i = 0; i < 12; i++) { data.push(salesMap.get(i) || 0); }
-                salesTrendData = { labels, data, title: 'Sales Trend (Today)' };
-            } else {
-                const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
-                const dailySales = await Transaction.aggregate([ { $match: { status: 'Completed', ...matchQuery } }, { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } }, { $sort: { _id: 1 } } ]);
-                const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
-                const labels = []; const data = []; let dateIterator = new Date(startDate);
-                const formatDateToYYYYMMDD = (date) => { const year = date.getFullYear(); const month = String(date.getMonth() + 1).padStart(2, '0'); const day = String(date.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; };
-                while (dateIterator <= endDate) { const dateString = formatDateToYYYYMMDD(dateIterator); labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })); data.push(salesMap.get(dateString) || 0); dateIterator.setDate(dateIterator.getDate() + 1); }
-                salesTrendData = { labels, data, title };
-            }
-        }
-
-        const recentTransactions = await Transaction.find({ branch: req.session.user.branch })
-            .sort({ createdAt: -1 }).limit(5).populate('createdBy', 'username').populate('items.productId', 'name');
-
-        const topProductsData = {
-            labels: bestSellers.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
-            data: bestSellers.map(p => p.totalQuantity)
-        };
-
-        res.render('admin/dashboard', {
-            user: req.session.user, activePage: 'analytics', totalSales, totalOrders, bestSellers,
-            salesTrendData, topProductsData, recentTransactions, currentFilter, customDateRange, query: req.query
-        });
-
-    } catch (error) {
-        console.error('Error fetching analytics data:', error);
-        res.status(500).send('Server error');
+    // Handle custom date range
+    if (dateRange) {
+      const [startDateStr, endDateStr] = dateRange.split(' to ');
+      startDate = new Date(startDateStr);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = endDateStr ? new Date(endDateStr) : new Date(startDate);
+      endDate.setHours(23, 59, 59, 999);
+      currentFilter = 'custom';
+      customDateRange = {
+        start: startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        end: endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      };
+    } else {
+      // Default filters
+      switch (currentFilter) {
+        case 'week':
+          startDate.setDate(startDate.getDate() - 6);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          startDate.setMonth(startDate.getMonth() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'year':
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'today':
+        default:
+          startDate.setHours(0, 0, 0, 0);
+          currentFilter = 'today';
+          break;
+      }
     }
+
+    const branchObjectId = new mongoose.Types.ObjectId(req.session.user.branch);
+    const dateQuery = { createdAt: { $gte: startDate, $lte: endDate } };
+    const branchQuery = { branch: branchObjectId };
+    const matchQuery = { ...dateQuery, ...branchQuery };
+
+    // Total Orders & Total Sales
+    const totalOrders = await Transaction.countDocuments(matchQuery);
+    const salesData = await Transaction.aggregate([
+      { $match: { status: 'Completed', ...matchQuery } },
+      { $group: { _id: null, totalSales: { $sum: '$totalAmount' } } }
+    ]);
+    const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
+
+    // Best Sellers by Revenue
+    const bestSellers = await Transaction.aggregate([
+      { $match: { status: 'Completed', ...matchQuery } },
+      { $unwind: '$items' },
+      { $group: { 
+          _id: { productId: '$items.productId', sizeLabel: '$items.sizeLabel' },
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.quantity', '$items.price'] } }
+      }},
+      { $sort: { totalRevenue: -1 } },
+      { $limit: 5 },
+      { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
+      { $unwind: '$productDetails' }
+    ]);
+
+    // Top Products by Quantity
+    const topProductsByQuantity = await Transaction.aggregate([
+      { $match: { status: 'Completed', ...matchQuery } },
+      { $unwind: '$items' },
+      { $group: { 
+          _id: { productId: '$items.productId', sizeLabel: '$items.sizeLabel' },
+          totalQuantity: { $sum: '$items.quantity' }
+      }},
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 5 },
+      { $lookup: { from: 'products', localField: '_id.productId', foreignField: '_id', as: 'productDetails' } },
+      { $unwind: '$productDetails' }
+    ]);
+
+    const topProductsData = {
+      labels: topProductsByQuantity.map(p => `${p.productDetails.name}${p._id.sizeLabel ? ` - ${p._id.sizeLabel}` : ''}`),
+      data: topProductsByQuantity.map(p => p.totalQuantity)
+    };
+
+    // Sales Trend Data
+    let salesTrendData;
+    const msPerDay = 1000 * 60 * 60 * 24;
+    if (currentFilter === 'year' || (currentFilter === 'custom' && (endDate - startDate) / msPerDay > 60)) {
+      // Monthly trend
+      const monthlySales = await Transaction.aggregate([
+        { $match: { status: 'Completed', ...matchQuery } },
+        { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt", timezone: "Asia/Manila" } }, monthlyTotal: { $sum: "$totalAmount" } } },
+        { $sort: { _id: 1 } }
+      ]);
+      const salesMap = new Map(monthlySales.map(d => [d._id, d.monthlyTotal]));
+      const labels = [];
+      const data = [];
+      let dateIterator = new Date(startDate);
+      while (dateIterator <= endDate) {
+        const year = dateIterator.getFullYear();
+        const month = String(dateIterator.getMonth() + 1).padStart(2, '0');
+        const monthString = `${year}-${month}`;
+        const currentLabel = dateIterator.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+        if (!labels.includes(currentLabel)) {
+          labels.push(currentLabel);
+          data.push(salesMap.get(monthString) || 0);
+        }
+        dateIterator.setMonth(dateIterator.getMonth() + 1);
+      }
+      salesTrendData = { labels, data, title: 'Sales Trend (Monthly)' };
+    } else {
+      if (currentFilter === 'today') {
+        // Hourly trend
+        const hourlySales = await Transaction.aggregate([
+          { $match: { status: 'Completed', ...matchQuery } },
+          { $group: { _id: { $floor: { $divide: [{ $hour: { date: "$createdAt", timezone: "Asia/Manila" } }, 2] } }, hourlyTotal: { $sum: "$totalAmount" } } }
+        ]);
+        const salesMap = new Map(hourlySales.map(d => [d._id, d.hourlyTotal]));
+        const labels = [ '12-2am', '2-4am', '4-6am', '6-8am', '8-10am', '10-12pm', '12-2pm', '2-4pm', '4-6pm', '6-8pm', '8-10pm', '10-12am' ];
+        const data = [];
+        for (let i = 0; i < 12; i++) data.push(salesMap.get(i) || 0);
+        salesTrendData = { labels, data, title: 'Sales Trend (Today)' };
+      } else {
+        // Daily trend
+        const title = `Sales Trend (${customDateRange ? `${customDateRange.start} - ${customDateRange.end}` : currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)})`;
+        const dailySales = await Transaction.aggregate([
+          { $match: { status: 'Completed', ...matchQuery } },
+          { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "Asia/Manila" } }, dailyTotal: { $sum: "$totalAmount" } } },
+          { $sort: { _id: 1 } }
+        ]);
+        const salesMap = new Map(dailySales.map(d => [d._id, d.dailyTotal]));
+        const labels = [];
+        const data = [];
+        const formatDateToYYYYMMDD = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        let dateIterator = new Date(startDate);
+        while (dateIterator <= endDate) {
+          const dateString = formatDateToYYYYMMDD(dateIterator);
+          labels.push(dateIterator.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+          data.push(salesMap.get(dateString) || 0);
+          dateIterator.setDate(dateIterator.getDate() + 1);
+        }
+        salesTrendData = { labels, data, title };
+      }
+    }
+
+    // Recent transactions
+    const recentTransactions = await Transaction.find({ branch: branchObjectId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('createdBy', 'username')
+      .populate('items.productId', 'name');
+
+    res.render('admin/dashboard', {
+      user: req.session.user,
+      activePage: 'analytics',
+      totalSales,
+      totalOrders,
+      bestSellers,
+      topProductsData,
+      salesTrendData,
+      recentTransactions,
+      currentFilter,
+      customDateRange,
+      query: req.query
+    });
+
+  } catch (error) {
+    console.error('Error fetching analytics data:', error);
+    res.status(500).send('Server error');
+  }
 };
+
 
 // --- Order Management ---
 const getOrdersPage = async (req, res) => {
@@ -234,8 +326,41 @@ const renderOrdersList = async (req, res) => {
 // --- Product Management ---
 const getProducts = async (req, res) => {
     try {
-        const products = await Product.find({ branches: req.session.user.branch }).populate('category', 'name');
-        res.render('admin/products', { user: req.session.user, products: products, activePage: 'products' });
+        const categories = await Category.find({});
+        let query = { branches: req.session.user.branch };
+
+        // Filtering
+        if (req.query.search && req.query.search.trim() !== '') {
+            query.name = { $regex: req.query.search.trim(), $options: 'i' };
+        }
+        if (req.query.category && req.query.category !== '') {
+            query.category = req.query.category;
+        }
+
+        // Sorting
+        let sort = { createdAt: -1 };
+        if (req.query.sort) {
+            switch (req.query.sort) {
+                case 'name_asc': sort = { name: 1 }; break;
+                case 'name_desc': sort = { name: -1 }; break;
+                case 'price_asc': sort = { 'price.price': 1 }; break;
+                case 'price_desc': sort = { 'price.price': -1 }; break;
+                default: sort = { createdAt: -1 };
+            }
+        }
+
+        const products = await Product.find(query).populate('category', 'name').sort(sort);
+
+        // Updated: Pass message and type from query parameters to the view
+        res.render('admin/products', { 
+            user: req.session.user, 
+            products: products, 
+            categories: categories,
+            activePage: 'products',
+            query: req.query,
+            message: req.query.message, 
+            messageType: req.query.type 
+        });
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).send('Server error while fetching products.');
@@ -245,7 +370,7 @@ const getProducts = async (req, res) => {
 const getAddProductPage = async (req, res) => {
     try {
         const categories = await Category.find();
-        res.render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products' });
+        res.render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: [], input: {} });
     } catch (error) {
         console.error('Error getting add product page:', error);
         res.status(500).send('Server error.');
@@ -255,47 +380,72 @@ const getAddProductPage = async (req, res) => {
 const postAddProduct = async (req, res) => {
     try {
         const { name, price, size, category, imageUrl } = req.body;
+        if (!name || !price || !category) {
+            const categories = await Category.find();
+            return res.status(400).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: ['Missing required fields (Name, Price, Category).'], input: req.body });
+        }
+         
         const prices = Array.isArray(price) ? price : [price];
         let sizes = Array.isArray(size) ? (size || []).filter(s => s && s.trim() !== '') : [];
-        if (!name || !prices[0] || !category) {
-             const categories = await Category.find();
-            return res.status(400).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: ['Missing required fields (Name, Price, Category).'], input: req.body });
-         }
+
+        let hasDuplicatSizes = false;
+        let duplicateSizeName = "";
+        for(let i = 0; i<sizes.length; i++){
+            for(let j = 0; j<sizes.length; j++){
+                if(i != j){
+                    if(sizes[i] == sizes[j]){
+                        hasDuplicatSizes = true;
+                        duplicateSizeName = sizes[i];
+                    }
+                }
+            }
+        }
+
+        if(hasDuplicatSizes){
+            const categories = await Category.find();
+            return res.status(400).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: [`Duplicate Size Name ${duplicateSizeName}`], input: req.body });
+        }
+
         const productExist = await Product.findOne({ name: name, branches: req.session.user.branch });
         if(productExist){
-            console.log("Product name already exists in this branch");
-             const categories = await Category.find();
+            const categories = await Category.find();
             return res.status(400).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: [`Product name "${name}" already exists in this branch.`], input: req.body });
         }
-        const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
-        const newProduct = await Product.create({ name, price: lowestPrice, category, imageUrl, branches: [req.session.user.branch] });
-        if (sizes.length > 0) {
-            for (let i = 0; i < sizes.length; i++) {
-                const insertedSize = await Size.create({ productId: newProduct._id, label: sizes[i] });
-                await Price.create({ productId: newProduct._id, sizeId: insertedSize._id, price: prices[i] });
-            }
-        } else {
-            await Price.create({ productId: newProduct._id, price: prices[0] });
-        }
-        res.redirect('/admin/products');
+
+        const productPrices = prices.map((p, index) => {
+            return {
+                size: sizes[index]??undefined,
+                price: p,
+            };
+        });
+
+        const newProductData = {
+            name: name,
+            price: productPrices, 
+            category: category,
+            imageUrl: imageUrl || 'default-image-path',
+            branches: [req.session.user.branch] 
+        };
+
+        await Product.create(newProductData);
+        
+        // Updated: Redirect with success message
+        res.redirect('/admin/products?message=New+product+added+successfully&type=success');
+
     } catch (error) {
         console.error('Error adding product:', error);
-         const categories = await Category.find();
-         res.status(500).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: [error.message || 'Server error while adding product.'], input: req.body });
+        const categories = await Category.find();
+        res.status(500).render('admin/addProduct', { user: req.session.user, categories: categories, activePage: 'products', errors: [error.message || 'Server error while adding product.'], input: req.body });
     }
 };
 
 const getEditProductPage = async (req, res) => {
     try {
+        const errorMessage = req.query.error??undefined;
         const product = await Product.findOne({ _id: req.params.id, branches: req.session.user.branch });
         if (!product) { return res.status(404).send("Product not found or not available in this branch."); }
-        const sizes = await Size.find({ productId: req.params.id, status: 'Active' });
-        const prices = await Price.find({ productId: req.params.id, status: 'Active' });
         const categories = await Category.find();
-        const pastSinglePrices = await Price.find({ productId: req.params.id, status: "Inactive", sizeId: null }).sort({ createdAt: -1 });
-        const pastSizePrices = await Price.find({ productId: req.params.id, status: "Inactive", sizeId: { $ne: null } }).sort({ createdAt: -1 });
-        const pastProductSizes = await Size.find({ productId: req.params.id, status: "Inactive" }).sort({ createdAt: -1 });
-        res.render('admin/editProduct', { user: req.session.user, product, sizes, prices, categories, pastSinglePrices, pastSizePrices, pastProductSizes, activePage: 'products' });
+        res.render('admin/editProduct', { user: req.session.user, product, categories, activePage: 'products', errorMessage, errors: [], input: {} });
     } catch (error) {
         console.error('Error fetching product for edit:', error);
         res.status(500).send('Server error.');
@@ -305,39 +455,79 @@ const getEditProductPage = async (req, res) => {
 const postUpdateProduct = async (req, res) => {
     try {
         const productId = req.params.id;
-        const { name, price, size, category, imageUrl } = req.body;
+        const { name, price, size, category, imageUrl, status, priceStatus} = req.body;
         const productToUpdate = await Product.findOne({ _id: productId, branches: req.session.user.branch });
         if (!productToUpdate) { return res.status(403).send("You do not have permission to edit this product."); }
+
+        if (!name || !price || !category || !status) { return res.status(400).send("Missing required fields."); }
+
+        const productExist = await Product.findOne({ name: name, branches: req.session.user.branch });
+        if(productExist){
+            if(productExist._id.toString() != productId){
+                return res.redirect(`/admin/products/edit/${productId}?error=${encodeURIComponent('Product name '+ name +' already exists in this branch.')}`)
+            }
+        }
+
         const prices = Array.isArray(price) ? price : [price];
         let sizes = Array.isArray(size) ? (size || []).filter(s => s && s.trim() !== '') : [];
-        if (!name || !prices[0] || !category) { return res.status(400).send("Missing required fields."); }
-        const lowestPrice = Math.min(...prices.map(p => parseFloat(p)));
-        const existingSizes = await Size.find({ productId });
-        if (existingSizes.length > 0 && sizes.length === 0) { await Price.updateMany({ productId }, { status: "Inactive" }); await Size.updateMany({ productId }, { status: "Inactive" }); await Price.create({ productId, price: prices[0], status: "Active" }); } // Updated Size logic
-        else if (existingSizes.length === 0 && sizes.length > 0) { await Price.updateMany({ productId, sizeId: null }, { status: "Inactive" }); for (let i = 0; i < sizes.length; i++) { const newSize = await Size.create({ productId, label: sizes[i].trim(), status: "Active" }); await Price.create({ productId, sizeId: newSize._id, price: parseFloat(prices[i] || prices[0]), status: "Active" }); } } // Updated Size logic
-        else if (sizes.length > 0) { const keepSizeIds = new Set(); for (let i = 0; i < sizes.length; i++) { const newLabel = String(sizes[i]).trim(); const newPrice = parseFloat(prices[i] || prices[0]); let sizeDoc = existingSizes.find(s => s.label.toLowerCase() === newLabel.toLowerCase()); if (sizeDoc) { await Size.findByIdAndUpdate(sizeDoc._id, { status: "Active" }); const currentPrice = await Price.findOne({ productId, sizeId: sizeDoc._id, status: "Active" }); if (!currentPrice || currentPrice.price !== newPrice) { if (currentPrice) await Price.findByIdAndUpdate(currentPrice._id, { status: "Inactive" }); await Price.create({ productId, sizeId: sizeDoc._id, price: newPrice, status: "Active" }); } } else { sizeDoc = await Size.create({ productId, label: newLabel, status: "Active" }); await Price.create({ productId, sizeId: sizeDoc._id, price: newPrice, status: "Active" }); } keepSizeIds.add(String(sizeDoc._id)); } const toDeactivate = existingSizes.filter(s => !keepSizeIds.has(String(s._id))); for (const s of toDeactivate) { await Size.findByIdAndUpdate(s._id, { status: "Inactive" }); await Price.updateMany({ productId, sizeId: s._id, status: "Active" }, { status: "Inactive" }); } } // Updated Size logic
-        else { const currentPrice = await Price.findOne({ productId, sizeId: null, status: 'Active' }); if (!currentPrice || currentPrice.price !== parseFloat(prices[0])) { if (currentPrice) await Price.findByIdAndUpdate(currentPrice._id, { status: 'Inactive' }); await Price.create({ productId, price: prices[0], status: 'Active' }); } }
-        await Product.findByIdAndUpdate(productId, { name, price: lowestPrice, category, imageUrl });
-        return res.redirect("/admin/products");
-    } catch (error) {
+        let statusPrice = Array.isArray(priceStatus)? priceStatus : [];
+
+        let hasDuplicatSizes = false;
+        let duplicateSizeName = "";
+        for(let i = 0; i<sizes.length; i++){
+            for(let j = 0; j<sizes.length; j++){
+                if(i != j){
+                    if(sizes[i] == sizes[j]){
+                        hasDuplicatSizes = true;
+                        duplicateSizeName = sizes[i];
+                    }
+                }
+            }
+        }
+        
+        if(hasDuplicatSizes){
+            return res.redirect(`/admin/products/edit/${productId}?error=${encodeURIComponent('Duplicate Product Size Name '+ duplicateSizeName )}`)
+        }
+
+        const productPrices = prices.map((p, index) => {
+            return {
+                size: sizes[index] ?? undefined,
+                price: p,
+                status: statusPrice[index] ?? "Active",
+            };
+        });
+
+        const updatedProductData = {
+            name: name,
+            price: productPrices, 
+            category: category,
+            imageUrl: imageUrl || 'default-image-path',
+            branches: [req.session.user.branch] ,
+            status: status,
+        };
+
+        await Product.findByIdAndUpdate(productId, updatedProductData);
+
+        // Updated: Redirect with success message
+        return res.redirect("/admin/products?message=Change+saved+successfully&type=success");
+    }catch (error) {
         console.error("❌ Error updating product:", error);
         res.status(500).send("Server error while updating product.");
     }
-};
+}
 
 const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findOneAndDelete({ _id: req.params.id, branches: req.session.user.branch });
         if (!product) { return res.status(404).send("Product not found or you do not have permission to delete it."); }
-        await Size.deleteMany({ productId: product._id });
-        await Price.deleteMany({ productId: product._id });
-        res.redirect('/admin/products');
+        
+        // Updated: Redirect with success message
+        res.redirect('/admin/products?message=Product+deleted+successfully&type=success');
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).send('Server error while deleting product.');
     }
 };
-
 // --- User Management (Admin Role) ---
 const getUserPage = async (req, res) => {
     try {
@@ -346,7 +536,7 @@ const getUserPage = async (req, res) => {
             _id: { $ne: req.session.user.id },
             role: { $nin: ['Super Admin', 'Assistant Manager'] } // Exclude higher roles
         }).sort({ createdAt: 'desc' });
-        res.render('admin/users', { user: req.session.user, users: users, activePage: 'users' });
+        res.render('admin/users', { user: req.session.user, users: users, activePage: 'users', message: req.query.message, messageType: req.query.type});
     } catch (error) {
         console.error("Error fetching Users Page (Admin):", error);
         res.status(500).send("Error fetching Users Page");
@@ -356,10 +546,13 @@ const getUserPage = async (req, res) => {
 const getAddUserPage = async (req, res) => {
     try {
         const adminBranch = await Branch.findById(req.session.user.branch);
+        // FIXED: Changed errors: null to errors: []
         res.render('admin/addUser', {
-            user: req.session.user, activePage: 'users',
+            user: req.session.user, 
+            activePage: 'users',
             branchName: adminBranch ? adminBranch.name : 'Unknown Branch',
-            errors: null, input: {}
+            errors: [], 
+            input: {}
         });
     } catch (error) {
         console.error("Error Getting Add User Page (Admin):", error);
@@ -396,9 +589,14 @@ const getUserEditPage = async (req, res) => {
                                        .populate('branch', 'name');
         if (!userDetails) { return res.status(404).send("User not found or you do not have permission to edit this user."); }
         if (['Super Admin', 'Assistant Manager'].includes(userDetails.role)) { return res.status(403).send("Admins cannot edit Super Admin or Assistant Manager users."); }
+        
+        // FIXED: Changed errors: null to errors: []
         res.render('admin/editUser', {
-            user: req.session.user, user_details: userDetails, activePage: 'users',
-            errors: null, input: null
+            user: req.session.user, 
+            user_details: userDetails, 
+            activePage: 'users',
+            errors: [], 
+            input: null
         });
     } catch (error) {
         console.error("Error getting edit user page (Admin):", error);
@@ -459,21 +657,30 @@ const getCategories = async (req, res) => {
     try {
         const categories = await Category.find();
         res.render('./admin/categories', {
-            user: req.session.user, categories: categories, activePage: 'categories',
-            showDeleteErrorModal: false, errorMessage: null // Pass modal flags
+            user: req.session.user, 
+            categories: categories, 
+            activePage: 'categories',
+            // Pass query params for Toasts
+            message: req.query.message, 
+            messageType: req.query.type,
+            // Pass modal flags if needed (though we are moving to Toasts)
+            showDeleteErrorModal: false, 
+            errorMessage: null,
+            errors: [] 
         });
     } catch (error) {
+         console.error('Error fetching categories:', error);
          const categories = [];
          res.status(500).render('./admin/categories', {
              user: req.session.user, categories: categories, activePage: 'categories',
-             showDeleteErrorModal: true, errorMessage: 'Error fetching categories.'
+             showDeleteErrorModal: true, errorMessage: 'Error fetching categories.', errors: []
          });
     }
 };
 
 const getAddCategoryPage = async (req, res) => {
     try {
-        res.render('./admin/addCategory', { user: req.session.user, activePage: 'categories', errors: null, input: {} });
+        res.render('./admin/addCategory', { user: req.session.user, activePage: 'categories', errors: [], input: {} });
     } catch (error) {
         res.status(500).send("Error Getting Add Category Page");
     }
@@ -483,7 +690,7 @@ const getEditCategoryPage = async (req, res) => {
     try {
         const category_details = await Category.findById(req.params.id);
         if(!category_details) return res.status(404).send("Category not found");
-        res.render('./admin/editCategory', { user: req.session.user, category_details: category_details, activePage: 'categories', errors: null, input: null });
+        res.render('./admin/editCategory', { user: req.session.user, category_details: category_details, activePage: 'categories', errors: [], input: null });
     } catch (error) {
         res.status(500).send("Error Getting Edit Category Page");
     }
@@ -493,12 +700,17 @@ const postAddCategory = async (req, res) => {
     try {
         const { name } = req.body;
         if(!name || name.trim().length === 0) throw new Error("Category name required.");
+        
         const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } });
         if (existingCategory) { throw new Error(`Category "${existingCategory.name}" already exists.`); }
+        
         await Category.create({ name: name.trim() });
-        res.redirect('/admin/categories');
+        
+        // Updated: Redirect with success toast
+        res.redirect('/admin/categories?message=Category+added+successfully&type=success');
     } catch (error) {
-        res.status(400).render('./admin/addCategory', { user: req.session.user, activePage: 'categories', errors: [error.message || 'Failed to add category'], input: req.body });
+        // Updated: Redirect with error toast instead of rendering page
+        res.redirect(`/admin/categories?message=${encodeURIComponent(error.message)}&type=danger`);
     }
 };
 
@@ -507,68 +719,133 @@ const postEditCategory = async (req, res) => {
     try {
         const { name } = req.body;
         if(!name || name.trim().length === 0) throw new Error("Category name required.");
+        
         const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') }, _id: { $ne: categoryId } });
         if (existingCategory) { throw new Error(`Another category named "${existingCategory.name}" already exists.`); }
+        
         await Category.findByIdAndUpdate(categoryId, { name: name.trim() }, {runValidators: true});
-        res.redirect('/admin/categories');
+        
+        // Updated: Redirect with success toast
+        res.redirect('/admin/categories?message=Category+updated+successfully&type=success');
     } catch (error) {
-        const category_details = await Category.findById(categoryId);
-        res.status(400).render('./admin/editCategory', { user: req.session.user, category_details: category_details, activePage: 'categories', errors: [error.message || 'Failed to edit category'], input: req.body });
+        // Updated: Redirect with error toast
+        res.redirect(`/admin/categories?message=${encodeURIComponent(error.message)}&type=danger`);
     }
 };
 
 const postDeletedCategory = async (req, res) => {
     const categoryId = req.params.id;
-    let categoryName = 'this category';
     try {
         const category = await Category.findById(categoryId);
-        if (category) { categoryName = category.name; }
-        else {
-             const categories = await Category.find();
-             return res.status(404).render('admin/categories', { user: req.session.user, categories: categories, activePage: 'categories', showDeleteErrorModal: true, errorMessage: 'Category not found.' });
+        if (!category) {
+             return res.redirect('/admin/categories?message=Category+not+found&type=danger');
         }
+        
         const productCount = await Product.countDocuments({ category: categoryId, branches: req.session.user.branch });
         if (productCount > 0) {
-            console.warn(`Admin ${req.session.user.id} attempted to delete category '${categoryName}' (${categoryId}) which has ${productCount} products assigned in their branch.`);
-            const categories = await Category.find();
-            return res.status(400).render('admin/categories', {
-                 user: req.session.user, categories: categories, activePage: 'categories',
-                 showDeleteErrorModal: true,
-                 errorMessage: `Cannot delete category '${categoryName}': ${productCount} product(s) in your branch are assigned to it.`
-             });
+            // Prevent delete if products exist
+            return res.redirect(`/admin/categories?message=${encodeURIComponent(`Cannot delete: ${productCount} products use this category.`)}&type=danger`);
         }
+        
         await Category.findByIdAndDelete(categoryId);
-        res.redirect('/admin/categories');
+        
+        // Updated: Redirect with success toast
+        res.redirect('/admin/categories?message=Category+deleted+successfully&type=success');
     } catch (error) {
         console.error("Error Deleting Category (Admin):", error);
-         const categories = await Category.find();
-         res.status(500).render('admin/categories', {
-             user: req.session.user, categories: categories, activePage: 'categories',
-             showDeleteErrorModal: true, errorMessage: `Server error while attempting to delete '${categoryName}'.`
-         });
+        res.redirect('/admin/categories?message=Server+error+deleting+category&type=danger');
     }
 };
 
-// --- Variant/Size Management ---
-const deleteSize = async (req, res) => {
+const getUserApplications = async (req, res) => {
     try {
-        const sizeId = req.params.id;
-        const sizeToDelete = await Size.findById(sizeId);
-        if (!sizeToDelete) { return res.status(404).send("Size not found"); }
-        const parentProduct = await Product.findOne({ _id: sizeToDelete.productId, branches: req.session.user.branch });
-        if (!parentProduct) { return res.status(403).send("You do not have permission to modify this product's variants."); }
-        await Price.updateMany({ productId: sizeToDelete.productId, sizeId: sizeId, status: 'Active' }, { status: 'Inactive' });
-        await Size.findByIdAndUpdate(sizeId, { status: 'Inactive' }); // Mark as inactive
-        res.redirect(`/admin/products/edit/${sizeToDelete.productId}`);
+        const userBranch = await Branch.findById(req.session.user.branch)
+        const applicants = await StaffApplication.find({status: 'Pending',preferredBranch: userBranch._id ,positionApplied:{$nin:['Super Admin','Admin']}}).sort({ createdAt: 'desc' });
+        res.render('admin/userApplications', { user: req.session.user, users: applicants, activePage: 'users' });
     } catch (error) {
-        console.error('Error deleting/inactivating size:', error);
-        res.status(500).send('Server error while deleting size.');
+        console.error("Error fetching Applicants Page (Admin):", error);
+        res.status(500).send("Error fetching Applicants Page");
     }
-};
+}
 
+const postApproveUserApplication = async (req, res) => {
+    if(!req.session.user){
+        return res.status(404).json({message: "Unauthorized Access"})
+    }
+    if(req.session.user && req.session.user.role !== 'Admin'){
+        return res.status(403).json({message: "Forbidden Access"})
+    }
+
+    try{
+        const {id} = req.body
+        if(!id){
+            return res.status(400).json({message: "Invalid user details"})
+        }
+        const userDetails = await StaffApplication.findByIdAndDelete(id)
+        if (['Super Admin', 'Assistant Manager'].includes(userDetails.positionApplied)) { throw new Error('Admins cannot create Super Admin or Assistant Manager roles.'); }
+        const newUser = new User({ firstName:userDetails.firstName, lastName:userDetails.lastName, contactNumber:userDetails.contactNumber, password:userDetails.password, role:userDetails.positionApplied, branch: userDetails.preferredBranch });
+        await newUser.save();
+        res.redirect(`/admin/users/applications?message=${encodeURIComponent('User '+newUser.firstName+' Approved')}`)
+    }catch(error){
+        console.log("Error Approving user application: ", error)
+        return res.status(500).json({message: "Internal Server Error: Error Approving User"})
+    }
+}
+
+const postDenyUserApplication = async (req, res) => {
+    if(!req.session.user){
+        return res.status(404).json({message: "Unauthorized Access"})
+    }
+    if(req.session.user && req.session.user.role !== 'Admin'){
+        return res.status(403).json({message: "Forbidden Access"})
+    }
+
+    try{
+        const {id} = req.body
+        if(!id){
+            return res.status(400).json({message: "Invalid user details"})
+        }
+        const userDetails = await StaffApplication.findByIdAndDelete(id)
+        res.redirect(`/admin/users/applications?message=${encodeURIComponent('User '+ userDetails.firstName+' Denied')}`)
+    }catch(error){
+        console.log("Error Denying user application: ", error)
+        return res.status(500).json({message: "Internal Server Error: Error Denying User"})
+    }
+}
+
+const postUserResetPassword = async (req, res) => {
+    if(!req.session.user){
+        return res.status(404).json({message: "Unauthorized Access"})
+    }
+    if(req.session.user && req.session.user.role !== 'Admin'){
+        return res.status(403).json({message: "Forbidden Access"})
+    }
+
+    try{
+        const {id} = req.body
+        if(!id){
+            return res.status(400).json({message: "Invalid user details"})
+        }
+        const resetUser = await User.findById(id)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(resetUser.contactNumber, salt);
+        const updated = await User.findByIdAndUpdate(id, {password: hashedPassword})
+        if(!updated){
+            return res.redirect(`/admin/users?message=${encodeURIComponent('Error Reseting User '+resetUser.firstName+"'s Password")}&type=error`)
+        }
+        console.log("Password reset successful")
+        return res.redirect(`/admin/users?message=${encodeURIComponent('User '+resetUser.firstName+"'s Password was Reset")}&type=success`)
+    }catch(error){
+        console.log("Error Approving user application: ", error)
+        return res.status(500).json({message: "Internal Server Error: Error Approving User"})
+    }
+}
 module.exports = {
     getAnalyticsPage, getProducts, getAddProductPage, postAddProduct, getEditProductPage, postUpdateProduct,
     deleteProduct, getUserPage, getAddUserPage, postAddUser, getUserEditPage, postUserEdit, postUserDelete,
     getCategories, getAddCategoryPage, getEditCategoryPage, postAddCategory, postEditCategory, postDeletedCategory,
-    getOrdersPage, getOrdersData, renderOrdersList, getOrdersCount, exportOrders, deleteSize, updateOrderStatus
+    getOrdersPage, getOrdersData, renderOrdersList, getOrdersCount, exportOrders, updateOrderStatus, getUserApplications,
+    postApproveUserApplication,
+    postDenyUserApplication,
+    postUserResetPassword,
 };

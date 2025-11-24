@@ -1,6 +1,5 @@
-// File: models/product.js
-
 const mongoose = require('mongoose');
+const priceSchema = require("./price")
 
 const productSchema = new mongoose.Schema({
     name: {
@@ -9,11 +8,26 @@ const productSchema = new mongoose.Schema({
         trim: true,
         unique: true
     },
-    price: {
-        type: Number,
-        required: [true, 'Product price is required.'],
-        min: [0, 'Price cannot be negative.']
-    },
+    price: [{
+        size: {
+            type: String,
+            required: false,
+            unique: true,
+        },
+        price: {
+            type: Number,
+            required: true
+        },
+        status: {
+            type: String,
+            enum: ['Active', 'Inactive'],
+            default: 'Active'
+        },
+        effectiveDate: {
+            type: Date,
+            default: Date.now
+        }
+    }],
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Category",
@@ -27,7 +41,12 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Branch',
         required: [true, 'Product must be assigned to at least one branch.']
-    }]
+    }],
+    status:{
+        type: String,
+        enum: ['Active', 'Inactive'],
+        default: 'Active',
+    }
 }, { 
     timestamps: true 
 });

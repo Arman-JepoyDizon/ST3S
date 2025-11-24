@@ -8,7 +8,7 @@ const Size = require('../models/size');
 const Price = require('../models/price');
 const Branch = require('../models/branch');
 const StaffApplication = require('../models/staffApplication');
-
+const bcrypt = require('bcryptjs')
 const getLoginPage = (req, res) => {
     if (req.session.user) {
         if (req.session.user.role === 'Super Admin') return res.redirect('/superadmin/dashboard');
@@ -18,7 +18,7 @@ const getLoginPage = (req, res) => {
         if (req.session.user.role === 'Cook') return res.redirect('/cook/dashboard');
         return res.redirect('/');
     }
-    res.render('login');
+    res.render('login',{message: req.query.message, messageType: req.query.type});
 };
 
 const postLogin = async (req, res) => {
@@ -47,6 +47,12 @@ const postLogin = async (req, res) => {
             role: user.role,
             branch: user.branch // Store branch ID in session
         };
+        
+        if(contactNumber == password){
+            console.log("Same contact and password! change now!")
+            return res.status(200).json({ success: true, redirectUrl: "/password/reset" })
+        }
+
 
         let redirectUrl = '/'; // Default for Front Liner
         if (user.role === 'Super Admin') {
@@ -60,7 +66,6 @@ const postLogin = async (req, res) => {
         else if (user.role === 'Assistant Manager') {
              redirectUrl = '/assistant/registrations'; // Set the specific route for Assistant Manager
         }
-
 
         return res.status(200).json({ success: true, redirectUrl: redirectUrl });
 
@@ -97,7 +102,7 @@ const getStaffApplicationPage = async (req, res) => {
 
 const postStaffApplication = async (req, res) => {
     const {
-        firstName, lastName, middleName, contactNumber,
+        firstName, lastName, contactNumber,
         password, confirmPassword, positionApplied, preferredBranch
     } = req.body;
 
@@ -126,7 +131,7 @@ const postStaffApplication = async (req, res) => {
         }
 
         const newApplication = new StaffApplication({
-            firstName, lastName, middleName, contactNumber,
+            firstName, lastName, contactNumber,
             password, positionApplied, preferredBranch
         });
         await newApplication.save();
@@ -160,6 +165,17 @@ const postStaffApplication = async (req, res) => {
 
 
 const getOrderScreen = async (req, res) => {
+    if(req.session.user){
+        if(req.session.user.role == "Admin"){return res.redirect('/admin/dashboard')}
+        else if(req.session.user.role == "Cook"){return res.redirect('/cook/dashboard')}
+        const user = await User.findOne({contactNumber: req.session.user.contactNumber})
+        console.log("Logged user: ",user)
+        if(await user.comparePassword(user.contactNumber)){
+            return res.redirect('/password/reset')
+        }
+    }else{
+        return res.redirect('/login')
+    }
     try {
         const categoryFilter = req.query.category;
         const allCategories = await Category.find({});
@@ -199,14 +215,10 @@ const getProductDetailPage = async (req, res) => {
             return res.status(404).send('Product not found');
         }
 
-        const sizes = await Size.find({ productId: productId, status: 'Active' });
-        const prices = await Price.find({ productId: productId, status: 'Active' });
         const readyOrdersCount = await Transaction.countDocuments({ status: 'Ready', branch: req.session.user.branch });
 
         res.render('frontline/productDetail', {
             product: product,
-            sizes: sizes,
-            prices: prices,
             user: req.session.user,
             activePage: 'products',
             readyOrdersCount: readyOrdersCount
@@ -364,6 +376,98 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+const getProfilePage = async (req, res) => {
+    if(!req.session.user){
+        return res.redirect('/')
+    }
+    try{
+        const userId = req.params.id
+        console.log("User to edit: ", userId)
+        const userDetails = await User.findById(userId)
+        if(!userDetails){
+            return res.status(401).json({message: "User Not Found"})
+        }
+        return res.status(200).render('./frontline/profile', {user: userDetails, message: req.query.message, messageType: req.query.type})
+    }catch(error){
+        console.log("Error Loading Profile Page: ",error)
+        return res.status(500).json({message: "Internal Server Error"})
+    }
+}
+
+const postProfileUpdate = async (req, res) => {
+    if(!req.session.user){
+        return res.redirect('/login')
+    }
+    try{
+        const {firstName, lastName, id, contactNumber} = req.body
+        if(!firstName || !lastName || !contactNumber){
+            return res.redirect(`/profile/${id}?message=${encodeURIComponent("Missing Required Fields")}&type=error`)
+        }
+
+        const isContactNumberExists = await User.findOne({contactNumber: contactNumber})
+        if(isContactNumberExists && contactNumber != req.session.user.contactNumber){
+            return res.redirect(`/profile/${id}?message=${encodeURIComponent("Contact Number Already Taken")}&type=error`)
+        }
+
+        const UpdatedUser = await User.findByIdAndUpdate(id,{firstName, lastName, contactNumber})
+        if(!UpdatedUser){
+            return res.redirect(`/profile/${id}?message=${encodeURIComponent("User Not Found")}&type=error`)
+        }
+        req.session.user = {
+            id: UpdatedUser._id,
+            contactNumber: UpdatedUser.contactNumber, // Store contact number in session
+            role: UpdatedUser.role,
+            branch: UpdatedUser.branch // Store branch ID in session
+        };
+        return res.status(200).redirect(`/profile/${id}?message=${encodeURIComponent("User Profile Updated Successfully")}&type=success`)
+    }catch(error){
+        console.log("Error Loading Profile Page: ",error)
+        return res.status(500).json({message: "Internal Server Error"})
+    }
+}
+const getResetPasswordPage = (req, res) => {
+    if(!req.session.user){
+        return res.redirect('/login')
+    }
+    try{
+        res.render('./frontline/resetPassword',{user: req.session.user})
+    }catch(error){
+        console.log("Error Loading Reset Password Page: ",error)
+        return res.status(500).json({message: "Internal Server Error"})
+    }
+}
+const postResetPassword = async (req, res) => {
+    if(!req.session.user){
+        return res.redirect('/login')
+    }
+    try{
+        const {contactNumber, password} = req.body
+        if(!contactNumber || !password){
+            return res.status(400).json({message: "Invalid user details"})
+        }
+        const resetUser = await User.findOne({contactNumber: contactNumber})
+        if(!resetUser){
+            return res.redirect(`/login?message=${encodeURIComponent('User not Found')}&type=error`)
+        }
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const updated = await User.findOneAndUpdate({contactNumber: contactNumber}, {password: hashedPassword})
+        console.log("Password reset successful")
+        req.session.destroy(err => {
+            if (err) {
+                console.error('Session destruction error:', err);
+                return res.status(500).send('Could not log out.');
+            }
+        });
+        if(!updated){
+            return res.redirect(`/login?message=${encodeURIComponent('Error Reseting Password')}&type=error`)
+        }
+        return res.redirect(`/login?message=${encodeURIComponent('Password was Reset, Please log in again')}&type=success`)
+    }catch(error){
+        console.log("Error Reseting User Password ", error)
+        return res.status(500).json({message: "Internal Server Error: Error Reseting Password"})
+    }
+}
 module.exports = {
     getLoginPage,
     postLogin,
@@ -376,5 +480,9 @@ module.exports = {
     getSalesPage,
     createOrder,
     completeOrder,
-    cancelOrder
+    cancelOrder,
+    getProfilePage,
+    postProfileUpdate,
+    getResetPasswordPage,
+    postResetPassword,
 };

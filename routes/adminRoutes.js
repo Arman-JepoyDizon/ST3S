@@ -27,18 +27,22 @@ router.post('/products/add', adminController.postAddProduct);
 router.get('/products/edit/:id', adminController.getEditProductPage);
 router.post('/products/update/:id', adminController.postUpdateProduct);
 router.post('/products/delete/:id', adminController.deleteProduct);
-// Added: Route for deleting product sizes (if not already present from previous steps)
-router.post('/products/size/:id/delete', adminController.deleteSize);
 
 
 // User Management Routes
 router.get('/users', adminController.getUserPage);
 router.get('/users/add', adminController.getAddUserPage);
+router.post('/users/reset', adminController.postUserResetPassword);
+//hindi na ata kailangan
 router.post('/users/add', adminController.postAddUser);
+
 router.get('/users/edit/:id', adminController.getUserEditPage);
 router.post('/users/edit/:id', adminController.postUserEdit);
 router.post('/users/delete/:id', adminController.postUserDelete); // Ensure delete route exists if needed
-
+//para sa applicaitons
+router.get('/users/applications', adminController.getUserApplications)
+router.post('/users/application/approve', adminController.postApproveUserApplication)
+router.post('/users/application/deny', adminController.postDenyUserApplication)
 //Category Management Routes
 router.get('/categories', adminController.getCategories)
 router.get('/categories/add', adminController.getAddCategoryPage)

@@ -1,109 +1,542 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Cart - Mira's ST3S</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Cart - Mira's Menu</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
-    <meta name="theme-color" content="#FF0066">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+
+<style>
+    /* --- GLOBAL --- */
+    body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; height: 100vh; overflow: hidden; }
     
-    <link rel="stylesheet" href="/css/style.css">
+    /* --- DESKTOP TOPBAR --- */
+    .desktop-topbar {
+        height: 70px;
+        background: white;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+    }
+    .nav-icon-btn {
+        width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        color: var(--text-color); background-color: white; border: 1px solid #eee; transition: all 0.2s; text-decoration: none;
+    }
+    .nav-icon-btn:hover { background-color: var(--primary-light); color: var(--primary-color); border-color: var(--primary-light); }
+
+    /* --- MOBILE HEADER --- */
+    .mobile-header {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 1rem;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+
+    /* --- LAYOUT CONTAINER --- */
+    .cart-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        height: calc(100vh - 70px);
+        overflow: hidden;
+    }
+
+    /* --- ITEM CARD --- */
+    .cart-item-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        transition: all 0.2s ease;
+    }
+    .cart-item-card:hover { border-color: #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+    
+    .cart-item-img {
+        width: 70px; height: 70px;
+        background-color: #f1f5f9;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid #f1f5f9;
+        flex-shrink: 0;
+    }
+
+    .cart-item-info { flex-grow: 1; min-width: 0; }
+    
+    .cart-item-right { display: flex; align-items: center; gap: 1.5rem; }
+
+    /* Quantity Stepper */
+    .qty-group {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: #f8fafc;
+        padding: 3px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+    }
+    .btn-qty-sm {
+        width: 28px; height: 28px; border: none; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: background 0.1s;
+        font-weight: bold; font-size: 1rem;
+    }
+    .btn-qty-minus { background: white; color: #333; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .btn-qty-plus { background: var(--primary-color); color: white; }
+    .qty-val { width: 30px; text-align: center; font-weight: 600; font-size: 0.9rem; }
+
+    /* Delete Buttons */
+    .btn-delete-desktop {
+        color: #dc3545; background: #fff5f5; border: 1px solid #fee2e2;
+        width: 32px; height: 32px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    }
+    .btn-delete-desktop:hover { background: #dc3545; color: white; border-color: #dc3545; }
+
+    .btn-remove-mobile {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: #fff5f5; color: #dc3545; border: none;
+        display: flex; align-items: center; justify-content: center; font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    /* --- SCROLLABLE AREA --- */
+    .scrollable-list {
+        height: 100%;
+        overflow-y: auto;
+        padding-right: 5px;
+        padding-bottom: 20px; 
+    }
+    .scrollable-list::-webkit-scrollbar { width: 6px; }
+    .scrollable-list::-webkit-scrollbar-track { background: transparent; }
+    .scrollable-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+    /* --- SUMMARY PANEL (Right Col) --- */
+    .summary-panel {
+        background: white; border-radius: 20px; padding: 1.5rem;
+        border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+        position: sticky; top: 90px;
+    }
+    .payment-option-group { display: flex; background: #f1f5f9; padding: 4px; border-radius: 10px; margin-bottom: 1rem; }
+    .payment-opt { flex: 1; border: none; padding: 0.5rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; color: #64748b; background: transparent; transition: all 0.2s; }
+    .payment-opt.active { background: white; color: var(--primary-color); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #64748b; font-size: 0.9rem; }
+    .summary-total { border-top: 2px dashed #e2e8f0; padding-top: 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .btn-checkout {
+        width: 100%; background-color: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: 12px; font-weight: 700; font-size: 1rem; margin-top: 1rem;
+        box-shadow: 0 4px 15px rgba(255, 0, 102, 0.3); transition: transform 0.1s;
+    }
+    .btn-checkout:active { transform: scale(0.98); }
+    .big-switch .form-check-input { width: 3em; height: 1.5em; cursor: pointer; }
+    .big-switch .form-check-input:checked { background-color: var(--primary-color); border-color: var(--primary-color); }
+
+
+    /* --- MOBILE OVERRIDES --- */
+    @media (max-width: 991.98px) {
+        .desktop-topbar { display: none; }
+        
+        /* Layout: Flex column to fill screen */
+        .cart-container { 
+            padding: 0; 
+            height: calc(100vh - 60px); /* Minus header */
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .col-lg-8 { flex-grow: 1; overflow: hidden; padding: 1rem; }
+        
+        /* The list itself scrolls, including the settings section at the bottom */
+        .scrollable-list {
+            height: 100%;
+            overflow-y: auto;
+            padding-bottom: 160px; /* Extra padding so content isn't hidden behind fixed footer */
+        }
+
+        .cart-item-card { padding: 0.8rem; border-radius: 12px; align-items: center; gap: 1rem; }
+        .cart-item-img { width: 80px; height: 80px; }
+        
+        .btn-remove-mobile {
+            background: #fef2f2; color: #ef4444;
+            width: 30px; height: 30px;
+            font-size: 0.9rem;
+        }
+
+        /* New Mobile Settings Section (Inside Scroll) */
+        .mobile-settings-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-top: 1.5rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        }
+        
+        .mobile-label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.5rem; display: block; }
+        
+        .mobile-input { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem; width: 100%; font-size: 0.9rem; }
+
+        /* Sticky Slim Footer */
+        .mobile-sticky-footer {
+            position: fixed; bottom: 70px; left: 0; right: 0;
+            background: white;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            z-index: 1020;
+            border-radius: 20px 20px 0 0;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .btn-checkout-mobile {
+            width: 100%; background-color: var(--primary-color); color: white; border: none;
+            border-radius: 12px; font-weight: 700; padding: 0.9rem; font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(255, 0, 102, 0.3); flex-grow: 1;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .mobile-header, .mobile-sticky-footer, .btn-remove-mobile, .mobile-settings-section { display: none; }
+    }
+</style>
 </head>
-<body class="frontline-body" style="padding-top: 0;">
+<body>
 
-    <header class="cart-header">
-        <a href="/" class="back-button"><i class="bi bi-arrow-left"></i></a>
-        <div>
-            <h1 class="h4 mb-0 fw-bold">Your Cart</h1>
-            <p class="text-white-50 mb-0" id="cart-header-count">0 items</p>
+    <%# --- MOBILE HEADER --- %>
+    <div class="mobile-header">
+        <a href="/" class="text-white fs-4"><i class="bi bi-arrow-left"></i></a>
+        <h5 class="mb-0 fw-bold">My Cart</h5>
+        <div style="width: 24px;"></div>
+    </div>
+
+    <%# --- DESKTOP TOPBAR --- %>
+    <div class="desktop-topbar d-none d-lg-flex">
+        <div class="d-flex align-items-center gap-3">
+            <a href="/" class="text-dark fs-4 me-2"><i class="bi bi-arrow-left"></i></a>
+            <h5 class="mb-0 fw-bold">Order Cart</h5>
         </div>
-    </header>
-
-    <main class="container-fluid cart-main-content">
-        <div class="form-floating mb-4">
-            <input type="text" class="form-control" id="customer-name-input" placeholder="Customer Name (Optional)">
-            <label for="customer-name-input">Customer Name (Optional)</label>
+        <div class="d-flex gap-2">
+            <a href="/" class="nav-icon-btn" title="Menu"><i class="bi bi-grid-fill fs-5"></i></a>
         </div>
+    </div>
 
+    <main class="cart-container">
+        
+        <%# EMPTY STATE %>
         <div id="empty-cart-view" style="display: none; text-align: center; padding-top: 5rem;">
-            <div class="empty-cart-icon mb-3">
-                <i class="bi bi-box-seam"></i>
-            </div>
-            <h3>Your cart is empty</h3>
-            <p class="text-muted">Add some delicious items from our menu!</p>
-            <a href="/" class="btn btn-primary mt-3">Back to Menu</a>
+            <div class="mb-4"><i class="bi bi-cart-x display-1 text-muted opacity-25"></i></div>
+            <h3 class="fw-bold text-dark">Your cart is empty</h3>
+            <p class="text-muted mb-4">Add items from the menu to start.</p>
+            <a href="/" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 shadow-sm">Browse Menu</a>
         </div>
 
-        <div id="cart-items-container"></div>
+        <%# CONTENT GRID %>
+        <div class="row g-4 h-100" id="cart-content-row">
+            
+            <%# LEFT COLUMN (Scrollable on Desktop & Mobile) %>
+            <div class="col-lg-8 h-100">
+                <h6 class="text-uppercase text-muted small fw-bold mb-3 d-none d-lg-block">Items</h6>
+                
+                <div class="scrollable-list" id="scroll-container">
+                    <div id="cart-items-container">
+                        </div>
+
+                    <%# MOBILE OPTIONS SECTION (Scrolls with items) %>
+                    <div class="mobile-settings-section d-lg-none">
+                        <label class="mobile-label">Customer Info</label>
+                        <div class="mb-4">
+                            <input type="text" class="mobile-input" id="customer-name-mobile" placeholder="Customer Name (Optional)">
+                        </div>
+
+                        <label class="mobile-label">Payment Method</label>
+                        <div class="payment-option-group mb-4">
+                            <button class="payment-opt active" data-method="Cash">Cash</button>
+                            <button class="payment-opt" data-method="Gcash">G-Cash</button>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center p-3 rounded bg-light border">
+                            <span class="fw-bold text-dark text-sm"><i class="bi bi-person-wheelchair me-2 text-primary"></i>PWD/Senior (20%)</span>
+                            <div class="form-check form-switch big-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="discount-switch-mobile">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-3 text-muted small">
+                             <span>Subtotal</span>
+                             <span id="subtotal-mobile">₱0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mt-1 text-danger small" id="mobile-discount-row" style="display:none;">
+                             <span>Discount</span>
+                             <span id="discount-mobile"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <%# RIGHT COLUMN: DESKTOP SUMMARY (Sticky) %>
+            <div class="col-lg-4 d-none d-lg-block">
+                <div class="summary-panel">
+                    <h5 class="fw-bold mb-3">Summary</h5>
+                    
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control border bg-light rounded-3" id="customer-name-desktop" placeholder="Name">
+                        <label>Customer Name (Optional)</label>
+                    </div>
+
+                    <div class="payment-option-group">
+                        <button class="payment-opt active" data-method="Cash">Cash</button>
+                        <button class="payment-opt" data-method="Gcash">G-Cash</button>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3 p-3 rounded border bg-white shadow-sm">
+                        <span class="fw-bold text-dark"><i class="bi bi-person-wheelchair me-2 text-primary"></i>PWD/Senior (20%)</span>
+                        <div class="form-check form-switch big-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="discount-switch-desktop">
+                        </div>
+                    </div>
+
+                    <div class="summary-row"><span>Subtotal</span><span class="fw-bold text-dark" id="subtotal-desktop">₱0.00</span></div>
+                    <div class="summary-row text-danger" id="discount-row-desktop" style="display: none;"><span>Discount</span><span class="fw-bold" id="discount-desktop">-₱0.00</span></div>
+                    
+                    <div class="summary-total">
+                        <span class="fs-5 fw-bold text-dark">Total</span>
+                        <span class="fs-2 fw-bold text-primary" id="total-desktop">₱0.00</span>
+                    </div>
+
+                    <button class="btn-checkout" id="place-order-btn-desktop">
+                        Place Order <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <div id="cart-summary-wrapper" style="display: none;">
-        <div class="order-summary-card">
-            <div class="card-body">
-                <h5 class="fw-bold mb-3">Payment Method</h5>
-                <div class="btn-group w-100 mb-4" role="group" aria-label="Payment method">
-                    <button type="button" class="btn btn-outline-primary payment-method-btn active" data-method="Cash">
-                        <i class="bi bi-cash-coin me-2"></i>Cash
-                    </button>
-                    <button type="button" class="btn btn-outline-primary payment-method-btn" data-method="Gcash">
-                        <i class="bi bi-qr-code me-2"></i>Gcash
-                    </button>
-                </div>
-
-                <div class="d-flex justify-content-between">
-                    <p class="text-muted">Subtotal</p>
-                    <p class="fw-bold" id="summary-subtotal">₱0.00</p>
-                </div>
-                
-                <div id="discount-row" class="d-flex justify-content-between" style="display: none !important;">
-                    <p class="text-muted">Discount (20%)</p>
-                    <p class="fw-bold" id="summary-discount">₱0.00</p>
-                </div>
-
-                <hr>
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold">Total</h5>
-                    <h5 class="fw-bold text-primary" id="summary-total">₱0.00</h5>
-                </div>
-            </div>
+    <%# MOBILE STICKY FOOTER (Slim) %>
+    <div class="mobile-sticky-footer d-lg-none" id="mobile-footer">
+        <div class="d-flex flex-column justify-content-center me-3">
+            <span class="text-muted text-uppercase" style="font-size: 0.65rem; font-weight: 600;">Total to Pay</span>
+            <span class="fw-bold text-dark fs-3" id="total-mobile" style="line-height: 1;">₱0.00</span>
         </div>
-
-        <div class="place-order-footer">
-            <div class="d-flex gap-2">
-                <button class="btn btn-light fw-bold flex-grow-1" id="discount-btn">
-                    <i class="bi bi-percent me-1"></i>Apply Discount
-                </button>
-                <button class="btn btn-primary btn-lg fw-bold flex-grow-2">
-                    <i class="bi bi-check-circle-fill me-2"></i>Place Order
-                </button>
-            </div>
-        </div>
+        <button class="btn-checkout-mobile" id="place-order-btn-mobile">Place Order</button>
     </div>
 
-    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true">
+    <%# SUCCESS MODAL %>
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content text-center">
-                <div class="modal-body p-4">
-                    <div class="success-icon mb-3">
-                        <i class="bi bi-check-circle-fill"></i>
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-body p-5 text-center">
+                    <div class="mb-3 text-success"><i class="bi bi-check-circle-fill display-1"></i></div>
+                    <h2 class="fw-bold mb-2">Order Placed!</h2>
+                    <p class="text-muted mb-4">Sent to kitchen.</p>
+                    <div class="bg-light p-3 rounded-3 mb-4 d-inline-block px-5">
+                        <small class="text-uppercase text-muted fw-bold">Order ID</small>
+                        <div class="fs-3 fw-bold text-dark" id="success-order-id">#----</div>
                     </div>
-                    <h5 class="modal-title mb-2" id="orderSuccessModalLabel">Order Placed!</h5>
-                    <p class="text-muted">Your order has been sent to the kitchen.</p>
-                    <p class="fw-bold">Order ID: <span id="success-order-id"></span></p>
-                    <button type="button" class="btn btn-primary w-100 mt-3" data-bs-dismiss="modal">Done</button>
+                    <div><button type="button" class="btn btn-primary w-100 rounded-pill fw-bold py-3" data-bs-dismiss="modal">Back to Menu</button></div>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let cart = JSON.parse(localStorage.getItem('miraCart')) || [];
+            let isDiscounted = false;
+            let selectedPaymentMethod = 'Cash';
+
+            const itemsContainer = document.getElementById('cart-items-container');
+            const emptyView = document.getElementById('empty-cart-view');
+            const contentRow = document.getElementById('cart-content-row');
+            const mobileFooter = document.getElementById('mobile-footer');
+
+            const syncInputs = () => {
+                const nameDesk = document.getElementById('customer-name-desktop');
+                const nameMob = document.getElementById('customer-name-mobile');
+                
+                nameDesk.addEventListener('input', () => nameMob.value = nameDesk.value);
+                nameMob.addEventListener('input', () => nameDesk.value = nameMob.value);
+
+                const discDesk = document.getElementById('discount-switch-desktop');
+                const discMob = document.getElementById('discount-switch-mobile');
+
+                const toggleDiscount = (checked) => {
+                    isDiscounted = checked;
+                    discDesk.checked = checked;
+                    discMob.checked = checked;
+                    renderCart();
+                };
+
+                discDesk.addEventListener('change', (e) => toggleDiscount(e.target.checked));
+                discMob.addEventListener('change', (e) => toggleDiscount(e.target.checked));
+            };
+            syncInputs();
+
+            document.querySelectorAll('.payment-opt').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const method = btn.dataset.method;
+                    selectedPaymentMethod = method;
+                    document.querySelectorAll(`.payment-opt`).forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll(`.payment-opt[data-method="${method}"]`).forEach(b => b.classList.add('active'));
+                });
+            });
+
+            const renderCart = () => {
+                if (cart.length === 0) {
+                    emptyView.style.display = 'block';
+                    contentRow.style.display = 'none';
+                    mobileFooter.style.display = 'none';
+                    return;
+                }
+
+                emptyView.style.display = 'none';
+                contentRow.style.display = 'flex';
+                if(window.innerWidth < 992) mobileFooter.style.display = 'flex';
+
+                itemsContainer.innerHTML = '';
+                let subtotal = 0;
+
+                cart.forEach(item => {
+                    const total = item.price * item.quantity;
+                    subtotal += total;
+
+                    const html = `
+                        <div class="cart-item-card">
+                            <div class="d-flex align-items-center gap-3 flex-grow-1" style="overflow: hidden;">
+                                <img src="${item.imageUrl || '/icons/favicon.png'}" class="cart-item-img" onerror="this.src='/icons/favicon.png'">
+                                <div class="cart-item-info">
+                                    <h6 class="fw-bold text-dark mb-0 text-truncate">${item.name}</h6>
+                                    ${item.sizeLabel ? `<span class="badge bg-light text-dark border small mb-1">${item.sizeLabel}</span><br>` : ''}
+                                    <span class="text-muted small">₱${item.price.toFixed(2)} each</span>
+                                </div>
+                            </div>
+
+                            <div class="cart-item-right">
+                                <div class="qty-group">
+                                    <button class="btn-qty-sm btn-qty-minus" onclick="updateQty('${item.cartItemId}', -1)">-</button>
+                                    <span class="qty-val">${item.quantity}</span>
+                                    <button class="btn-qty-sm btn-qty-plus" onclick="updateQty('${item.cartItemId}', 1)">+</button>
+                                </div>
+                                <div class="fw-bold text-dark d-none d-lg-block" style="min-width: 80px; text-align: right;">₱${total.toFixed(2)}</div>
+                                
+                                <%# Desktop Delete %>
+                                <button class="btn-delete-desktop d-none d-lg-flex" onclick="removeItem('${item.cartItemId}')"><i class="bi bi-trash"></i></button>
+                                
+                                <%# Mobile Delete - Vertically centered now %>
+                                <button class="btn-remove-mobile d-lg-none" onclick="removeItem('${item.cartItemId}')"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                    itemsContainer.innerHTML += html;
+                });
+
+                let discount = isDiscounted ? subtotal * 0.20 : 0;
+                let finalTotal = subtotal - discount;
+
+                // Update Desktop
+                document.getElementById('subtotal-desktop').innerText = `₱${subtotal.toFixed(2)}`;
+                document.getElementById('total-desktop').innerText = `₱${finalTotal.toFixed(2)}`;
+                if (isDiscounted) {
+                    document.getElementById('discount-row-desktop').style.display = 'flex';
+                    document.getElementById('discount-desktop').innerText = `-₱${discount.toFixed(2)}`;
+                } else {
+                    document.getElementById('discount-row-desktop').style.display = 'none';
+                }
+
+                // Update Mobile
+                document.getElementById('subtotal-mobile').innerText = `₱${subtotal.toFixed(2)}`;
+                document.getElementById('total-mobile').innerText = `₱${finalTotal.toFixed(2)}`;
+                
+                // Update Mobile Discount in Options
+                const mobileDiscRow = document.getElementById('mobile-discount-row');
+                if(isDiscounted) {
+                    mobileDiscRow.style.display = 'flex';
+                    document.getElementById('discount-mobile').innerText = `-₱${discount.toFixed(2)}`;
+                } else {
+                    mobileDiscRow.style.display = 'none';
+                }
+            };
+
+            window.updateQty = (id, delta) => {
+                const item = cart.find(i => i.cartItemId === id);
+                if (item) {
+                    const newQty = item.quantity + delta;
+                    if (newQty > 0) item.quantity = newQty;
+                    else cart = cart.filter(i => i.cartItemId !== id);
+                    saveAndRender();
+                }
+            };
+
+            window.removeItem = (id) => {
+                if(confirm('Remove item?')) {
+                    cart = cart.filter(i => i.cartItemId !== id);
+                    saveAndRender();
+                }
+            };
+
+            const saveAndRender = () => {
+                localStorage.setItem('miraCart', JSON.stringify(cart));
+                renderCart();
+            };
+
+            const handleCheckout = () => {
+                if (cart.length === 0) return;
+                const customerName = document.getElementById('customer-name-desktop').value;
+                let subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                let finalTotal = isDiscounted ? subtotal * 0.8 : subtotal;
+
+                fetch('/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cart, customerName, 
+                        paymentMethod: selectedPaymentMethod,
+                        discountApplied: isDiscounted,
+                        totalAmount: finalTotal
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        localStorage.removeItem('miraCart');
+                        document.getElementById('success-order-id').innerText = data.orderId.toString().slice(-6).toUpperCase();
+                        const modal = new bootstrap.Modal(document.getElementById('orderSuccessModal'));
+                        modal.show();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                });
+            };
+
+            document.getElementById('place-order-btn-desktop').addEventListener('click', handleCheckout);
+            document.getElementById('place-order-btn-mobile').addEventListener('click', handleCheckout);
+            document.getElementById('orderSuccessModal').addEventListener('hidden.bs.modal', () => window.location.href = '/');
+
+            renderCart();
+        });
+    </script>
+
     <%- include('../partials/frontlineBottomNav') %>
     <%- include('../partials/frontlineFooter') %>
 </body>

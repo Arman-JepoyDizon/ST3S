@@ -17,7 +17,8 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Last name is required.'],
         trim: true,
     },
-    // Kept username for internal use/fallback
+    
+    /* // Kept username for internal use/fallback
     username: {
         type: String,
         required: [true, 'Username is required.'],
@@ -25,7 +26,8 @@ const userSchema = new mongoose.Schema({
         minlength: [3, 'Username must be at least 3 characters long.'],
         maxlength: [50, 'Username cannot be more than 50 characters long.']
         // unique: false // Keep non-unique if desired
-    },
+    }, */
+
     contactNumber: {
         type: String,
         required: [true, 'Contact number is required.'],
@@ -52,24 +54,6 @@ const userSchema = new mongoose.Schema({
         required: [ function() { return this.role !== 'Super Admin'; }, 'A branch assignment is required for this user role.' ]
     }
 }, { timestamps: true });
-
-// Pre-save hook (remains the same - checks flag, complexity, hashes)
-userSchema.pre('save', async function(next) {
-    if (this._skipPasswordValidationAndHashing) {
-        delete this._skipPasswordValidationAndHashing;
-        return next();
-    }
-    if (!this.isModified('password')) { return next(); }
-    try {
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(this.password)) {
-            throw new Error('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.');
-        }
-        const salt = await bcrypt.genSalt(10);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (err) { next(err); }
-});
 
 // comparePassword method (remains the same)
 userSchema.methods.comparePassword = async function(enteredPassword) {

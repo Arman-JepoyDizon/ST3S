@@ -1,6 +1,43 @@
 <%- include('../partials/adminHeader') %>
 <%- include('../partials/adminDesktopNav', { activePage: 'categories' }) %>
 
+<%# --- CUSTOM STYLES --- %>
+<style>
+    /* Desktop Grid - Adjusted for button width */
+    .categories-grid-custom {
+        display: grid;
+        grid-template-columns: 1fr 240px; /* Fixed width for Actions to fit buttons */
+        gap: 1rem;
+        align-items: center;
+    }
+
+    /* Action Button Styling - Matches Products Page */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem; /* Space between icon and text */
+        transition: all 0.2s ease;
+        height: 38px; /* Fixed height */
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .category-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .category-card:active {
+        transform: scale(0.98);
+    }
+</style>
+
 <%# --- MOBILE VIEW --- %>
 <div class="d-lg-none">
     <div class="admin-container">
@@ -8,41 +45,49 @@
             <%- include('../partials/adminNavbar') %>
             <main class="p-3">
                 <div class="page-header d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h3 mb-0">Categories</h2>
-                    <a href="/admin/categories/add" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-1"></i>Add New
+                    <div>
+                        <h2 class="h3 mb-0 fw-bold">Categories</h2>
+                        <p class="text-muted small mb-0">Organize your menu items.</p>
+                    </div>
+                    <a href="/admin/categories/add" class="btn btn-success shadow-sm fw-bold">
+                        <i class="bi bi-plus-lg"></i>
                     </a>
                 </div>
-
-                <%# Added: Display Error Alert if errorMessage exists (for non-modal errors or fallback) %>
-                <% if (locals.errorMessage && !locals.showDeleteErrorModal) { %>
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <%- errorMessage %>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <% } %>
-
 
                 <div class="category-list-mobile">
                     <% if (categories && categories.length > 0) { %>
                         <% categories.forEach(category => { %>
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title mb-0 fw-bold"><%= category.name %></h5>
-                                        <div class="d-flex gap-2">
-                                            <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                            <form action="/admin/categories/delete/<%= category._id %>" method="POST" class="needs-confirmation d-inline" data-confirm-message="Are you sure you want to delete the category '<%= category.name %>'?">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                                            </form>
+                            <div class="card category-card mb-3 shadow-sm border-0">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="mb-0 fw-bold text-dark"><%= category.name %></h5>
+                                            <%# Updated: Matching Desktop Info (ID instead of Date) %>
+                                            <small class="text-muted">ID: <%= category._id.toString().slice(-6).toUpperCase() %></small>
+                                        </div>
+                                    </div>
+                                    
+                                    <%# Action Buttons (Grid Layout) %>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-primary w-100 fw-bold py-2 shadow-sm btn-action">
+                                                <i class="bi bi-pencil-square"></i> Edit
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm btn-action" onclick="confirmDelete('<%= category._id %>', '<%= category.name %>')">
+                                                <i class="bi bi-trash3"></i> Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         <% }) %>
                     <% } else { %>
-                        <div class="card text-center py-5">
-                            <p class="text-muted">No Categories found. Click "Add New" to get started.</p>
+                        <div class="card text-center py-5 border-0 bg-transparent">
+                            <i class="bi bi-tags fs-1 text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted">No categories found.</p>
+                            <a href="/admin/categories/add" class="btn btn-light">Create First Category</a>
                         </div>
                     <% } %>
                 </div>
@@ -55,51 +100,56 @@
 
 <%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
-    <div class="admin-page-header">
+    <div class="admin-page-header mb-4">
         <div>
-            <h2 class="h3 mb-0">Categories</h2>
-            <p class="text-muted">Manage your product categories.</p>
+            <h2 class="h3 mb-0 fw-bold">Categories</h2>
+            <p class="text-muted">Manage product categories.</p>
         </div>
-        <a href="/admin/categories/add" class="btn btn-primary fw-bold">
-            <i class="bi bi-plus-lg me-1"></i> Add New Category
+        <a href="/admin/categories/add" class="btn btn-success btn-lg fw-bold shadow-sm">
+            <i class="bi bi-plus-circle-fill me-2"></i>Add Category
         </a>
     </div>
 
-     <%# Added: Display Error Alert if errorMessage exists (for non-modal errors or fallback) %>
-     <% if (locals.errorMessage && !locals.showDeleteErrorModal) { %>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="max-width: 1200px; margin: 0 auto 1.5rem auto;">
-            <%- errorMessage %>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    <% } %>
-
-    <div class="list-table-container">
+    <div class="list-table-container bg-white rounded shadow-sm">
         <% if (categories && categories.length > 0) { %>
-            <div class="list-table-header" style="grid-template-columns: 1fr auto;">
-                <span>CATEGORY</span>
-                <span class="text-end">ACTIONS</span>
+            <div class="list-table-header categories-grid-custom p-3 bg-light border-bottom">
+                <span class="text-uppercase small fw-bold text-muted">Category Name</span>
+                <span class="text-uppercase small fw-bold text-muted text-center">Actions</span>
             </div>
 
-            <% categories.forEach(category => { %>
-                <div class="list-table-row" style="grid-template-columns: 1fr auto;">
-                    <div>
-                        <h6 class="mb-0 fw-bold"><%= category.name %></h6>
+            <div class="category-list-desktop">
+                <% categories.forEach(category => { %>
+                    <div class="list-table-row categories-grid-custom p-3 border-bottom hover-bg-light">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="bi bi-tag-fill text-secondary"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold text-dark"><%= category.name %></h5>
+                                <small class="text-muted">ID: <%= category._id.toString().slice(-6).toUpperCase() %></small>
+                            </div>
+                        </div>
+                        
+                        <%# Updated: Action Buttons with Text Labels (Matching Products Page) %>
+                        <div class="text-center d-flex justify-content-center gap-2">
+                            <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-primary btn-sm btn-action fw-bold px-3 shadow-sm">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-action fw-bold px-3 shadow-sm" onclick="confirmDelete('<%= category._id %>', '<%= category.name %>')">
+                                <i class="bi bi-trash3"></i> Delete
+                            </button>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-end gap-2">
-                        <a href="/admin/categories/edit/<%= category._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
-                        <form action="/admin/categories/delete/<%= category._id %>" method="POST" class="needs-confirmation d-inline" data-confirm-message="Are you sure you want to delete the category '<%= category.name %>'?">
-                             <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                        </form>
-                    </div>
-                </div>
-            <% }) %>
-         <% } else { %>
-            <div class="card text-center py-5 border-0 bg-transparent">
-                 <div class="card-body">
-                    <h5 class="card-title">No Categories Found</h5>
-                    <p class="text-muted">Get started by adding your first product category.</p>
-                    <a href="/admin/categories/add" class="btn btn-primary mt-2">
-                         <i class="bi bi-plus-lg me-2"></i>Add a Category
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="card text-center py-5 border-0">
+                <div class="card-body">
+                    <i class="bi bi-tags fs-1 text-muted mb-3 opacity-50"></i>
+                    <h5 class="card-title fw-bold">No Categories Found</h5>
+                    <p class="text-muted">Get started by creating categories for your menu.</p>
+                    <a href="/admin/categories/add" class="btn btn-success mt-2">
+                        <i class="bi bi-plus-lg me-2"></i>Add Category
                     </a>
                 </div>
             </div>
@@ -107,50 +157,92 @@
     </div>
 </div>
 
-<%# --- Added: Category Delete Error Modal --- %>
-<div class="modal fade" id="categoryDeleteErrorModal" tabindex="-1" aria-labelledby="categoryDeleteErrorModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header border-0">
-        <h5 class="modal-title text-danger" id="categoryDeleteErrorModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Deletion Failed</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p id="categoryDeleteErrorMessage">Could not delete the category because products are assigned to it.</p> <%# Default message %>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
+<%# --- Delete Confirmation Modal --- %>
+<div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Delete Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <div class="mb-3">
+                    <i class="bi bi-exclamation-triangle-fill text-warning display-1"></i>
+                </div>
+                <p class="fs-5 mb-1">Are you sure you want to delete <span id="delete-category-name" class="fw-bold text-dark">this category</span>?</p>
+                <p class="text-muted small">Products assigned to this category might be affected.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2 pb-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-category-form" action="" method="POST">
+                    <button type="submit" class="btn btn-danger fw-bold px-4">Yes, Delete</button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
+<%# --- Toast Notification Container --- %>
+<div class="toast-container position-fixed end-0 p-3" style="z-index: 1100; top: 80px;">
+    <div id="liveToast" class="toast align-items-center text-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold" id="toast-message">
+                <%# Message will be injected here %>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
 
 <%- include('../partials/adminFooter') %>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Confirmation for delete forms
-    document.querySelectorAll('.needs-confirmation').forEach(form => {
-        form.addEventListener('submit', function(event) {
-            const message = this.dataset.confirmMessage || 'Are you sure?';
-            if (!confirm(message)) {
-                event.preventDefault();
-            }
-        });
-    });
+    // --- 1. Toast Logic (Robust) ---
+    // Parse URL params directly to ensure reliability
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlMessage = urlParams.get('message');
+    const urlType = urlParams.get('type');
 
-    <%# Added: JavaScript to show the modal if the flag is set %>
-    <%# Check if showDeleteErrorModal exists and is true, and errorMessage exists %>
-    <% if (typeof showDeleteErrorModal !== 'undefined' && showDeleteErrorModal && typeof errorMessage !== 'undefined' && errorMessage) { %>
-        const errorModalEl = document.getElementById('categoryDeleteErrorModal');
-        const errorMessageP = document.getElementById('categoryDeleteErrorMessage');
-        if (errorModalEl && errorMessageP) {
-            const errorModal = new bootstrap.Modal(errorModalEl);
-            // Safely set the error message content using JSON stringify to handle special characters
-            errorMessageP.textContent = <%- JSON.stringify(errorMessage) %>;
-            errorModal.show();
+    // Use server variable or URL param
+    const message = urlMessage || "<%= locals.message || '' %>";
+    const type = urlType || "<%= locals.messageType || 'success' %>";
+
+    if (message && message !== 'undefined') {
+        const toastEl = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-message');
+        
+        if(toastEl && toastBody) {
+            toastBody.textContent = decodeURIComponent(message.replace(/\+/g, ' '));
+            
+            // Blue for Success (#0d6efd), Red for Danger (#dc3545)
+            if (type === 'success') {
+                toastEl.style.backgroundColor = '#0d6efd'; 
+            } else {
+                toastEl.style.backgroundColor = '#dc3545';
+            }
+
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+
+            // Clean URL
+            const url = new URL(window.location);
+            url.searchParams.delete('message');
+            url.searchParams.delete('type');
+            window.history.replaceState({}, '', url);
         }
-    <% } %>
+    }
+
+    // --- 2. Delete Modal Logic ---
+    window.confirmDelete = (categoryId, categoryName) => {
+        const form = document.getElementById('delete-category-form');
+        const nameSpan = document.getElementById('delete-category-name');
+        
+        form.action = `/admin/categories/delete/${categoryId}`;
+        nameSpan.textContent = `"${categoryName}"`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+        modal.show();
+    };
 });
 </script>

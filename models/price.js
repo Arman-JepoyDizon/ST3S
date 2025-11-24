@@ -2,15 +2,9 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const priceSchema = new Schema({
-    productId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-    },
-    sizeId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Size',
-        required: false
+    size: {
+        type: String,
+        required: false,
     },
     price: {
         type: Number,

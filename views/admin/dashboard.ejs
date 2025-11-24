@@ -1,5 +1,4 @@
 <%- include('../partials/adminHeader') %>
-
 <%- include('../partials/adminDesktopNav', { activePage: 'analytics' }) %>
 
 <%# --- MOBILE VIEW --- %>
@@ -13,7 +12,6 @@
                     <p class="text-muted">Track your business performance</p>
                 </div>
 
-                <%# Updated: Filter controls are now a form for auto-submission %>
                 <div class="filter-controls-mobile mb-4">
                     <form action="/admin/dashboard" method="GET" id="mobile-analytics-form">
                         <div class="d-flex mb-2">
@@ -29,7 +27,6 @@
                         </div>
                     </form>
                 </div>
-
 
                 <div class="row">
                     <div class="col-12 mb-3">
@@ -51,8 +48,9 @@
                         <div class="card stat-card-revamp">
                             <div class="card-body">
                                 <div class="d-flex align-items-center">
-                                    <div class="stat-icon-wrapper bg-primary-light">
-                                        <i class="bi bi-receipt text-primary"></i>
+                                    <%# UPDATED: Dark Icon for Orders %>
+                                    <div class="stat-icon-wrapper bg-light">
+                                        <i class="bi bi-receipt text-dark"></i>
                                     </div>
                                     <div class="ms-3">
                                         <p class="card-text text-muted mb-0">Total Orders (All)</p>
@@ -148,7 +146,8 @@
                                     </ul>
                                     <div class="d-flex justify-content-between align-items-center border-top pt-2">
                                         <p class="text-muted mb-0 fw-bold">Total</p>
-                                        <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                                        <%# UPDATED: Dark Amount Color %>
+                                        <p class="fw-bold text-dark fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
                                     </div>
                                 </div>
                             </div>
@@ -206,8 +205,9 @@
             <div class="card stat-card-revamp h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon-wrapper bg-primary-light">
-                            <i class="bi bi-receipt text-primary"></i>
+                        <%# UPDATED: Dark Icon %>
+                        <div class="stat-icon-wrapper bg-light">
+                            <i class="bi bi-receipt text-dark"></i>
                         </div>
                         <div class="ms-3">
                             <p class="card-text text-muted mb-0">Total Orders</p>
@@ -221,8 +221,9 @@
             <div class="card stat-card-revamp h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="stat-icon-wrapper" style="background-color: #fef3c7;">
-                            <i class="bi bi-graph-up-arrow" style="color: #f59e0b;"></i>
+                        <%# UPDATED: Dark/Subtle Icon for Average %>
+                        <div class="stat-icon-wrapper bg-secondary-subtle">
+                            <i class="bi bi-graph-up-arrow text-dark"></i>
                         </div>
                         <div class="ms-3">
                             <p class="card-text text-muted mb-0">Average Order</p>
@@ -308,7 +309,8 @@
                             <hr class="my-2">
                             <div class="d-flex justify-content-between align-items-center">
                                 <p class="text-muted mb-0 small"><%= new Date(transaction.createdAt).toLocaleString() %></p>
-                                <p class="fw-bold text-primary fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
+                                <%# UPDATED: Dark Amount Color %>
+                                <p class="fw-bold text-dark fs-5 mb-0">₱<%= transaction.totalAmount.toFixed(2) %></p>
                             </div>
                         </div>
                     </div>
@@ -331,12 +333,22 @@
             const salesTrendData = <%- JSON.stringify(salesTrendData) %>;
             const topProductsData = <%- JSON.stringify(topProductsData) %>;
 
+            // Define multi-color palette (Primary Colors & more)
+            const multiColors = [
+                '#0d6efd', // Blue
+                '#dc3545', // Red
+                '#ffc107', // Yellow
+                '#198754', // Green
+                '#6f42c1', // Purple
+                '#fd7e14', // Orange
+                '#0dcaf0', // Cyan
+                '#20c997'  // Teal
+            ];
+
             const createSalesChart = (canvasId) => {
                 const ctx = document.getElementById(canvasId);
-                if (!ctx || !salesTrendData || !salesTrendData.labels || !salesTrendData.data) {
-                    console.warn(`Sales chart '${canvasId}' skipped: Missing data or canvas element.`);
-                    return;
-                }
+                if (!ctx || !salesTrendData || !salesTrendData.labels || !salesTrendData.data) return;
+                
                 new Chart(ctx.getContext('2d'), {
                     type: 'bar',
                     data: {
@@ -344,8 +356,9 @@
                         datasets: [{
                             label: 'Sales',
                             data: salesTrendData.data,
-                            backgroundColor: '#FF0066',
-                            borderColor: '#FF0066',
+                            // Use single primary color for time series, looks cleaner, but array works too
+                            backgroundColor: '#0d6efd', 
+                            borderColor: '#0d6efd',
                             borderWidth: 1,
                             borderRadius: 8
                         }]
@@ -359,10 +372,8 @@
             
             const createTopProductsChart = (canvasId) => {
                 const ctx = document.getElementById(canvasId);
-                if (!ctx || !topProductsData || !topProductsData.labels || !topProductsData.data) {
-                    console.warn(`Top products chart '${canvasId}' skipped: Missing data or canvas element.`);
-                    return;
-                }
+                if (!ctx || !topProductsData || !topProductsData.labels || !topProductsData.data) return;
+                
                 new Chart(ctx.getContext('2d'), {
                     type: 'doughnut',
                     data: {
@@ -370,7 +381,8 @@
                         datasets: [{
                             label: 'Quantity Sold',
                             data: topProductsData.data,
-                            backgroundColor: ['#FF0066', '#FFD1E3', '#F875AA', '#343a40', '#6c757d'],
+                            // UPDATED: Use multi-color palette
+                            backgroundColor: multiColors,
                             hoverOffset: 4
                         }]
                     },
@@ -402,7 +414,6 @@
                 altFormat: "M j",
                 onClose: function(selectedDates, dateStr, instance) {
                     if (selectedDates.length === 2) {
-                        // The name of the input is already 'dateRange', so flatpickr handles it.
                         form.submit();
                     }
                 }

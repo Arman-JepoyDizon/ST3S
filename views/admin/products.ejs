@@ -1,133 +1,378 @@
 <%- include('../partials/adminHeader') %>
-
 <%- include('../partials/adminDesktopNav', { activePage: 'products' }) %>
 
-<div class="admin-container d-lg-none">
- 
-    <div class="admin-content">
-        <%- include('../partials/adminNavbar') %>
+<%# --- CUSTOM STYLES FOR ALIGNMENT --- %>
+<style>
+    /* Desktop Grid Layout - Adjusted Action Column Width */
+    .products-grid-custom {
+        display: grid;
+        grid-template-columns: 80px 2fr 1fr 1fr 220px; /* Fixed width for Actions */
+        gap: 1rem;
+        align-items: center;
+    }
 
-        <main class="p-3">
-            <div class="page-header mb-3">
-                <h2 class="h3 mb-0">Products</h2>
-                <% if (products && products.length > 0) { %>
-                    <p class="text-muted"><%= products.length %> products</p>
-                <% } %>
-            </div>
+    /* Action Button Styling */
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        height: 38px; /* Fixed height for consistency */
+    }
+    
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
 
-            <a href="/admin/products/add" class="btn btn-primary btn-lg w-100 mb-3 fw-bold">
-                <i class="bi bi-plus-lg me-1"></i>Add Product
-            </a>
-            <div class="form-floating mb-4">
-                <input type="search" class="form-control" id="searchProductsMobile" placeholder="Search products...">
-                <label for="searchProductsMobile"><i class="bi bi-search me-2"></i>Search products...</label>
-            </div>
+    /* Table Row Hover Effect */
+    .list-table-row {
+        transition: background-color 0.2s ease;
+    }
+    .list-table-row:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .product-img-lg {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+</style>
 
-            <div class="product-list-mobile">
-                <% if (products && products.length > 0) { %>
-                    <% products.forEach(product => { %>
-                        <div class="card product-card-revamp mb-3">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <img src="<%= product.imageUrl || '/icons/placeholder-image.png' %>" class="product-card-img-revamp me-3" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/placeholder-image.png';">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between">
-                                            <h5 class="card-title mb-1"><%= product.name %></h5>
-                                            <span class="badge bg-success-light text-success-dark">Active</span>
-                                        </div>
-                                        <p class="card-text text-muted small mb-1"><%= product.category ? product.category.name : 'Uncategorized' %></p>
-                                        <p class="card-text fw-bold text-primary">From ₱<%= product.price.toFixed(2) %></p>
+<%# --- MOBILE VIEW --- %>
+<div class="d-lg-none">
+    <div class="admin-container">
+        <div class="admin-content">
+            <%- include('../partials/adminNavbar') %>
+            <main class="p-3">
+                <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="h3 mb-0 fw-bold">Products</h2>
+                    <a href="/admin/products/add" class="btn btn-success shadow-sm fw-bold">
+                        <i class="bi bi-plus-lg me-1"></i>Add New
+                    </a>
+                </div>
+
+                <%# Mobile Filter Card %>
+                <div class="card filter-card-mobile mb-4 bg-white border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3 text-muted small text-uppercase fw-bold"><i class="bi bi-funnel-fill me-2"></i>Filter & Sort</h5>
+                        <form action="/admin/products" method="GET" id="mobile-filter-form">
+                            <div class="mb-3">
+                                <input type="search" class="form-control" name="search" placeholder="Search product name..." value="<%= query.search || '' %>" id="mobile-search-input">
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <select name="category" class="form-select filter-select">
+                                            <option value="">All</option>
+                                            <% if(categories) { %>
+                                                <% categories.forEach(cat => { %>
+                                                    <option value="<%= cat._id %>" <%= query.category == cat._id ? 'selected' : '' %>><%= cat.name %></option>
+                                                <% }) %>
+                                            <% } %>
+                                        </select>
+                                        <label>Category</label>
                                     </div>
                                 </div>
-                                <hr class="my-2">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="/admin/products/edit/<%= product._id %>" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-pencil me-1"></i>Edit
-                                    </a>
-                                    <form action="/admin/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash me-1"></i>Delete
-                                        </button>
-                                    </form>
+                                <div class="col-6">
+                                    <div class="form-floating">
+                                        <select name="sort" class="form-select filter-select">
+                                            <option value="">Newest</option>
+                                            <option value="name_asc" <%= query.sort === 'name_asc' ? 'selected' : '' %>>Name (A-Z)</option>
+                                            <option value="name_desc" <%= query.sort === 'name_desc' ? 'selected' : '' %>>Name (Z-A)</option>
+                                            <option value="price_asc" <%= query.sort === 'price_asc' ? 'selected' : '' %>>Price (Low)</option>
+                                            <option value="price_desc" <%= query.sort === 'price_desc' ? 'selected' : '' %>>Price (High)</option>
+                                        </select>
+                                        <label>Sort By</label>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    <% }) %>
-                <% } else { %>
-                    <div class="card text-center py-5">
-                         <div class="card-body">
-                            <p class="text-muted">No products found. Click "Add Product" to get started.</p>
-                        </div>
+                            <button type="submit" class="d-none"></button>
+                        </form>
                     </div>
-                <% } %>
-            </div>
-        </main>
+                </div>
+
+                <div class="product-list-mobile">
+                    <% if (products && products.length > 0) { %>
+                        <% products.forEach(product => { %>
+                            <div class="card product-card-revamp mb-3 shadow-sm border-0">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <img src="<%= product.imageUrl || '/icons/favicon.png' %>" class="product-card-img-revamp me-3 shadow-sm" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/favicon.png';">
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title mb-1 fw-bold text-dark"><%= product.name %></h5>
+                                            <span class="badge bg-secondary fs-6 mb-2"><%= product.category ? product.category.name : 'Uncategorized' %></span>
+                                            
+                                            <p class="card-text fw-bold text-primary fs-4 mb-0">
+                                                <% if (product.price && product.price.length > 0) { %>
+                                                    <% const prices = product.price.map(p => p.price); %>
+                                                    <% const minPrice = Math.min(...prices); %>
+                                                    <% const maxPrice = Math.max(...prices); %>
+                                                    <% if(minPrice !== maxPrice) { %>
+                                                        ₱<%= minPrice.toFixed(2) %> - ₱<%= maxPrice.toFixed(2) %>
+                                                    <% } else { %>
+                                                        ₱<%= minPrice.toFixed(2) %>
+                                                    <% } %>
+                                                <% } else { %>
+                                                    ₱0.00
+                                                <% } %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <hr class="my-3">
+                                    <%# Bigger Action Buttons for Mobile %>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <a href="/admin/products/edit/<%= product._id %>" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                                                <i class="bi bi-pencil-square me-1"></i> Edit
+                                            </a>
+                                        </div>
+                                        <div class="col-6">
+                                            <button type="button" class="btn btn-outline-danger w-100 fw-bold py-2 shadow-sm" onclick="confirmDelete('<%= product._id %>', '<%= product.name %>')">
+                                                <i class="bi bi-trash3 me-1"></i> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <div class="card text-center py-5 border-0 bg-transparent">
+                            <i class="bi bi-box-seam fs-1 text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted">No products found matching your filters.</p>
+                            <a href="/admin/products" class="btn btn-light">Clear Filters</a>
+                        </div>
+                    <% } %>
+                </div>
+            </main>
+        </div>
     </div>
+    <%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
 </div>
 
+
+<%# --- DESKTOP VIEW --- %>
 <div class="admin-main-container d-none d-lg-block">
-    <div class="admin-page-header">
+    <div class="admin-page-header mb-4">
         <div>
-            <h2 class="h3 mb-0">Products</h2>
-            <% if (products && products.length > 0) { %>
-                <p class="text-muted"><%= products.length %> products</p>
-            <% } %>
+            <h2 class="h3 mb-0 fw-bold">Products</h2>
+            <p class="text-muted">Manage your branch's menu items.</p>
         </div>
-        <a href="/admin/products/add" class="btn btn-primary fw-bold">
-            <i class="bi bi-plus-lg me-1"></i>Add Product
+        <a href="/admin/products/add" class="btn btn-success btn-lg fw-bold shadow-sm">
+            <i class="bi bi-plus-circle-fill me-2"></i>Add New Product
         </a>
     </div>
 
-    <div class="list-table-container">
-        <div class="p-3">
-            <div class="form-floating">
-                <input type="search" class="form-control" id="searchProductsDesktop" placeholder="Search products...">
-                <label for="searchProductsDesktop"><i class="bi bi-search me-2"></i>Search products...</label>
-            </div>
+    <%# Desktop Filter Bar %>
+    <div class="card filter-bar mb-4 border-0 shadow-sm">
+        <div class="card-body p-3">
+            <form action="/admin/products" method="GET" class="d-flex gap-3 align-items-center" id="desktop-filter-form">
+                <div class="flex-grow-1 form-control-icon-wrapper">
+                    <i class="bi bi-search"></i>
+                    <input type="search" class="form-control border-0 bg-light" name="search" placeholder="Search products..." value="<%= query.search || '' %>" id="desktop-search-input">
+                </div>
+                <div class="form-control-icon-wrapper" style="min-width: 200px;">
+                    <i class="bi bi-tags"></i>
+                    <select name="category" class="form-select border-0 bg-light ps-5 filter-select">
+                        <option value="">All Categories</option>
+                        <% if(categories) { %>
+                            <% categories.forEach(cat => { %>
+                                <option value="<%= cat._id %>" <%= query.category == cat._id ? 'selected' : '' %>><%= cat.name %></option>
+                            <% }) %>
+                        <% } %>
+                    </select>
+                </div>
+                <div class="form-control-icon-wrapper" style="min-width: 200px;">
+                    <i class="bi bi-sort-down"></i>
+                    <select name="sort" class="form-select border-0 bg-light ps-5 filter-select">
+                        <option value="">Sort By: Newest</option>
+                        <option value="name_asc" <%= query.sort === 'name_asc' ? 'selected' : '' %>>Name (A-Z)</option>
+                        <option value="name_desc" <%= query.sort === 'name_desc' ? 'selected' : '' %>>Name (Z-A)</option>
+                        <option value="price_asc" <%= query.sort === 'price_asc' ? 'selected' : '' %>>Price (Low-High)</option>
+                        <option value="price_desc" <%= query.sort === 'price_desc' ? 'selected' : '' %>>Price (High-Low)</option>
+                    </select>
+                </div>
+                <button type="submit" class="d-none"></button>
+                <a href="/admin/products" class="btn btn-light border fw-bold" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            </form>
         </div>
+    </div>
 
+    <div class="list-table-container bg-white rounded shadow-sm">
         <% if (products && products.length > 0) { %>
-            <div class="list-table-header products-grid">
-                <div>Image</div>
-                <div>Name</div>
-                <div>Category</div>
-                <div>Price</div>
-                <div>Status</div>
-                <div class="text-end">Actions</div>
+            <div class="list-table-header products-grid-custom p-3 bg-light border-bottom">
+                <span class="text-uppercase small fw-bold text-muted">Image</span>
+                <span class="text-uppercase small fw-bold text-muted">Name</span>
+                <span class="text-uppercase small fw-bold text-muted">Category</span>
+                <span class="text-uppercase small fw-bold text-muted">Price Range</span>
+                <span class="text-uppercase small fw-bold text-muted text-center">Actions</span>
             </div>
 
             <div class="product-list-desktop">
                 <% products.forEach(product => { %>
-                    <div class="list-table-row products-grid">
+                    <div class="list-table-row products-grid-custom p-3 border-bottom">
                         <div>
-                            <img src="<%= product.imageUrl || '/icons/placeholder-image.png' %>" class="product-img" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/placeholder-image.png';">
+                            <img src="<%= product.imageUrl || '/icons/favicon.png' %>" class="product-img-lg shadow-sm border" alt="<%= product.name %>" onerror="this.onerror=null; this.src='/icons/favicon.png';">
                         </div>
-                        <div class="fw-bold"><%= product.name %></div>
-                        <div><%= product.category ? product.category.name : 'Uncategorized' %></div>
-                        <div class="fw-bold text-primary">₱<%= product.price.toFixed(2) %></div>
+                        <div class="fw-bold text-dark fs-5"><%= product.name %></div>
+                        
                         <div>
-                            <span class="badge badge-status-completed">Active</span>
+                            <span class="badge bg-secondary fs-6 px-3 py-2"><%= product.category ? product.category.name : 'Uncategorized' %></span>
                         </div>
-                        <div class="text-end d-flex justify-content-end gap-3">
-                            <a href="/admin/products/edit/<%= product._id %>" class="action-btn" title="Edit">
-                                <i class="bi bi-pencil"></i>
+                        
+                        <div class="fw-bold text-dark fs-5">
+                            <% if (product.price && product.price.length > 0) { %>
+                                <% const prices = product.price.map(p => p.price); %>
+                                <% const minPrice = Math.min(...prices); %>
+                                <% const maxPrice = Math.max(...prices); %>
+                                <% if(minPrice !== maxPrice) { %>
+                                    ₱<%= minPrice.toFixed(2) %> - ₱<%= maxPrice.toFixed(2) %>
+                                <% } else { %>
+                                    ₱<%= minPrice.toFixed(2) %>
+                                <% } %>
+                            <% } else { %>
+                                ₱0.00
+                            <% } %>
+                        </div>
+                        
+                        <%# Improved Action Buttons Container %>
+                        <div class="text-center d-flex justify-content-center gap-2">
+                            <a href="/admin/products/edit/<%= product._id %>" class="btn btn-primary btn-sm btn-action fw-bold px-3 shadow-sm">
+                                <i class="bi bi-pencil-square"></i> Edit
                             </a>
-                            <form action="/admin/products/delete/<%= product._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this product?');" class="d-inline">
-                                <button type="submit" class="action-btn bg-transparent border-0 p-0" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <%# Trigger Modal %>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-action fw-bold px-3 shadow-sm" onclick="confirmDelete('<%= product._id %>', '<%= product.name %>')">
+                                <i class="bi bi-trash3"></i> Delete
+                            </button>
                         </div>
                     </div>
                 <% }) %>
             </div>
         <% } else { %>
-            <div class="text-center py-5">
-                <p class="text-muted">No products found. Click "Add Product" to get started.</p>
+            <div class="card text-center py-5 border-0">
+                <div class="card-body">
+                    <i class="bi bi-search fs-1 text-muted mb-3 opacity-50"></i>
+                    <h5 class="card-title fw-bold">No Products Found</h5>
+                    <p class="text-muted">Try adjusting your filters or add a new product.</p>
+                    <a href="/admin/products/add" class="btn btn-success mt-2">
+                        <i class="bi bi-plus-lg me-2"></i>Add a Product
+                    </a>
+                </div>
             </div>
         <% } %>
     </div>
 </div>
 
-<%- include('../partials/adminBottomNav', { activePage: 'products' }) %>
+<%# --- Delete Confirmation Modal --- %>
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Delete Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4 text-center">
+                <i class="bi bi-exclamation-circle text-danger display-1 mb-3"></i>
+                <p class="fs-5">Are you sure you want to delete <span id="delete-product-name" class="fw-bold">this product</span>?</p>
+                <p class="text-muted small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center gap-2 pb-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-product-form" action="" method="POST">
+                    <button type="submit" class="btn btn-danger fw-bold px-4">Yes, Delete it</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# --- Toast Notification Container --- %>
+<%# Updated: Lowered top position to 80px %>
+<div class="toast-container position-fixed end-0 p-3" style="z-index: 1100; top: 50px;">
+    <div id="liveToast" class="toast align-items-center text-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-bold" id="toast-message">
+                <%# Message will be injected here %>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
 <%- include('../partials/adminFooter') %>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. Toast Logic ---
+    const message = "<%= locals.message || '' %>";
+    const type = "<%= locals.messageType || 'success' %>";
+
+    if (message) {
+        const toastEl = document.getElementById('liveToast');
+        const toastBody = document.getElementById('toast-message');
+        
+        toastBody.textContent = message;
+        
+        // Updated: Force Blue for Success
+        if (type === 'success') {
+            toastEl.style.backgroundColor = '#0d6efd'; // Bootstrap Blue
+            toastEl.classList.remove('bg-danger', 'bg-success');
+        } else {
+            toastEl.classList.add('bg-danger');
+            toastEl.classList.remove('bg-success');
+            toastEl.style.backgroundColor = ''; // Reset inline style
+        }
+
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+
+        const url = new URL(window.location);
+        url.searchParams.delete('message');
+        url.searchParams.delete('type');
+        window.history.replaceState({}, '', url);
+    }
+
+    // --- 2. Delete Modal Logic ---
+    window.confirmDelete = (productId, productName) => {
+        const form = document.getElementById('delete-product-form');
+        const nameSpan = document.getElementById('delete-product-name');
+        
+        form.action = `/admin/products/delete/${productId}`;
+        nameSpan.textContent = productName;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+        modal.show();
+    };
+
+    // --- 3. Live Filter Logic ---
+    const setupLiveFilter = (formId, searchInputId) => {
+        const form = document.getElementById(formId);
+        const searchInput = document.getElementById(searchInputId);
+        const selects = form ? form.querySelectorAll('.filter-select') : [];
+
+        if (!form) return;
+
+        selects.forEach(select => {
+            select.addEventListener('change', () => {
+                form.submit();
+            });
+        });
+
+        let timeout = null;
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    form.submit();
+                }, 500);
+            });
+        }
+    };
+
+    setupLiveFilter('mobile-filter-form', 'mobile-search-input');
+    setupLiveFilter('desktop-filter-form', 'desktop-search-input');
+});
+</script>
