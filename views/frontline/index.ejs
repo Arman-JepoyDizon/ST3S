@@ -408,6 +408,21 @@
     let currentQty = 1;
 
     document.addEventListener('DOMContentLoaded', () => {
+        //mobile search
+        const mobileSearch = document.querySelector('#searchMenu');
+        if (mobileSearch) {
+            mobileSearch.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                document.querySelectorAll('.product-col').forEach(col => {
+                    const name = col.querySelector('.card-title').getAttribute('data-search-term');
+                    if (name.includes(term)) {
+                        col.style.display = 'block';
+                    } else {
+                        col.style.display = 'none';
+                    }
+                });
+            });
+        }
         
         // 1. Update Cart Badge & Bar (Unified Logic)
         const updateUI = () => {

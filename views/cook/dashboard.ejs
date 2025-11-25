@@ -1,134 +1,366 @@
 <%- include('../partials/cookHeader') %>
 
-<div class="d-lg-none">
-    <main class="cook-main-content">
-        <div class="card cook-summary-card mb-4">
-            <div class="card-body d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <div class="summary-icon-wrapper me-3">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
-                    <div>
-                        <h5 class="card-title mb-0 fw-bold">Active Orders</h5>
-                        <p class="card-text text-muted mb-0"><%= orders.length %> pending</p>
-                    </div>
-                </div>
-                <a href="/cook/dashboard" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-clockwise"></i>
-                </a>
-            </div>
-        </div>
+<%# --- CUSTOM STYLES FOR KDS --- %>
+<style>
+    /* --- GLOBAL --- */
+    .bg-gray-100 { background-color: #f3f4f6; }
+    body { font-family: 'Poppins', sans-serif; }
     
+    /* --- DESKTOP GRID --- */
+    .kds-container {
+        max-width: 100%;
+        padding: 1rem;
+    }
+    
+    /* Card Sizing & Layout */
+    .kds-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: white;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        height: 380px; /* Fixed Height */
+        position: relative;
+        transition: transform 0.2s;
+    }
+
+    /* Header Styles */
+    .kds-header {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #333;
+        flex-shrink: 0; 
+        height: 50px;
+    }
+
+    /* Dynamic Header Colors */
+    .header-color-0 { background-color: #fee2e2; color: #991b1b; border-left: 6px solid #dc2626; } 
+    .header-color-1 { background-color: #fef9c3; color: #854d0e; border-left: 6px solid #ca8a04; } 
+    .header-color-2 { background-color: #dcfce7; color: #166534; border-left: 6px solid #16a34a; } 
+    .header-color-3 { background-color: #dbeafe; color: #1e40af; border-left: 6px solid #2563eb; } 
+
+    .kds-id { font-family: 'Courier New', monospace; font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; }
+    .kds-timer { font-weight: 700; font-size: 0.85rem; background: rgba(255,255,255,0.6); padding: 2px 6px; border-radius: 4px; }
+    
+    /* Urgent State - FIXED OUTLINE */
+    .order-card-desktop.is-urgent .kds-card { 
+        border-color: transparent !important; 
+        box-shadow: 0 0 0 3px #dc3545 !important; 
+    }
+    .order-card-desktop.is-urgent .badge-urgent { 
+        background-color: #dc3545 !important; 
+        color: white !important; 
+    }
+    .order-card-desktop.is-urgent .kds-header {
+        border-left: none !important; 
+        background-color: #fff1f2;
+        color: #dc3545;
+        border-bottom-color: #fecaca;
+    }
+
+    /* Scrollable Items Body */
+    .kds-body {
+        padding: 0;
+        flex-grow: 1;
+        overflow-y: auto; /* Always scrollable */
+        background-color: #fff;
+    }
+    
+    .kds-body::-webkit-scrollbar { width: 6px; }
+    .kds-body::-webkit-scrollbar-track { background: transparent; }
+    .kds-body::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+    .kds-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px dashed #f3f4f6;
+    }
+    .kds-item:last-child { border-bottom: none; }
+    
+    .kds-qty { font-size: 1.15rem; font-weight: 800; color: #111827; min-width: 35px; line-height: 1.2; }
+    .kds-name { font-size: 0.95rem; font-weight: 600; color: #374151; line-height: 1.3; }
+    .kds-variant { display: inline-block; font-size: 0.75rem; color: #6b7280; background: #f3f4f6; padding: 0 6px; border-radius: 4px; margin-top: 2px; }
+
+    /* Footer: Actions */
+    .kds-footer {
+        padding: 0.75rem 1rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .btn-kds-ready {
+        flex-grow: 1; background-color: #10b981; color: white; font-weight: 700; text-transform: uppercase; border: none; padding: 0.5rem; border-radius: 6px; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.1s;
+    }
+    .btn-kds-ready:hover { background-color: #059669; }
+    
+    /* Common Icon Button Style */
+    .btn-kds-icon {
+        width: 40px; 
+        border-radius: 6px; 
+        display: flex; align-items: center; justify-content: center; 
+        font-size: 1.1rem; 
+        transition: background 0.1s;
+        border: 1px solid transparent;
+    }
+
+    /* Cancel Button Style */
+    .btn-kds-cancel { background-color: #fee2e2; color: #ef4444; border-color: #fecaca; }
+    .btn-kds-cancel:hover { background-color: #fecaca; }
+
+    /* View More Button Style */
+    .btn-kds-view { background-color: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+    .btn-kds-view:hover { background-color: #bae6fd; }
+
+    /* --- MODAL STYLES --- */
+    #fullOrderModal .modal-content { border-radius: 16px; border: none; }
+    #fullOrderModal .modal-header { background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; }
+    .modal-item-row { padding: 1rem; border-bottom: 1px solid #f1f1f1; display: flex; align-items: center; }
+    .modal-item-qty { font-size: 1.5rem; font-weight: 800; margin-right: 1.5rem; color: var(--primary-color); }
+    .modal-item-name { font-size: 1.2rem; font-weight: 600; color: #333; }
+
+    /* --- MOBILE TWEAKS --- */
+    .btn-cancel-mobile { width: 45px; height: 45px; background-color: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .btn-ready-mobile { flex-grow: 1; height: 45px; font-weight: 700; font-size: 1rem; border-radius: 10px; }
+</style>
+
+<%# --- MOBILE VIEW (Vertical List) --- %>
+<div class="d-lg-none">
+    <main class="cook-main-content bg-gray-100 min-vh-100">
         <% if (orders && orders.length > 0) { %>
             <% orders.forEach(order => { %>
-                <div class="card order-card-cook mb-4" data-created-at="<%= order.createdAt.toISOString() %>">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card order-card-cook mb-3 shadow-sm" data-created-at="<%= order.createdAt %>">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-white">
                         <div>
-                            <h5 class="fw-bold mb-0">
-                                #<%= order._id.toString().slice(-4).toUpperCase() %>
-                                <small class="text-muted fw-normal ms-2 order-timer">(00:00)</small>
-                            </h5>
-                            <small class="text-muted"><%= order.customerName ? order.customerName : 'Walk-in Customer' %></small>
+                            <h5 class="mb-0 fw-bold text-dark">ORD-<%= order._id.toString().slice(-6).toUpperCase() %></h5>
+                            <small class="text-muted item-count"><%= order.items.length %> items</small>
                         </div>
-                        <span class="badge badge-urgent d-none">URGENT</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge d-none badge-urgent">URGENT</span>
+                            <span class="fw-bold text-primary order-timer">00:00</span>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    
+                    <div class="card-body p-0">
                         <% order.items.forEach(item => { %>
-                            <div class="card order-item-card-cook mb-2">
-                                <div class="card-body d-flex align-items-center">
-                                    <span class="item-quantity"><%= item.quantity %>x</span>
+                            <div class="order-item-card-cook p-3 border-bottom">
+                                <div class="d-flex align-items-start">
+                                    <span class="item-quantity me-3 fw-bold text-dark"><%= item.quantity %>x</span>
                                     <div>
-                                        <p class="item-name mb-0"><%= item.productId ? item.productId.name : 'Product not found' %></p>
-                                        <% if (item.sizeLabel) { %><small class="text-muted"><%= item.sizeLabel %></small><% } %>
-                                        <% if (item.notes) { %><small class="d-block text-danger fst-italic">Note: <%= item.notes %></small><% } %>
+                                        <div class="item-name"><%= item.productId ? item.productId.name : 'Item' %></div>
+                                        <% if (item.sizeLabel) { %>
+                                            <small class="text-muted fw-bold bg-light px-2 py-1 rounded border"><%= item.sizeLabel %></small>
+                                        <% } %>
                                     </div>
                                 </div>
                             </div>
                         <% }) %>
                     </div>
-                    <div class="card-footer">
-                        <form action="/cook/orders/<%= order._id %>/ready" method="POST">
-                            <button type="submit" class="btn btn-success btn-ready w-100 btn-lg">
-                                <i class="bi bi-check-circle-fill me-2"></i>Ready for Pickup
+
+                    <div class="card-footer bg-white p-3">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-cancel-mobile" onclick="confirmCancel('<%= order._id %>')">
+                                <i class="bi bi-trash3"></i>
                             </button>
-                        </form>
-                    </div>
-                </div>
-            <% }) %>
-        <% } else { %>
-            <div class="card text-center py-5">
-                <div class="card-body">
-                    <div class="empty-cart-icon mb-3"><i class="bi bi-cup-hot"></i></div>
-                    <h4 class="text-muted">Waiting for new orders!</h4>
-                    <p class="text-muted">No pending orders in the queue.</p>
-                </div>
-            </div>
-        <% } %>
-    </main>
-</div>
-
-
-<div class="cook-desktop-container d-none d-lg-block">
-    <div class="cook-page-header">
-        <div class="d-flex align-items-center">
-            <div class="summary-icon-wrapper me-3">
-                <i class="bi bi-clock-history"></i>
-            </div>
-            <div>
-                <h2 class="h3 mb-0 fw-bold">Active Orders</h2>
-                <p class="text-muted mb-0"><%= orders.length %> orders in queue</p>
-            </div>
-        </div>
-        <a href="/cook/dashboard" class="btn btn-primary fw-bold">
-            <i class="bi bi-arrow-clockwise me-2"></i>Refresh
-        </a>
-    </div>
-
-    <% if (orders && orders.length > 0) { %>
-        <div class="row">
-            <% orders.forEach(order => { %>
-                <div class="col-lg-4">
-                    <div class="card order-card-desktop" data-created-at="<%= order.createdAt.toISOString() %>">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h4 class="fw-bold mb-0">#<%= order._id.toString().slice(-4).toUpperCase() %></h4>
-                                <span class="badge badge-urgent d-none">URGENT</span>
-                            </div>
-                            <p class="text-muted mb-0"><%= order.customerName ? order.customerName : 'Walk-in Customer' %></p>
-                            <small class="text-muted order-timer">00:00</small>
-                        </div>
-                        <div class="card-body">
-                            <% order.items.forEach(item => { %>
-                                <div class="order-item-desktop">
-                                    <span class="item-quantity"><%= item.quantity %>x</span>
-                                    <div>
-                                        <p class="item-name mb-0"><%= item.productId ? item.productId.name : 'Product not found' %></p>
-                                        <% if (item.sizeLabel) { %><small class="text-muted"><%= item.sizeLabel %></small><% } %>
-                                        <% if (item.notes) { %><small class="d-block text-danger fst-italic">Note: <%= item.notes %></small><% } %>
-                                    </div>
-                                </div>
-                            <% }) %>
-                        </div>
-                        <div class="card-footer">
-                            <form action="/cook/orders/<%= order._id %>/ready" method="POST">
-                                <button type="submit" class="btn btn-success btn-ready w-100 btn-lg">
-                                    <i class="bi bi-check-circle-fill me-2"></i>Ready for Pickup
+                            <form action="/cook/orders/<%= order._id %>/ready" method="POST" class="flex-grow-1">
+                                <button type="submit" class="btn btn-success w-100 btn-ready-mobile">
+                                    <i class="bi bi-check-circle-fill me-2"></i> READY
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
             <% }) %>
-        </div>
-    <% } else { %>
-         <div class="card text-center py-5" style="border: none; background: transparent;">
-            <div class="card-body">
-                <div class="empty-cart-icon mb-3" style="font-size: 5rem;"><i class="bi bi-cup-hot"></i></div>
-                <h2 class="text-muted">Waiting for new orders!</h2>
-                <p class="text-muted fs-5">No pending orders in the queue.</p>
+        <% } else { %>
+            <div class="text-center py-5 mt-5 text-muted">
+                <i class="bi bi-check-circle display-1 opacity-25"></i>
+                <h3 class="mt-3 fw-bold">All Caught Up!</h3>
+                <p>No pending orders in the queue.</p>
             </div>
-        </div>
-    <% } %>
+        <% } %>
+    </main>
+    <%- include('../partials/cookFooter') %>
 </div>
 
-<%- include('../partials/cookFooter') %>
+<%# --- DESKTOP VIEW (Grid KDS) --- %>
+<div class="d-none d-lg-block bg-gray-100 min-vh-100">
+    <div class="container-fluid kds-container">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <p class="text-muted mb-0"><%= orders.length %> active tickets</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-white text-dark border px-3 py-2 rounded-pill shadow-sm">
+                    <i class="bi bi-clock me-1"></i> <span id="desktop-clock" style="font-size: 1.5rem;">--:--</span>
+                </span>
+            </div>
+        </div>
+
+        <% if (orders && orders.length > 0) { %>
+            <div class="row row-cols-1 row-cols-lg-3 row-cols-xl-4 g-4">
+                <% orders.forEach((order, index) => { %>
+                    <% const colorIndex = index % 4; %>
+                    
+                    <div class="col order-card-desktop" data-created-at="<%= order.createdAt %>">
+                        <div class="kds-card">
+                            <%# Header %>
+                            <div class="kds-header header-color-<%= colorIndex %>">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="kds-id">ORD-<%= order._id.toString().slice(-6).toUpperCase() %></span>
+                                        <span class="badge badge-urgent d-none rounded-pill shadow-sm border-0" style="font-size: 0.65rem;">URGENT</span>
+                                    </div>
+                                    <small style="opacity: 0.8;"><%= order.customerName || 'Walk-in' %></small>
+                                </div>
+                                <span class="kds-timer order-timer">00:00</span>
+                            </div>
+
+                            <%# Body - Always Scrollable %>
+                            <div class="kds-body">
+                                <% order.items.forEach((item, i) => { %>
+                                    <div class="kds-item">
+                                        <div class="kds-qty"><%= item.quantity %></div>
+                                        <div>
+                                            <div class="kds-name"><%= item.productId ? item.productId.name : 'Unknown' %></div>
+                                            <% if (item.sizeLabel) { %>
+                                                <span class="kds-variant"><%= item.sizeLabel %></span>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                <% }) %>
+                            </div>
+
+                            <%# Footer %>
+                            <div class="kds-footer">
+                                <%# Cancel Button (Trash) %>
+                                <button type="button" class="btn-kds-icon btn-kds-cancel" title="Cancel Order" onclick="confirmCancel('<%= order._id %>')">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+
+                                <%# View More Button (Eye) - NEXT TO TRASH %>
+                                <% if (order.items.length > 4) { %>
+                                    <button type="button" class="btn-kds-icon btn-kds-view" title="View Full Details" onclick="openFullOrderModal('<%= JSON.stringify(order).replace(/'/g, "&#39;") %>')">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                <% } %>
+                                
+                                <%# Ready Button (Flex Grow) %>
+                                <form action="/cook/orders/<%= order._id %>/ready" method="POST" class="flex-grow-1">
+                                    <button type="submit" class="btn-kds-ready w-100">
+                                        MARK READY
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } else { %>
+            <div class="d-flex flex-column align-items-center justify-content-center py-5 mt-5">
+                <div class="bg-white p-5 rounded-circle shadow-sm mb-4">
+                    <i class="bi bi-cup-hot display-1 text-success opacity-50"></i>
+                </div>
+                <h2 class="fw-bold text-dark">No Orders</h2>
+                <p class="text-muted fs-5">The kitchen queue is empty.</p>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%# --- Cancel Confirmation Modal --- %>
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Cancel Request</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="fs-5 mb-1">Are you sure you want to cancel Order <span id="cancel-order-id" class="fw-bold font-monospace">#</span>?</p>
+                <p class="text-muted small">This will remove the order from the queue immediately.</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-light fw-bold px-4" data-bs-dismiss="modal">No, Keep It</button>
+                <form id="cancel-order-form" action="" method="POST">
+                    <button type="submit" class="btn btn-danger fw-bold px-4 shadow-sm">Yes, Cancel Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# --- Full Order Detail Modal --- %>
+<div class="modal fade" id="fullOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-dark">Order Details: <span id="full-order-id" class="text-primary font-monospace"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" style="max-height: 60vh; overflow-y: auto;">
+                <div id="full-order-items">
+                    </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Live Clock
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const clockEl = document.getElementById('desktop-clock');
+        if(clockEl) clockEl.innerText = timeString;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Cancel Logic
+    function confirmCancel(orderId) {
+        const modal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
+        const form = document.getElementById('cancel-order-form');
+        const idSpan = document.getElementById('cancel-order-id');
+        
+        form.action = `/cook/orders/${orderId}/cancel`; 
+        idSpan.innerText = `ORD-${orderId.slice(-6).toUpperCase()}`;
+        modal.show();
+    }
+
+    // Full View Modal Logic
+    const fullOrderModal = new bootstrap.Modal(document.getElementById('fullOrderModal'));
+    
+    function openFullOrderModal(dataStr) {
+        const data = JSON.parse(dataStr);
+        document.getElementById('full-order-id').innerText = `ORD-${data._id.slice(-6).toUpperCase()}`;
+        
+        const container = document.getElementById('full-order-items');
+        container.innerHTML = '';
+        
+        data.items.forEach(item => {
+            const row = `
+                <div class="modal-item-row">
+                    <div class="modal-item-qty">${item.quantity}</div>
+                    <div class="flex-grow-1">
+                        <div class="modal-item-name">${item.name || (item.productId ? item.productId.name : 'Item')}</div>
+                        ${item.sizeLabel ? `<span class="badge bg-light text-dark border">${item.sizeLabel}</span>` : ''}
+                    </div>
+                </div>
+            `;
+            container.innerHTML += row;
+        });
+
+        fullOrderModal.show();
+    }
+</script>

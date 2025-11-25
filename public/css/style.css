@@ -716,7 +716,6 @@ body {
 .cook-desktop-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 .cook-page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .order-card-desktop { background-color: var(--white); border: 1px solid #dee2e6; border-radius: var(--border-radius); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border-top: 5px solid transparent; transition: border-color 0.3s ease; margin-bottom: 1.5rem; }
-.order-card-desktop.is-urgent { border-color: var(--danger-text); }
 .order-card-desktop .card-header { background-color: var(--white); padding: 1rem 1.25rem; border-bottom: 1px solid #eee; }
 .order-card-desktop .card-body { padding: 1.25rem; }
 .order-item-desktop { display: flex; align-items: flex-start; padding: 0.75rem; border: 1px solid #eee; background-color: var(--white); border-radius: 8px; margin-bottom: 0.75rem; }

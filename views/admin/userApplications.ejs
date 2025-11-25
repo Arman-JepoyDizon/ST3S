@@ -173,7 +173,7 @@
                         <div class="text-muted app-contact"><%= app.contactNumber %></div>
                         <div>
                             <span class="badge badge-<%= app.positionApplied.toLowerCase().replace(' ', '-') %> px-3 py-2">
-                                <%= app.positionApplied %>
+                                <%= app.positionApplied.toLowerCase() === 'front liner' ? 'CASHIER' : user.role  %>
                             </span>
                         </div>
                         <div>

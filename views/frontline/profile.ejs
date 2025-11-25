@@ -100,7 +100,9 @@
                 <%= user.firstName.charAt(0).toUpperCase() %><%= user.lastName.charAt(0).toUpperCase() %>
             </div>
             <h4 class="fw-bold mb-1"><%= user.firstName %> <%= user.lastName %></h4>
-            <span class="badge badge-role badge-<%= user.role.toLowerCase().replace(' ', '-') %>"><%= user.role %></span>
+            <span class="badge badge-role badge-<%= user.role.toLowerCase().replace(/\s+/g, '-') %>">
+                <%= user.role.toLowerCase() === 'front liner' ? 'CASHIER' : user.role %>
+            </span>
         </div>
 
         <% if(message){ %>
