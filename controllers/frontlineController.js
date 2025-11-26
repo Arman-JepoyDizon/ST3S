@@ -399,17 +399,12 @@ const postProfileUpdate = async (req, res) => {
         return res.redirect('/login')
     }
     try{
-        const {firstName, lastName, id, contactNumber} = req.body
-        if(!firstName || !lastName || !contactNumber){
+        const {firstName, lastName, id} = req.body
+        if(!firstName || !lastName){
             return res.redirect(`/profile/${id}?message=${encodeURIComponent("Missing Required Fields")}&type=error`)
         }
 
-        const isContactNumberExists = await User.findOne({contactNumber: contactNumber})
-        if(isContactNumberExists && contactNumber != req.session.user.contactNumber){
-            return res.redirect(`/profile/${id}?message=${encodeURIComponent("Contact Number Already Taken")}&type=error`)
-        }
-
-        const UpdatedUser = await User.findByIdAndUpdate(id,{firstName, lastName, contactNumber})
+        const UpdatedUser = await User.findByIdAndUpdate(id,{firstName, lastName})
         if(!UpdatedUser){
             return res.redirect(`/profile/${id}?message=${encodeURIComponent("User Not Found")}&type=error`)
         }
