@@ -518,9 +518,19 @@ const postUpdateProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
     try {
+        const productId = req.params.id
+        const isProductOrdered = await Transaction.findOne({"items.productId": req.params.id})
+        if(isProductOrdered){
+            await Product.findOneAndUpdate({_id: req.params.id},{
+                $set:{
+                    status: "inactive"
+                }
+            })
+            return res.redirect('/admin/products?message=Cannot+delete,+Product+Already+Ordered.+Status+set+to+inactive&type=success');
+        }
+
         const product = await Product.findOneAndDelete({ _id: req.params.id, branches: req.session.user.branch });
         if (!product) { return res.status(404).send("Product not found or you do not have permission to delete it."); }
-        
         // Updated: Redirect with success message
         res.redirect('/admin/products?message=Product+deleted+successfully&type=success');
     } catch (error) {
@@ -860,6 +870,24 @@ const postUserResetPassword = async (req, res) => {
         return res.status(500).json({message: "Internal Server Error: Error Approving User"})
     }
 }
+
+const deleteTransactions = async (req, res) => {
+try{
+    if(!req.session.user || req.session.user.role != 'Admin'){
+        console.log("Not Admin")
+        return res.redirect('/login')
+    }
+
+    const isDeleted = await Transaction.deleteMany({branch: req.session.user.branch})
+    if(isDeleted){
+        console.log("Deleted")
+    }
+    return res.redirect(`/admin/orders?message=${encodeURIComponent('Transactions Deleted')}&type=${encodeURIComponent('success')}`)
+}catch(error){
+    return res.redirect(`/admin/orders?message=${encodeURIComponent('Error Deleting Transactions')}&type=${encodeURIComponent('error')}`)
+}
+    
+}
 module.exports = {
     getAnalyticsPage, getProducts, getAddProductPage, postAddProduct, getEditProductPage, postUpdateProduct,
     deleteProduct, getUserPage, getAddUserPage, postAddUser, getUserEditPage, postUserEdit, postUserDelete,
@@ -869,4 +897,5 @@ module.exports = {
     postDenyUserApplication,
     postUserResetPassword,
     postAddCategoryModal,
+    deleteTransactions
 };

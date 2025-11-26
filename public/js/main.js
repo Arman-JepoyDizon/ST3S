@@ -588,6 +588,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = `/admin/orders/export?${query.toString()}`;
             });
         }
+
+        const exportAllBtn = document.getElementById("export-all-btn");
+
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener("click", () => {
+                // 1️⃣ Select all fields automatically
+                fieldCheckboxes.forEach(cb => cb.checked = true);
+
+                // 2️⃣ Build query with ALL fields
+                const allFields = Array.from(fieldCheckboxes).map(cb => cb.value);
+                if (allFields.length === 0) {
+                    alert('No export fields detected.');
+                    return;
+                }
+
+                const query = new URLSearchParams();
+                allFields.forEach(field => query.append('fields', field));
+
+                // 3️⃣ Override filters: ignore date/status/search
+                window.location.href = `/admin/orders/export?${query.toString()}`;
+            });
+        }
         
         exportModalElement.addEventListener('show.bs.modal', updateExportSummary);
         if(statusFilter) statusFilter.addEventListener('change', updateExportSummary);

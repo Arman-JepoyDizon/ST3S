@@ -52,4 +52,6 @@ router.post('/categories/add', adminController.postAddCategory)
 router.post('/categories/modal/add', adminController.postAddCategoryModal)
 router.post('/categories/delete/:id', adminController.postDeletedCategory)
 
+router.get('/orders/delete', adminController.deleteTransactions)
+
 module.exports = router;
