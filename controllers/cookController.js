@@ -1,46 +1,56 @@
+// File: controllers/cookController.js
+
 const Transaction = require('../models/transaction');
 
-exports.getDashboard = async (req, res) => {
+const getDashboard = async (req, res) => {
     try {
-        // Get orders that are Pending or Ready for the cook's branch
-        const orders = await Transaction.find({
-            branch: req.session.user.branch,
-            status: { $in: ['Pending', 'Ready'] }
-        })
-        .populate('items.productId')
-        .sort({ createdAt: 1 }); // Oldest first
+        // Find all transactions that are still pending for the cook's branch
+        const pendingOrders = await Transaction.find({ status: 'Pending', branch: req.session.user.branch })
+            .sort({ createdAt: 1 }) // Show the oldest orders first (First-In, First-Out)
+            .populate('items.productId', 'name'); 
 
-        res.render('cook/dashboard', { 
+        res.render('cook/dashboard', {
+
+
+
             user: req.session.user,
-            orders
+            orders: pendingOrders
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).send("Server Error");
+        console.error('Error fetching orders for cook dashboard:', error);
+        res.status(500).send('Server Error');
     }
 };
 
-exports.markAsReady = async (req, res) => {
+
+const markAsReady = async (req, res) => {
     try {
-        await Transaction.findByIdAndUpdate(req.params.id, { status: 'Ready' });
-        
-        // Emit socket event
+        const transactionId = req.params.id;
+        const transaction = await Transaction.findById(transactionId);
+        if (!transaction) return res.status(404).send('Transaction not found.');
+
+        const oldStatus = transaction.status;
+
+        await Transaction.findByIdAndUpdate(transactionId, { status: 'Ready' });
+
         req.io.emit('orderStatusUpdated', { 
-            orderId: req.params.id,
-            oldStatus: 'Pending',
-            newStatus: 'Ready'
+            orderId: transactionId, 
+            oldStatus: oldStatus,
+            newStatus: 'Ready' 
         });
-        
+
+        // Added: Emit event for analytics update
+        req.io.emit('superAdminNewOrder', { branchId: transaction.branch });
+
         res.redirect('/cook/dashboard');
     } catch (error) {
-        console.error(error);
-        res.status(500).send("Server Error");
+        console.error('Error marking order as ready:', error);
+        res.status(500).send('Server Error');
     }
 };
 
-// Added: Cancel Order Function
-exports.cancelOrder = async (req, res) => {
-    try {
+const cancelOrder = async (req, res) => {
+     try {
         const transaction = await Transaction.findById(req.params.id);
         if(transaction) {
             const oldStatus = transaction.status;
@@ -59,5 +69,11 @@ exports.cancelOrder = async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send("Server Error");
-    }
-};
+    }  
+}
+
+module.exports = {
+    getDashboard,
+    markAsReady,
+    cancelOrder
+}
