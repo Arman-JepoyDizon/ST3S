@@ -13,13 +13,12 @@ const isCook = (req, res, next) => {
     res.redirect('/login'); 
 };
 
-
 router.use(isCook);
 
-
 router.get('/dashboard', cookController.getDashboard);
-
-
 router.post('/orders/:id/ready', cookController.markAsReady);
+
+// Added: Cancel Route
+router.post('/orders/:id/cancel', cookController.cancelOrder);
 
 module.exports = router;
