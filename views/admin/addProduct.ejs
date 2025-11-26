@@ -32,6 +32,7 @@
                                     <% categories.forEach(cat => { %>
                                         <option value="<%= cat._id %>"><%= cat.name %></option>
                                     <% }) %>
+                                    <option value="__add_new__" class="text-primary fw-bold">+ Add New Category</option>
                                 </select>
                                 <label for="categoryMobile">Category</label>
                             </div>
@@ -113,7 +114,9 @@
                                 <% categories.forEach(cat => { %>
                                     <option value="<%= cat._id %>"><%= cat.name %></option>
                                 <% }) %>
+                                <option value="__add_new__" class="text-primary fw-bold">+ Add New Category</option>
                             </select>
+
                             <label for="categoryDesktop">Category</label>
                         </div>
                     </div>
@@ -152,6 +155,34 @@
         </div>
     </div>
 </div>
+
+<!-- ADD CATEGORY MODAL -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+        <div class="modal-header">
+            <h5 class="modal-title">Add New Category</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-floating">
+            <input type="text" class="form-control" id="newCategoryName" placeholder="">
+            <label for="newCategoryName">Category Name</label>
+            </div>
+            <div id="categoryError" class="text-danger small mt-2 d-none"></div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-primary" id="saveCategoryBtn">Save</button>
+        </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
   const addSizeBtn = document.getElementById('add-size-btn');
   const priceContainer = document.getElementById('price-container');
@@ -231,8 +262,101 @@
 <%- include('../partials/adminFooter') %>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
 
+document.addEventListener('DOMContentLoaded', () => {
+    //for Mobile:
+    const categoryMobile = document.getElementById("categoryMobile");
+    const categoryDesktop = document.getElementById("categoryDesktop");
+
+    const modalEl = document.getElementById("addCategoryModal");
+    const categoryModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    // Reset select helper
+    const resetSelect = select => { if (select) select.value = ""; };
+
+    // Open modal when selecting "+ Add New Category"
+    [categoryMobile, categoryDesktop].forEach(select => {
+        if (!select) return;
+
+        select.addEventListener("change", () => {
+            if (select.value === "__add_new__") {
+                categoryModal.show();
+                resetSelect(select);
+            }
+        });
+    });
+
+    // Save Category
+    document.getElementById("saveCategoryBtn").addEventListener("click", async () => {
+        const nameInput = document.getElementById("newCategoryName");
+        const errorBox = document.getElementById("categoryError");
+
+        const name = nameInput.value.trim();
+
+        if (!name) {
+            errorBox.textContent = "Category name is required.";
+            errorBox.classList.remove("d-none");
+            return;
+        }
+
+        errorBox.classList.add("d-none");
+
+        const res = await fetch("/admin/categories/modal/add", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            console.log("Error Adding Category")
+            errorBox.textContent = data.message || "Error adding category.";
+            errorBox.classList.remove("d-none");
+            return;
+        }
+
+        // Add new category to both dropdowns
+        const addNewOptionDesktop = categoryDesktop.querySelector('option[value="__add_new__"]');
+        const addNewOptionMobile = categoryMobile.querySelector('option[value="__add_new__"]');
+
+        // Create the new option
+        const option = document.createElement("option");
+        option.value = data.category._id;
+        option.textContent = data.category.name;
+
+        // Insert before the "Add new category" option
+        if (categoryMobile) categoryMobile.insertBefore(option.cloneNode(true), addNewOptionMobile);
+        if (categoryDesktop) categoryDesktop.insertBefore(option.cloneNode(true), addNewOptionDesktop);
+
+        categoryModal.hide();
+
+        document.getElementById('categoryMobile').value = data.category._id;
+        document.getElementById('categoryDesktop').value = data.category._id;
+
+        showToast(data.message, data.type);
+    });
+
+    // Toast
+    function showToast(msg, type) {
+        const t = document.createElement("div");
+        const messageType = type === "success" ? "success" : "danger";
+
+        t.className = "toast text-white show position-fixed end-0 m-3";
+        t.style.zIndex = "9999"; // above modals
+        t.style.top = "40px"; // push below navbar
+
+        t.innerHTML = `
+            <div class="toast-body d-flex justify-content-between align-items-center bg-${messageType}">
+                ${msg}
+                <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.parentElement.remove()"></button>
+            </div>
+        `;
+
+        document.body.appendChild(t);
+
+        setTimeout(() => t.remove(), 3000);
+    }
     // ================== SCRIPT FOR MOBILE FORM ==================
     const addSizeBtnMobile = document.getElementById('add-size-btn-mobile');
     const priceContainerMobile = document.getElementById('price-container-mobile');

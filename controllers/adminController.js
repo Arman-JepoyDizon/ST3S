@@ -714,6 +714,26 @@ const postAddCategory = async (req, res) => {
     }
 };
 
+const postAddCategoryModal = async (req, res) => {
+    try {
+        const { name } = req.body;
+        if(!name || name.trim().length === 0) throw new Error("Category name required.");
+        
+        const existingCategory = await Category.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } });
+        if (existingCategory){
+            return res.status(400).json({message: `Category ${name} Already Exists`, type: "error"})
+         }
+        
+        const newCategory = await Category.create({ name: name.trim() });
+        console.log("New Category: ", newCategory)
+
+        return res.status(200).json({message: "Category added successfully", type: "success", category: newCategory })
+    } catch (error) {
+        console.log("Error adding category from modal: ", error)
+        return res.status(500).json({message: `Error Creating Category: ${error}`, type: "error"})
+    }
+};
+
 const postEditCategory = async (req, res) => {
      const categoryId = req.params.id;
     try {
@@ -848,4 +868,5 @@ module.exports = {
     postApproveUserApplication,
     postDenyUserApplication,
     postUserResetPassword,
+    postAddCategoryModal,
 };
